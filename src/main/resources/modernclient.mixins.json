@@ -1,0 +1,29 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "net.modernclient.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [],
+  "client": [
+    "AvatarRendererMixin",
+    "CameraInvoker",
+    "CameraMixin",
+    "ClientPacketListenerMixin",
+    "EditBoxMixin",
+    "GameRendererFreeLookMixin",
+    "LightmapRenderStateExtractorMixin",
+    "LogoRendererMixin",
+    "MinecraftAccessor",
+    "MouseHandlerFreecamMixin",
+    "MouseHandlerMixin",
+    "MultiPlayerGameModeAccessor",
+    "MultiPlayerGameModeMixin",
+    "NametagIconMixin",
+    "PlayerTabOverlayMixin",
+    "SplashRendererMixin",
+    "TitleScreenMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

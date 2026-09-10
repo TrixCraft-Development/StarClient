@@ -1,0 +1,42 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' version '1.17.17'
+    id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.mod_group
+
+repositories {
+    mavenCentral()
+    maven { url 'https://maven.fabricmc.net/' }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    // GSON for settings serialization
+    implementation 'com.google.code.gson:gson:2.10.1'
+}
+
+processResources {
+    inputs.property "version", project.version
+
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.fork = true
+    options.forkOptions.executable = "C:/Program Files/Java/jdk-25.0.3/bin/javac.exe"
+}
+
+java {
+    withSourcesJar()
+}
+
+jar {
+    // Packaged as executable Fabric Mod JAR for MC 26.2 (Java 25)
+}
