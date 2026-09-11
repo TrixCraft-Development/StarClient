@@ -11,6 +11,7 @@ import net.modernclient.setting.BooleanSetting;
 import net.modernclient.setting.ModeSetting;
 import net.modernclient.setting.NumberSetting;
 import net.modernclient.setting.Setting;
+import org.jspecify.annotations.NonNull;
 
 import java.io.File;
 import java.io.FileReader;
@@ -50,29 +51,7 @@ public class ConfigManager {
     public void saveConfig() {
         try {
             JsonObject root = new JsonObject();
-            JsonObject modulesObj = new JsonObject();
-
-            for (Module module : ModernClient.getInstance().getModuleManager().getModules()) {
-                JsonObject modObj = new JsonObject();
-                modObj.addProperty("enabled", module.isEnabled());
-                modObj.addProperty("keybind", module.getKeyBind());
-
-                if (!module.getSettings().isEmpty()) {
-                    JsonObject settingsObj = new JsonObject();
-                    for (Setting<?> setting : module.getSettings()) {
-                        if (setting instanceof BooleanSetting bs) {
-                            settingsObj.addProperty(setting.getName(), bs.getValue());
-                        } else if (setting instanceof NumberSetting ns) {
-                            settingsObj.addProperty(setting.getName(), ns.getValue());
-                        } else if (setting instanceof ModeSetting ms) {
-                            settingsObj.addProperty(setting.getName(), ms.getValue());
-                        }
-                    }
-                    modObj.add("settings", settingsObj);
-                }
-
-                modulesObj.add(module.getName(), modObj);
-            }
+            JsonObject modulesObj = getJsonObject();
 
             root.add("modules", modulesObj);
             root.add("hudLayout", ModernClient.getInstance().getHudLayout().toJson());
@@ -88,6 +67,38 @@ public class ConfigManager {
         } catch (Exception e) {
             ModernClient.LOGGER.error("Failed to save client configuration!", e);
         }
+    }
+
+    private static @NonNull JsonObject getJsonObject() {
+        JsonObject modulesObj = new JsonObject();
+
+        for (Module module : ModernClient.getInstance().getModuleManager().getModules()) {
+            JsonObject modObj = new JsonObject();
+            modObj.addProperty("enabled", module.isEnabled());
+            modObj.addProperty("keybind", module.getKeyBind());
+
+            if (!module.getSettings().isEmpty()) {
+                JsonObject settingsObj = getJsonObject(module);
+                modObj.add("settings", settingsObj);
+            }
+
+            modulesObj.add(module.getName(), modObj);
+        }
+        return modulesObj;
+    }
+
+    private static @NonNull JsonObject getJsonObject(Module module) {
+        JsonObject settingsObj = new JsonObject();
+        for (Setting<?> setting : module.getSettings()) {
+            if (setting instanceof BooleanSetting bs) {
+                settingsObj.addProperty(setting.getName(), bs.getValue());
+            } else if (setting instanceof NumberSetting ns) {
+                settingsObj.addProperty(setting.getName(), ns.getValue());
+            } else if (setting instanceof ModeSetting ms) {
+                settingsObj.addProperty(setting.getName(), ms.getValue());
+            }
+        }
+        return settingsObj;
     }
 
     public void loadConfig() {
@@ -113,12 +124,15 @@ public class ConfigManager {
                             JsonObject settingsObj = modObj.getAsJsonObject("settings");
                             for (Setting<?> setting : module.getSettings()) {
                                 if (settingsObj.has(setting.getName())) {
-                                    if (setting instanceof BooleanSetting bs) {
-                                        bs.setValue(settingsObj.get(setting.getName()).getAsBoolean());
-                                    } else if (setting instanceof NumberSetting ns) {
-                                        ns.setValue(settingsObj.get(setting.getName()).getAsDouble());
-                                    } else if (setting instanceof ModeSetting ms) {
-                                        ms.setValue(settingsObj.get(setting.getName()).getAsString());
+                                    switch (setting) {
+                                        case BooleanSetting bs ->
+                                                bs.setValue(settingsObj.get(setting.getName()).getAsBoolean());
+                                        case NumberSetting ns ->
+                                                ns.setValue(settingsObj.get(setting.getName()).getAsDouble());
+                                        case ModeSetting ms ->
+                                                ms.setValue(settingsObj.get(setting.getName()).getAsString());
+                                        default -> {
+                                        }
                                     }
                                 }
                             }

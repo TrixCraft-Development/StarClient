@@ -14,12 +14,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class NametagIconMixin<T extends Entity, S extends EntityRenderState> {
 
     @Inject(method = "getNameTag(Lnet/minecraft/world/entity/Entity;)Lnet/minecraft/network/chat/Component;", at = @At("RETURN"), cancellable = true)
-    private void modernclient$prependNametagIcon(Entity entity, CallbackInfoReturnable<Component> cir) {
+    private void prependNametagIcon(Entity entity, CallbackInfoReturnable<Component> cir) {
         Minecraft client = Minecraft.getInstance();
         if (client.player != null && entity == client.player) {
             Component name = cir.getReturnValue();
             if (name != null) {
-                Component icon = Component.literal("\u2B50").withStyle(style -> style.withColor(0xFFD700));
+                Component icon = Component.literal("⭐").withStyle(style -> style.withColor(0xFFD700));
                 Component result = Component.literal("").append(icon).append(Component.literal(" ")).append(name);
                 cir.setReturnValue(result);
             }

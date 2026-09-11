@@ -21,7 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ModernClient implements ClientModInitializer {
-    public static final String MOD_ID = "modernclient";
+    public static final String MOD_ID = "starclient";
     public static final String CLIENT_NAME = "Star Client";
     public static final String CONFIG_FOLDER = "config/starclient";
     public static final String CLIENT_VERSION = "v" + getModVersion();

@@ -13,15 +13,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class LightmapRenderStateExtractorMixin {
 
     @Inject(method = "extract(Lnet/minecraft/client/renderer/state/LightmapRenderState;F)V", at = @At("TAIL"))
-    private void modernclient$fullbright(LightmapRenderState state, float partialTick, CallbackInfo ci) {
+    private void fullbright(LightmapRenderState renderState, float partialTicks, CallbackInfo ci) {
         if (FullbrightState.isGammaActive()) {
-            state.brightness = 1.0f;
-            state.blockFactor = 3.0f;
-            state.skyFactor = 3.0f;
-            state.ambientColor = new Vector3f(1.0f, 1.0f, 1.0f);
-            state.darknessEffectScale = 0.0f;
-            state.nightVisionEffectIntensity = 0.0f;
-            state.needsUpdate = true;
+            renderState.brightness = 1.0f;
+            renderState.blockFactor = 3.0f;
+            renderState.skyFactor = 3.0f;
+            renderState.ambientColor = new Vector3f(1.0f, 1.0f, 1.0f);
+            renderState.darknessEffectScale = 0.0f;
+            renderState.nightVisionEffectIntensity = 0.0f;
+            renderState.needsUpdate = true;
         }
     }
 }

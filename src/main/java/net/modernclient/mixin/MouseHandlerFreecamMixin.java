@@ -25,7 +25,7 @@ public abstract class MouseHandlerFreecamMixin {
     private double accumulatedDY;
 
     @Inject(method = "handleAccumulatedMovement", at = @At("HEAD"), cancellable = true)
-    private void modernclient$cameraTurn(CallbackInfo ci) {
+    private void cameraTurn(CallbackInfo ci) {
         if (!FreeCamState.isActive() && !FreeLookState.isActive()) return;
 
         double sensitivity = minecraft.options.sensitivity().get() * 0.6 + 0.2;

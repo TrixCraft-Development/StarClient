@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class SplashRendererMixin {
 
     @Inject(method = "extractRenderState(Lnet/minecraft/client/gui/GuiGraphicsExtractor;ILnet/minecraft/client/gui/Font;F)V", at = @At("HEAD"), cancellable = true)
-    private void modernclient$hideSplash(GuiGraphicsExtractor extractor, int screenWidth, Font font, float alpha, CallbackInfo ci) {
+    private void hideSplash(GuiGraphicsExtractor graphics, int screenWidth, Font font, float alpha, CallbackInfo ci) {
         ci.cancel();
     }
 }

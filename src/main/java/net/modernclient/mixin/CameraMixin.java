@@ -9,6 +9,7 @@ import net.modernclient.module.FreeCamState;
 import net.modernclient.module.FreeLookState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -16,15 +17,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(Camera.class)
 public abstract class CameraMixin {
 
+    @Unique
     private static final double FREE_LOOK_DISTANCE = 4.0;
 
     @Shadow
     private boolean detached;
 
     @Inject(method = "update(Lnet/minecraft/client/DeltaTracker;)V", at = @At("TAIL"))
-    private void modernclient$cameraOverride(DeltaTracker deltaTracker, CallbackInfo ci) {
+    private void cameraOverride(DeltaTracker deltaTracker, CallbackInfo ci) {
         LocalPlayer player = Minecraft.getInstance().player;
-        CameraInvoker invoker = (CameraInvoker) (Object) this;
+        CameraInvoker invoker = (CameraInvoker) this;
 
         if (FreeCamState.isActive()) {
             if (!FreeCamState.isInitialized()) {

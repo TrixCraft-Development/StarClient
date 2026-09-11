@@ -13,6 +13,7 @@ import net.modernclient.module.AutoToolState;
 import net.modernclient.module.FastBreakState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -25,7 +26,7 @@ public abstract class MultiPlayerGameModeMixin {
     private float destroyProgress;
 
     @Inject(method = "startDestroyBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Z", at = @At("HEAD"))
-    private void modernclient$autoToolSelect(BlockPos pos, Direction direction, CallbackInfoReturnable<Boolean> cir) {
+    private void autoToolSelect(BlockPos pos, Direction direction, CallbackInfoReturnable<Boolean> cir) {
         if (!AutoToolState.isActive()) return;
         Minecraft client = Minecraft.getInstance();
         Player player = client.player;
@@ -46,7 +47,7 @@ public abstract class MultiPlayerGameModeMixin {
     }
 
     @Inject(method = "stopDestroyBlock()V", at = @At("HEAD"))
-    private void modernclient$autoToolRestore(CallbackInfo ci) {
+    private void autoToolRestore(CallbackInfo ci) {
         if (!AutoToolState.isActive() || !AutoToolState.isSwitchBack()) return;
         if (!AutoToolState.isMining()) return;
         Minecraft client = Minecraft.getInstance();
@@ -57,7 +58,7 @@ public abstract class MultiPlayerGameModeMixin {
     }
 
     @Inject(method = "continueDestroyBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Z", at = @At("HEAD"))
-    private void modernclient$fastBreakBoost(BlockPos pos, Direction direction, CallbackInfoReturnable<Boolean> cir) {
+    private void fastBreakBoost(BlockPos pos, Direction direction, CallbackInfoReturnable<Boolean> cir) {
         if (!FastBreakState.isActive()) return;
         float speed = (float) FastBreakState.getSpeed();
         if (speed <= 1.0F) return;
@@ -66,6 +67,7 @@ public abstract class MultiPlayerGameModeMixin {
         this.destroyProgress = Math.min(0.99F, progress + progress * (speed - 1.0F));
     }
 
+    @Unique
     private static int findBestSlot(Inventory inventory, BlockState state, int current) {
         int best = current;
         float bestSpeed = inventory.getItem(current).getDestroySpeed(state);

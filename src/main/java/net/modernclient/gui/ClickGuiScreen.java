@@ -38,7 +38,7 @@ public class ClickGuiScreen extends Screen {
     private static final String RELOAD_ROW = "#reload";
     private static final String HEADER_PREFIX = "#header:";
 
-    private Category selectedCategory = Category.COMBAT;
+    private static Category selectedCategory = Category.COMBAT;
     private final int guiWidth = 520;
     private final int guiHeight = 340;
 
@@ -69,7 +69,7 @@ public class ClickGuiScreen extends Screen {
         int searchX = startX + 16 + this.font.width("⭐ " + ModernClient.CLIENT_NAME + " " + ModernClient.CLIENT_VERSION) + 24;
         int searchWidth = startX + guiWidth - 16 - searchX;
 
-        this.searchBox = new EditBox(this.font, searchX + 2, startY + (HEADER_HEIGHT - SEARCH_HEIGHT) / 2, searchWidth - 2, SEARCH_HEIGHT, Component.literal(""));
+        this.searchBox = new EditBox(this.font, searchX + 4, startY + (HEADER_HEIGHT - SEARCH_HEIGHT) / 2, searchWidth - 4, SEARCH_HEIGHT, Component.literal(""));
         this.searchBox.setResponder(value -> this.searchQuery = value);
         this.searchBox.setHint(Component.literal("Search modules..."));
         this.searchBox.setMaxLength(64);
@@ -165,14 +165,14 @@ public class ClickGuiScreen extends Screen {
         HudLayout layout = ModernClient.getInstance().getHudLayout();
         List<HudLayout.Rect> rects = HudLayout.computeRects(this.font, getActiveModules(), this.width, this.height, layout);
         for (HudLayout.Rect rect : rects) {
-            if (!isHudElementVisible(rect.id)) continue;
+            if (!isHudElementVisible(rect.id())) continue;
             boolean hovered = rect.contains(mouseX, mouseY);
-            boolean dragging = rect.id.equals(draggingElement);
+            boolean dragging = rect.id().equals(draggingElement);
             int borderColor = dragging ? 0xFF38BDF8 : (hovered ? 0xAA38BDF8 : 0x5516A34A);
-            drawOutline(extractor, rect.x1, rect.y1, rect.x2, rect.y2, borderColor);
+            drawOutline(extractor, rect.x1(), rect.y1(), rect.x2(), rect.y2(), borderColor);
 
-            String label = "✥ " + rect.id + (dragging ? " (dragging)" : "");
-            extractor.text(this.font, label, rect.x1, rect.y1 - 10, hovered || dragging ? 0xFF38BDF8 : 0xFF64748B);
+            String label = "✥ " + rect.id() + (dragging ? " (dragging)" : "");
+            extractor.text(this.font, label, rect.x1(), rect.y1() - 10, hovered || dragging ? 0xFF38BDF8 : 0xFF64748B);
         }
 
         if (isCosmeticsView()) {
@@ -496,7 +496,7 @@ public class ClickGuiScreen extends Screen {
     }
 
     @Override
-    public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
+    public boolean keyPressed(net.minecraft.client.input.@NonNull KeyEvent event) {
         if (bindingModule != null) {
             int key = event.key();
             if (key == GLFW.GLFW_KEY_ESCAPE) {
@@ -543,7 +543,7 @@ public class ClickGuiScreen extends Screen {
         int catY = startY + 48;
         for (Category category : Category.values()) {
             if (mouseX >= startX && mouseX <= startX + SIDEBAR_WIDTH && mouseY >= catY - 4 && mouseY <= catY + 20) {
-                this.selectedCategory = category;
+                selectedCategory = category;
                 this.moduleScroll = 0;
                 return true;
             }
@@ -586,7 +586,7 @@ public class ClickGuiScreen extends Screen {
         }
 
         // Check HUD Element drag / reset
-        // Grabbing a HUD element begins a potential drag. A double-click (handled on
+        // Grabbing a HUD element begins a potential drag. A double click (handled on
         // release) resets the element to its default position.
         HudLayout layout = ModernClient.getInstance().getHudLayout();
         List<HudLayout.Rect> rects = HudLayout.computeRects(this.font, getActiveModules(), this.width, this.height, layout);
@@ -606,9 +606,9 @@ public class ClickGuiScreen extends Screen {
 
     private String hudElementAt(List<HudLayout.Rect> rects, double mouseX, double mouseY) {
         for (HudLayout.Rect rect : rects) {
-            if (!isHudElementVisible(rect.id)) continue;
+            if (!isHudElementVisible(rect.id())) continue;
             if (rect.contains(mouseX, mouseY)) {
-                return rect.id;
+                return rect.id();
             }
         }
         return null;
@@ -636,7 +636,7 @@ public class ClickGuiScreen extends Screen {
         if (draggingElement != null) {
             boolean visible = false;
             for (HudLayout.Rect rect : rects) {
-                if (rect.id.equals(draggingElement) && isHudElementVisible(rect.id)) {
+                if (rect.id().equals(draggingElement) && isHudElementVisible(rect.id())) {
                     visible = true;
                     break;
                 }

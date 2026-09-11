@@ -61,40 +61,25 @@ public class HudLayout {
     }
 
     public int effectiveX(String id, int screenWidth, int maxModWidth) {
-        switch (id) {
-            case FPS:
-            case PING:
-                return isAuto(id) ? 8 : getX(id);
-            case COORDINATES:
-                return isAuto(id) ? 8 : getX(id);
-            case ARRAYLIST:
-                return isAuto(id) ? screenWidth - maxModWidth - 8 : getX(id);
-            case KEYSTROKES:
-                return isAuto(id) ? screenWidth - 80 : getX(id);
-            case ARMOR:
-                return isAuto(id) ? (screenWidth - armorWidth()) / 2 : getX(id);
-            default:
-                return getX(id);
-        }
+        return switch (id) {
+            case FPS, PING, COORDINATES -> isAuto(id) ? 8 : getX(id);
+            case ARRAYLIST -> isAuto(id) ? screenWidth - maxModWidth - 8 : getX(id);
+            case KEYSTROKES -> isAuto(id) ? screenWidth - 80 : getX(id);
+            case ARMOR -> isAuto(id) ? (screenWidth - armorWidth()) / 2 : getX(id);
+            default -> getX(id);
+        };
     }
 
     public int effectiveY(String id, int screenHeight) {
-        switch (id) {
-            case FPS:
-                return isAuto(id) ? screenHeight - 26 : getY(id);
-            case PING:
-                return isAuto(id) ? screenHeight - 50 : getY(id);
-            case COORDINATES:
-                return isAuto(id) ? screenHeight - 74 : getY(id);
-            case ARRAYLIST:
-                return isAuto(id) ? 8 : getY(id);
-            case KEYSTROKES:
-                return isAuto(id) ? screenHeight - 85 : getY(id);
-            case ARMOR:
-                return isAuto(id) ? screenHeight - armorHeight() - 8 : getY(id);
-            default:
-                return getY(id);
-        }
+        return switch (id) {
+            case FPS -> isAuto(id) ? screenHeight - 26 : getY(id);
+            case PING -> isAuto(id) ? screenHeight - 50 : getY(id);
+            case COORDINATES -> isAuto(id) ? screenHeight - 74 : getY(id);
+            case ARRAYLIST -> isAuto(id) ? 8 : getY(id);
+            case KEYSTROKES -> isAuto(id) ? screenHeight - 85 : getY(id);
+            case ARMOR -> isAuto(id) ? screenHeight - armorHeight() - 8 : getY(id);
+            default -> getY(id);
+        };
     }
 
     public boolean isArmorVertical() {
@@ -137,22 +122,12 @@ public class HudLayout {
         }
     }
 
-    public static class Rect {
-        public final String id;
-        public final int x1, y1, x2, y2;
-
-        public Rect(String id, int x1, int y1, int x2, int y2) {
-            this.id = id;
-            this.x1 = x1;
-            this.y1 = y1;
-            this.x2 = x2;
-            this.y2 = y2;
-        }
+    public record Rect(String id, int x1, int y1, int x2, int y2) {
 
         public boolean contains(double x, double y) {
-            return x >= x1 && x <= x2 && y >= y1 && y <= y2;
+                return x >= x1 && x <= x2 && y >= y1 && y <= y2;
+            }
         }
-    }
 
     public static List<Rect> computeRects(Font font, List<Module> activeModules, int screenWidth, int screenHeight, HudLayout layout) {
         List<Rect> rects = new ArrayList<>();

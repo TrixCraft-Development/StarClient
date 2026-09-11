@@ -10,6 +10,7 @@ import net.modernclient.module.Module;
 import net.modernclient.setting.Setting;
 
 import java.util.ArrayDeque;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -69,7 +70,7 @@ public class HudOverlay {
         if (activeModsMod != null && activeModsMod.isEnabled()) {
             List<Module> activeModules = ModernClient.getInstance().getModuleManager().getModules().stream()
                     .filter(Module::isEnabled)
-                    .sorted((a, b) -> Integer.compare(client.font.width(b.getName()), client.font.width(a.getName())))
+                    .sorted(Comparator.comparing(m -> m.getName().toLowerCase()))
                     .collect(Collectors.toList());
 
             int maxModWidth = activeModules.stream().mapToInt(m -> client.font.width(m.getName()) + 12).max().orElse(0);

@@ -13,11 +13,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class PlayerTabOverlayMixin {
 
     @Inject(method = "getNameForDisplay(Lnet/minecraft/client/multiplayer/PlayerInfo;)Lnet/minecraft/network/chat/Component;", at = @At("RETURN"), cancellable = true)
-    private void modernclient$prependStar(PlayerInfo info, CallbackInfoReturnable<Component> cir) {
+    private void prependStar(PlayerInfo info, CallbackInfoReturnable<Component> cir) {
         Minecraft client = Minecraft.getInstance();
         Component name = cir.getReturnValue();
         if (client.player != null && name != null && info.getProfile().id().equals(client.player.getUUID())) {
-            Component icon = Component.literal("\u2B50").withStyle(style -> style.withColor(0xFFD700));
+            Component icon = Component.literal("⭐").withStyle(style -> style.withColor(0xFFD700));
             cir.setReturnValue(Component.literal("").append(icon).append(Component.literal(" ")).append(name));
         }
     }

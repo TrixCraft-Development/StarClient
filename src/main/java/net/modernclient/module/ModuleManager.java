@@ -12,6 +12,7 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.item.Item;
@@ -19,7 +20,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ItemAttributeModifiers;
 import net.minecraft.world.item.equipment.Equippable;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.Vec2;
@@ -51,25 +51,19 @@ public class ModuleManager {
 
             @Override
             public void onEnable() {
-                if (mc.options != null) {
-                    previousGamma = mc.options.gamma().get();
-                }
+                previousGamma = mc.options.gamma().get();
                 apply(mc);
             }
 
             @Override
             public void onTick(Minecraft client) {
-                if (mc.options != null) {
-                    apply(client);
-                }
+                apply(client);
             }
 
             @Override
             public void onDisable() {
                 FullbrightState.setGammaActive(false);
-                if (mc.options != null) {
-                    mc.options.gamma().set(previousGamma);
-                }
+                mc.options.gamma().set(previousGamma);
                 if (mc.player != null) {
                     mc.player.removeEffect(MobEffects.NIGHT_VISION);
                     mc.player.removeEffect(MobEffects.DARKNESS);
@@ -81,7 +75,7 @@ public class ModuleManager {
                 boolean useGamma = "Gamma".equals(mode) || "Both".equals(mode);
                 boolean useNightVision = "Night Vision".equals(mode) || "Both".equals(mode);
                 FullbrightState.setGammaActive(useGamma);
-                if (useGamma && mc.options != null) {
+                if (useGamma) {
                     mc.options.gamma().set(1.0);
                 }
                 if (useNightVision && client.player != null) {
@@ -346,6 +340,7 @@ public class ModuleManager {
             }
 
             private boolean isWaterAt(Minecraft client, double x, double y, double z) {
+                assert client.level != null;
                 Fluid fluid = client.level.getFluidState(BlockPos.containing(x, y, z)).getType();
                 return fluid.isSame(Fluids.WATER);
             }
@@ -536,14 +531,12 @@ public class ModuleManager {
                 if (item == Items.IRON_AXE || item == Items.COPPER_AXE) return 1.11;
                 if (item == Items.STONE_AXE || item == Items.DIAMOND_AXE || item == Items.NETHERITE_AXE) return 1.25;
                 if (item == Items.WOODEN_HOE || item == Items.STONE_HOE) return 0.50;
-                if (item == Items.IRON_HOE || item == Items.GOLDEN_HOE || item == Items.DIAMOND_HOE
-                        || item == Items.NETHERITE_HOE || item == Items.COPPER_HOE) {
-                    return 0.25;
-                }
                 return 0.25;
             }
 
             private void doAttack(Minecraft client, Entity target, boolean resetCooldown) {
+                assert client.player != null;
+                assert client.gameMode != null;
                 client.gameMode.attack(client.player, target);
                 if (resetCooldown) client.player.resetAttackStrengthTicker();
                 client.player.swing(InteractionHand.MAIN_HAND);
@@ -554,23 +547,18 @@ public class ModuleManager {
                 double maxRange = getRange();
                 Entity best = null;
                 double bestDist = Double.MAX_VALUE;
+                assert client.level != null;
                 for (Entity entity : client.level.entitiesForRendering()) {
                     if (entity == client.player || !entity.isAlive()) continue;
                     boolean isPlayer = entity instanceof Player;
                     boolean isMob = entity instanceof Mob;
-                    boolean match;
-                    switch (targets) {
-                        case "Players Only":
-                            match = isPlayer;
-                            break;
-                        case "Mobs Only":
-                            match = isMob;
-                            break;
-                        default:
-                            match = isPlayer || isMob;
-                            break;
-                    }
+                    boolean match = switch (targets) {
+                        case "Players Only" -> isPlayer;
+                        case "Mobs Only" -> isMob;
+                        default -> isPlayer || isMob;
+                    };
                     if (!match) continue;
+                    assert client.player != null;
                     double dist = entity.distanceTo(client.player);
                     if (dist <= maxRange && dist < bestDist) {
                         bestDist = dist;
@@ -630,9 +618,7 @@ public class ModuleManager {
             @Override
             public void onDisable() {
                 Minecraft client = Minecraft.getInstance();
-                if (client != null) {
-                    ((MinecraftAccessor) client).setRightClickDelay(4);
-                }
+                ((MinecraftAccessor) client).setRightClickDelay(4);
             }
         });
 
@@ -681,7 +667,6 @@ public class ModuleManager {
             public void onTick(Minecraft client) {
                 if (client.player == null || client.level == null) return;
                 Player player = client.player;
-                if (player.getAbilities().instabuild) return;
                 if (player.containerMenu != player.inventoryMenu) return;
                 if (++cooldownTicks < getDelay()) return;
                 cooldownTicks = 0;
@@ -703,7 +688,15 @@ public class ModuleManager {
                         }
                     }
                     if (bestIndex >= 0) {
+                        if (!equipped.isEmpty()) {
+                            int armorSlot = armorMenuSlot(slot);
+                            if (armorSlot >= 0) {
+                                assert client.gameMode != null;
+                                client.gameMode.handleContainerInput(InventoryMenu.CONTAINER_ID, armorSlot, 0, ContainerInput.QUICK_MOVE, player);
+                            }
+                        }
                         int menuSlot = containerToMenuSlot(bestIndex);
+                        assert client.gameMode != null;
                         client.gameMode.handleContainerInput(InventoryMenu.CONTAINER_ID, menuSlot, 0, ContainerInput.QUICK_MOVE, player);
                         return;
                     }
@@ -733,6 +726,16 @@ public class ModuleManager {
                     value += 2.0 * (1.0 - stack.getDamageValue() / max);
                 }
                 return value;
+            }
+
+            private static int armorMenuSlot(EquipmentSlot slot) {
+                return switch (slot) {
+                    case HEAD -> InventoryMenu.ARMOR_SLOT_START;
+                    case CHEST -> InventoryMenu.ARMOR_SLOT_START + 1;
+                    case LEGS -> InventoryMenu.ARMOR_SLOT_START + 2;
+                    case FEET -> InventoryMenu.ARMOR_SLOT_START + 3;
+                    default -> -1;
+                };
             }
 
             private static int containerToMenuSlot(int containerIndex) {
@@ -769,25 +772,13 @@ public class ModuleManager {
 
         register(new Module("Safe Walk", "Stops you from walking off block edges.", Category.MOVEMENT) {
             @Override
-            public void onTick(Minecraft client) {
-                if (client.player == null || client.level == null) return;
-                if (client.options.keyShift.isDown()) return;
-                if (client.player.isInWater() || client.player.isInLava()) return;
-                if (client.player.getAbilities().flying) return;
-                if (!client.player.onGround()) return;
+            public void onEnable() {
+                SafeWalkState.setActive(true);
+            }
 
-                Vec3 motion = client.player.getDeltaMovement();
-                double horizontal = Math.hypot(motion.x, motion.z);
-                if (horizontal < 1.0E-4) return;
-
-                double step = 0.75 / horizontal;
-                BlockPos ahead = BlockPos.containing(
-                        client.player.getX() + motion.x * step,
-                        client.player.getY() - 1.0,
-                        client.player.getZ() + motion.z * step);
-                if (client.level.getBlockState(ahead).isAir()) {
-                    client.player.setDeltaMovement(0.0, motion.y, 0.0);
-                }
+            @Override
+            public void onDisable() {
+                SafeWalkState.setActive(false);
             }
         });
 
@@ -822,6 +813,143 @@ public class ModuleManager {
                 return setting == null ? 48.0 : (double) setting.getValue();
             }
         });
+
+        register(new Module("Time Changer", "Forces the client-side time of day, changing the sky and lighting just for you.", Category.WORLD, GLFW.GLFW_KEY_T) {
+            {
+                addSetting(new ModeSetting("Preset", "Time of day preset", "Noon", List.of("Custom", "Sunrise", "Morning", "Noon", "Afternoon", "Sunset", "Night", "Midnight")));
+                addSetting(new NumberSetting("Time", "Custom time of day in ticks (0-24000)", 6000.0, 0.0, 24000.0, 100.0));
+            }
+
+            @Override
+            public void onEnable() {
+                TimeChangerState.setActive(true);
+                TimeChangerState.setDesiredTime(getDesiredTime());
+            }
+
+            @Override
+            public void onTick(Minecraft client) {
+                TimeChangerState.setActive(true);
+                TimeChangerState.setDesiredTime(getDesiredTime());
+            }
+
+            @Override
+            public void onDisable() {
+                TimeChangerState.setActive(false);
+            }
+
+            private double getDesiredTime() {
+                Setting<?> preset = getSetting("Preset");
+                String mode = preset == null ? "Noon" : (String) preset.getValue();
+                return switch (mode) {
+                    case "Sunrise" -> 0.0;
+                    case "Morning" -> 1000.0;
+                    case "Noon" -> 6000.0;
+                    case "Afternoon" -> 10000.0;
+                    case "Sunset" -> 12000.0;
+                    case "Night" -> 13800.0;
+                    case "Midnight" -> 18000.0;
+                    default -> getCustomTime();
+                };
+            }
+
+            private double getCustomTime() {
+                Setting<?> setting = getSetting("Time");
+                return setting == null ? 6000.0 : (double) setting.getValue();
+            }
+        });
+
+        register(new Module("Weather Changer", "Forces the client-side weather, overriding the server weather just for you.", Category.WORLD) {
+            {
+                addSetting(new ModeSetting("Weather", "Weather type", "Clear", List.of("Clear", "Rain", "Thunder")));
+            }
+
+            @Override
+            public void onEnable() {
+                WeatherChangerState.setActive(true);
+                apply();
+            }
+
+            @Override
+            public void onTick(Minecraft client) {
+                WeatherChangerState.setActive(true);
+                apply();
+            }
+
+            @Override
+            public void onDisable() {
+                WeatherChangerState.setActive(false);
+            }
+
+            private void apply() {
+                String mode = getMode();
+                switch (mode) {
+                    case "Rain" -> {
+                        WeatherChangerState.setRainLevel(1.0F);
+                        WeatherChangerState.setThunderLevel(0.0F);
+                    }
+                    case "Thunder" -> {
+                        WeatherChangerState.setRainLevel(1.0F);
+                        WeatherChangerState.setThunderLevel(1.0F);
+                    }
+                    default -> {
+                        WeatherChangerState.setRainLevel(0.0F);
+                        WeatherChangerState.setThunderLevel(0.0F);
+                    }
+                }
+            }
+
+            private String getMode() {
+                Setting<?> setting = getSetting("Weather");
+                return setting == null ? "Clear" : (String) setting.getValue();
+            }
+        });
+
+        register(new Module("Auto Chest Loot", "Automatically transfers all items from opened chests to your inventory.", Category.PLAYER) {
+            private int cooldownTicks;
+            private int cursor;
+
+            {
+                addSetting(new NumberSetting("Delay", "Ticks between transfers", 1.0, 0.0, 10.0, 1.0));
+                addSetting(new BooleanSetting("Close After", "Close the chest once everything has been taken.", true));
+            }
+
+            @Override
+            public void onTick(Minecraft client) {
+                if (client.player == null) return;
+                Player player = client.player;
+                if (!(player.containerMenu instanceof ChestMenu chest)) return;
+
+                if (++cooldownTicks < getDelay() + 1) return;
+                cooldownTicks = 0;
+
+                int size = chest.getContainer().getContainerSize();
+                if (size <= 0) return;
+                if (cursor >= size) cursor = 0;
+                for (int i = 0; i < size; i++) {
+                    int slot = (cursor + i) % size;
+                    if (chest.getSlot(slot).getItem().isEmpty()) continue;
+                    assert client.gameMode != null;
+                    client.gameMode.handleContainerInput(chest.containerId, slot, 0, ContainerInput.QUICK_MOVE, player);
+                    cursor = slot + 1;
+                    return;
+                }
+                cursor = 0;
+                if (isCloseAfter()) {
+                    Minecraft.getInstance().setScreenAndShow(null);
+                    client.player.closeContainer();
+                }
+            }
+
+            private int getDelay() {
+                Setting<?> setting = getSetting("Delay");
+                return setting == null ? 1 : (int) (double) setting.getValue();
+            }
+
+            private boolean isCloseAfter() {
+                Setting<?> setting = getSetting("Close After");
+                return setting == null || (boolean) setting.getValue();
+            }
+        });
     }
 
     private void register(Module module) {
@@ -852,7 +980,7 @@ public class ModuleManager {
         for (Module module : modules) {
             int key = module.getKeyBind();
             boolean down = false;
-            if (key != GLFW.GLFW_KEY_UNKNOWN && client.getWindow() != null) {
+            if (key != GLFW.GLFW_KEY_UNKNOWN) {
                 down = InputConstants.isKeyDown(client.getWindow(), key);
             }
             if (module.isHoldKey()) {

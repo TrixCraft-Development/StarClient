@@ -11,12 +11,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class LogoRendererMixin {
 
     @Inject(method = "extractRenderState(Lnet/minecraft/client/gui/GuiGraphicsExtractor;IF)V", at = @At("HEAD"), cancellable = true)
-    private void modernclient$hideLogo(GuiGraphicsExtractor extractor, int y, float alpha, CallbackInfo ci) {
+    private void hideLogo(GuiGraphicsExtractor graphics, int width, float alpha, CallbackInfo ci) {
         ci.cancel();
     }
 
     @Inject(method = "extractRenderState(Lnet/minecraft/client/gui/GuiGraphicsExtractor;IFI)V", at = @At("HEAD"), cancellable = true)
-    private void modernclient$hideLogo2(GuiGraphicsExtractor extractor, int y, float alpha, int textureId, CallbackInfo ci) {
+    private void hideLogo2(GuiGraphicsExtractor graphics, int width, float alpha, int heightOffset, CallbackInfo ci) {
         ci.cancel();
     }
 }

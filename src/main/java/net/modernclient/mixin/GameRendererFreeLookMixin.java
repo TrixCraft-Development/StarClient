@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class GameRendererFreeLookMixin {
 
     @Inject(method = "renderItemInHand", at = @At("HEAD"), cancellable = true)
-    private void modernclient$hideHandDuringFreeLook(CameraRenderState cameraRenderState, float partialTicks, Matrix4fc projectionMatrix, CallbackInfo ci) {
+    private void hideHandDuringFreeLook(CameraRenderState cameraState, float deltaPartialTick, Matrix4fc modelViewMatrix, CallbackInfo ci) {
         if (FreeLookState.isActive()) {
             ci.cancel();
         }

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "modernclient",
+  "id": "starclient",
   "version": "${version}",
   "name": "Star Client",
   "description": "A clean, modern Minecraft client built on Fabric for MC 26.2 (Java 25) with mod support, glassmorphism UI, custom HUD, and modular features.",
@@ -9,10 +9,10 @@
   ],
   "contact": {
     "homepage": "https://fabricmc.net",
-    "sources": "https://github.com/modernclient/mc-client"
+    "sources": "https://github.com/TrixCraft-Development/StarClient"
   },
   "license": "MIT",
-  "icon": "assets/modernclient/icon.png",
+  "icon": "assets/starclient/icon.png",
   "environment": "client",
   "entrypoints": {
     "client": [

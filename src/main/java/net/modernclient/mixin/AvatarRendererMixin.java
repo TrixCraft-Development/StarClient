@@ -4,7 +4,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.entity.player.AvatarRenderer;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.core.ClientAsset;
-import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Avatar;
 import net.minecraft.world.entity.player.PlayerSkin;
 import net.modernclient.ModernClient;
@@ -20,7 +19,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class AvatarRendererMixin {
 
     @Inject(method = "shouldShowName(Lnet/minecraft/world/entity/Avatar;D)Z", at = @At("HEAD"), cancellable = true)
-    private void modernclient$showOwnNametag(Avatar entity, double distance, CallbackInfoReturnable<Boolean> cir) {
+    private void showOwnNametag(Avatar entity, double distanceToCameraSq, CallbackInfoReturnable<Boolean> cir) {
         Minecraft client = Minecraft.getInstance();
         if (client.player != null && entity == client.player) {
             cir.setReturnValue(true);
@@ -31,7 +30,7 @@ public abstract class AvatarRendererMixin {
             method = "extractRenderState(Lnet/minecraft/world/entity/Avatar;Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;F)V",
             at = @At("TAIL")
     )
-    private void modernclient$applyCosmeticCape(Avatar entity, AvatarRenderState state, float partialTick, CallbackInfo ci) {
+    private void applyCosmeticCape(Avatar entity, AvatarRenderState state, float partialTicks, CallbackInfo ci) {
         ModernClient mod = ModernClient.getInstance();
         if (mod == null || state.skin == null) return;
         if (entity != Minecraft.getInstance().player) return;

@@ -16,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class ClientPacketListenerMixin {
 
     @Inject(method = "handleSetEntityMotion(Lnet/minecraft/network/protocol/game/ClientboundSetEntityMotionPacket;)V", at = @At("HEAD"), cancellable = true)
-    private void modernclient$antiknockback(ClientboundSetEntityMotionPacket packet, CallbackInfo ci) {
+    private void antiknockback(ClientboundSetEntityMotionPacket packet, CallbackInfo ci) {
         if (!AntiKnockbackState.isActive()) return;
         Minecraft client = Minecraft.getInstance();
         ClientLevel level = client.level;
@@ -24,6 +24,7 @@ public abstract class ClientPacketListenerMixin {
         Entity entity = level.getEntity(packet.id());
         if (entity == client.player) {
             Vec3 motion = packet.movement();
+            assert entity != null;
             entity.lerpMotion(motion.scale(1.0 - AntiKnockbackState.getReduction() / 100.0));
             ci.cancel();
         }

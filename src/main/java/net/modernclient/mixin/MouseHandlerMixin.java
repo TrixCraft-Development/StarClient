@@ -11,9 +11,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class MouseHandlerMixin {
 
     @Inject(method = "onScroll(JDD)V", at = @At("HEAD"), cancellable = true)
-    private void modernclient$zoomScroll(long windowPointer, double horizontalAmount, double verticalAmount, CallbackInfo ci) {
+    private void zoomScroll(long handle, double xoffset, double yoffset, CallbackInfo ci) {
         if (!ZoomState.isActive()) return;
-        ZoomState.onScroll(verticalAmount);
+        ZoomState.onScroll(yoffset);
         ci.cancel();
     }
 }

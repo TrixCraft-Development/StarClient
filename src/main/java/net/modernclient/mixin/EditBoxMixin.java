@@ -14,7 +14,7 @@ public abstract class EditBoxMixin {
     private int textY;
 
     @Inject(method = "updateTextPosition", at = @At("TAIL"))
-    private void modernclient$centerTextY(CallbackInfo ci) {
+    private void centerTextY(CallbackInfo ci) {
         this.textY = ((EditBox) (Object) this).getY() + (((EditBox) (Object) this).getHeight() - 8) / 2;
     }
 }
