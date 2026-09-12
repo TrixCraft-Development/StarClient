@@ -8,7 +8,8 @@ public enum Category {
     COSMETICS("Cosmetics", "✨"),
     PLAYER("Player", "🛡"),
     WORLD("World", "🌍"),
-    UI("UI & Visuals", "🎨");
+    UI("UI & Visuals", "🎨"),
+    SETTINGS("Settings", "⚙");
 
     private final String name;
     private final String icon;

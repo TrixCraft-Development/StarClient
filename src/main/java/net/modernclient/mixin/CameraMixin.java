@@ -45,24 +45,29 @@ public abstract class CameraMixin {
                 FreeLookState.setInitialized(true);
             }
 
+            float partialTick = deltaTracker.getGameTimeDeltaPartialTick(true);
+            Vec3 eye = player.getEyePosition(partialTick);
+
             double distance = FREE_LOOK_DISTANCE;
-            Vec3 eye = player.getEyePosition();
             double yawRad = Math.toRadians(FreeLookState.getYaw());
             double pitchRad = Math.toRadians(FreeLookState.getPitch());
             double cosPitch = Math.cos(pitchRad);
 
-            double camX = eye.x + cosPitch * Math.sin(yawRad) * distance;
-            double camY = eye.y + Math.sin(pitchRad) * distance;
-            double camZ = eye.z + cosPitch * Math.cos(yawRad) * distance;
+            // Offset direction matches Minecraft's calculateViewVector convention:
+            // x = -sin(yaw) * cos(pitch), y = -sin(pitch), z = cos(yaw) * cos(pitch)
+            double offX = -Math.sin(yawRad) * cosPitch;
+            double offY = -Math.sin(pitchRad);
+            double offZ = Math.cos(yawRad) * cosPitch;
+
+            double camX = eye.x + offX * distance;
+            double camY = eye.y + offY * distance;
+            double camZ = eye.z + offZ * distance;
 
             invoker.modernclient$setPosition(camX, camY, camZ);
 
-            double lookX = eye.x - camX;
-            double lookY = eye.y - camY;
-            double lookZ = eye.z - camZ;
-            double horizontal = Math.sqrt(lookX * lookX + lookZ * lookZ);
-            float lookYaw = (float) Math.toDegrees(Math.atan2(-lookX, lookZ));
-            float lookPitch = (float) (-Math.toDegrees(Math.atan2(lookY, Math.max(horizontal, 1.0E-6))));
+            Vec3 toPlayer = eye.subtract(camX, camY, camZ).normalize();
+            float lookYaw = (float) Math.toDegrees(Math.atan2(-toPlayer.x, toPlayer.z));
+            float lookPitch = (float) Math.toDegrees(Math.asin(-toPlayer.y));
             invoker.modernclient$setRotation(lookYaw, lookPitch);
 
             detached = true;

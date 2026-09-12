@@ -2,6 +2,7 @@ package net.modernclient.config;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.client.Minecraft;
@@ -9,8 +10,10 @@ import net.modernclient.ModernClient;
 import net.modernclient.module.Module;
 import net.modernclient.setting.BooleanSetting;
 import net.modernclient.setting.ModeSetting;
+import net.modernclient.setting.NickEntryListSetting;
 import net.modernclient.setting.NumberSetting;
 import net.modernclient.setting.Setting;
+import net.modernclient.setting.TextSetting;
 import org.jspecify.annotations.NonNull;
 
 import java.io.File;
@@ -19,6 +22,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 
 public class ConfigManager {
     private static final String LEGACY_FOLDER = "config/modernclient";
@@ -55,6 +59,7 @@ public class ConfigManager {
 
             root.add("modules", modulesObj);
             root.add("hudLayout", ModernClient.getInstance().getHudLayout().toJson());
+            root.add("clientSettings", getClientSettingsJson());
             String equippedCape = ModernClient.getInstance().getCosmeticManager().getEquippedCape();
             root.addProperty("equippedCape", equippedCape == null ? "" : equippedCape);
             String equippedSkin = ModernClient.getInstance().getCosmeticManager().getEquippedSkin();
@@ -96,6 +101,31 @@ public class ConfigManager {
                 settingsObj.addProperty(setting.getName(), ns.getValue());
             } else if (setting instanceof ModeSetting ms) {
                 settingsObj.addProperty(setting.getName(), ms.getValue());
+            } else if (setting instanceof TextSetting ts) {
+                settingsObj.addProperty(setting.getName(), ts.getValue());
+            } else if (setting instanceof NickEntryListSetting nl) {
+                JsonArray entries = new JsonArray();
+                for (NickEntryListSetting.NickEntry entry : nl.getValue()) {
+                    JsonObject entryObj = new JsonObject();
+                    entryObj.addProperty("real", entry.real());
+                    entryObj.addProperty("nick", entry.nick());
+                    entries.add(entryObj);
+                }
+                settingsObj.add(setting.getName(), entries);
+            }
+        }
+        return settingsObj;
+    }
+
+    private static @NonNull JsonObject getClientSettingsJson() {
+        JsonObject settingsObj = new JsonObject();
+        for (Setting<?> setting : ModernClient.getInstance().getClientSettings().getSettings()) {
+            if (setting instanceof BooleanSetting bs) {
+                settingsObj.addProperty(setting.getName(), bs.getValue());
+            } else if (setting instanceof NumberSetting ns) {
+                settingsObj.addProperty(setting.getName(), ns.getValue());
+            } else if (setting instanceof ModeSetting ms) {
+                settingsObj.addProperty(setting.getName(), ms.getValue());
             }
         }
         return settingsObj;
@@ -131,6 +161,19 @@ public class ConfigManager {
                                                 ns.setValue(settingsObj.get(setting.getName()).getAsDouble());
                                         case ModeSetting ms ->
                                                 ms.setValue(settingsObj.get(setting.getName()).getAsString());
+                                        case TextSetting ts ->
+                                                ts.setValue(settingsObj.get(setting.getName()).getAsString());
+                                        case NickEntryListSetting nl -> {
+                                            nl.getValue().clear();
+                                            if (settingsObj.get(nl.getName()).isJsonArray()) {
+                                                for (var elem : settingsObj.get(nl.getName()).getAsJsonArray()) {
+                                                    JsonObject obj = elem.getAsJsonObject();
+                                                    String real = obj.has("real") ? obj.get("real").getAsString() : "";
+                                                    String nick = obj.has("nick") ? obj.get("nick").getAsString() : "";
+                                                    nl.getValue().add(new NickEntryListSetting.NickEntry(real, nick));
+                                                }
+                                            }
+                                        }
                                         default -> {
                                         }
                                     }
@@ -142,6 +185,23 @@ public class ConfigManager {
             }
             if (root.has("hudLayout")) {
                 ModernClient.getInstance().getHudLayout().fromJson(root.getAsJsonObject("hudLayout"));
+            }
+            if (root.has("clientSettings")) {
+                JsonObject settingsObj = root.getAsJsonObject("clientSettings");
+                for (Setting<?> setting : ModernClient.getInstance().getClientSettings().getSettings()) {
+                    if (settingsObj.has(setting.getName())) {
+                        switch (setting) {
+                            case BooleanSetting bs ->
+                                    bs.setValue(settingsObj.get(setting.getName()).getAsBoolean());
+                            case NumberSetting ns ->
+                                    ns.setValue(settingsObj.get(setting.getName()).getAsDouble());
+                            case ModeSetting ms ->
+                                    ms.setValue(settingsObj.get(setting.getName()).getAsString());
+                            default -> {
+                            }
+                        }
+                    }
+                }
             }
             if (root.has("equippedCape")) {
                 String equippedCape = root.get("equippedCape").getAsString();

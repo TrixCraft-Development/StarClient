@@ -1,5 +1,6 @@
 package net.modernclient.gui;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
@@ -13,9 +14,12 @@ import net.modernclient.module.Category;
 import net.modernclient.module.Module;
 import net.modernclient.module.ModuleManager;
 import net.modernclient.setting.BooleanSetting;
+import net.modernclient.setting.ColorModeSetting;
 import net.modernclient.setting.ModeSetting;
+import net.modernclient.setting.NickEntryListSetting;
 import net.modernclient.setting.NumberSetting;
 import net.modernclient.setting.Setting;
+import net.modernclient.setting.TextSetting;
 import org.jspecify.annotations.NonNull;
 import org.lwjgl.glfw.GLFW;
 
@@ -57,8 +61,15 @@ public class ClickGuiScreen extends Screen {
     private EditBox searchBox;
     private String searchQuery = "";
 
+    private final Screen parent;
+
     public ClickGuiScreen() {
+        this(null);
+    }
+
+    public ClickGuiScreen(Screen parent) {
         super(Component.literal("Star Client ClickGUI"));
+        this.parent = parent;
     }
 
     @Override
@@ -85,13 +96,13 @@ public class ClickGuiScreen extends Screen {
         int startX = (this.width - guiWidth) / 2;
         int startY = (this.height - guiHeight) / 2;
 
-        // Main Glassmorphism Window Background (Dark #0F172A with 90% opacity)
-        extractor.fill(startX, startY, startX + guiWidth, startY + guiHeight, 0xF00F172A);
+        // Main Glassmorphism Window Background (Theme #0F172A with 90% opacity)
+        extractor.fill(startX, startY, startX + guiWidth, startY + guiHeight, menuBg());
 
         // Header Title Bar
-        extractor.fill(startX, startY, startX + guiWidth, startY + HEADER_HEIGHT, 0xFF1E293B);
+        extractor.fill(startX, startY, startX + guiWidth, startY + HEADER_HEIGHT, menuBgLight());
         String headerTitle = "⭐ " + ModernClient.CLIENT_NAME + " " + ModernClient.CLIENT_VERSION;
-        extractor.text(this.font, headerTitle, startX + 16, startY + 12, 0xFF38BDF8);
+        extractor.text(this.font, headerTitle, startX + 16, startY + 12, menuAccent());
         drawSearchBar(extractor,
                 startX + 16 + this.font.width(headerTitle) + 24,
                 startY + (HEADER_HEIGHT - SEARCH_HEIGHT) / 2,
@@ -99,12 +110,12 @@ public class ClickGuiScreen extends Screen {
                 mouseX, mouseY, delta);
 
         // Sidebar - Category Selector
-        extractor.fill(startX, startY + 36, startX + SIDEBAR_WIDTH, startY + guiHeight, 0xFF0B1120);
+        extractor.fill(startX, startY + 36, startX + SIDEBAR_WIDTH, startY + guiHeight, menuBgDark());
 
         int catY = startY + 48;
         for (Category category : Category.values()) {
             boolean isSelected = (category == selectedCategory);
-            int catBgColor = isSelected ? 0xFF0EA5E9 : 0x00000000;
+            int catBgColor = isSelected ? menuAccentDark() : 0x00000000;
             int catTextColor = isSelected ? 0xFFFFFFFF : 0xFF94A3B8;
 
             if (isSelected) {
@@ -133,11 +144,14 @@ public class ClickGuiScreen extends Screen {
         int cardWidth = guiWidth - SIDEBAR_WIDTH - 32;
 
         boolean cosmeticsView = isCosmeticsView();
+        boolean settingsView = isSettingsView();
         String moduleTitle = isSearching()
                 ? "Search Results for \"" + searchQuery.trim() + "\""
                 : cosmeticsView
                         ? Category.COSMETICS.getIcon() + " " + Category.COSMETICS.getName()
-                        : selectedCategory.getIcon() + " " + selectedCategory.getName() + " Modules";
+                        : settingsView
+                                ? Category.SETTINGS.getIcon() + " General Settings"
+                                : selectedCategory.getIcon() + " " + selectedCategory.getName() + " Modules";
         extractor.text(this.font, moduleTitle, moduleX, moduleTitleY, 0xFFE2E8F0);
         if (computeMaxScroll() > 0) {
             extractor.text(this.font, "Scroll for more", moduleX + cardWidth - this.font.width("Scroll for more"), moduleTitleY, 0xFF64748B);
@@ -147,6 +161,10 @@ public class ClickGuiScreen extends Screen {
         if (cosmeticsView) {
             for (CosmeticRow row : buildCosmeticRows(moduleScroll)) {
                 drawCosmeticRow(extractor, row, mouseX, mouseY);
+            }
+        } else if (settingsView) {
+            for (SettingRow row : buildSettingsRows(moduleScroll)) {
+                drawSetting(extractor, row, mouseX, mouseY);
             }
         } else {
             List<ModuleSlot> slots = buildModuleSlots(moduleScroll);
@@ -168,22 +186,71 @@ public class ClickGuiScreen extends Screen {
             if (!isHudElementVisible(rect.id())) continue;
             boolean hovered = rect.contains(mouseX, mouseY);
             boolean dragging = rect.id().equals(draggingElement);
-            int borderColor = dragging ? 0xFF38BDF8 : (hovered ? 0xAA38BDF8 : 0x5516A34A);
+            int borderColor = dragging ? menuAccent() : (hovered ? menuAccent(0xAA / 255.0F) : 0x5516A34A);
             drawOutline(extractor, rect.x1(), rect.y1(), rect.x2(), rect.y2(), borderColor);
 
             String label = "✥ " + rect.id() + (dragging ? " (dragging)" : "");
-            extractor.text(this.font, label, rect.x1(), rect.y1() - 10, hovered || dragging ? 0xFF38BDF8 : 0xFF64748B);
+            extractor.text(this.font, label, rect.x1(), rect.y1() - 10, hovered || dragging ? menuAccent() : 0xFF64748B);
         }
 
         if (isCosmeticsView()) {
             extractor.text(this.font, "Put .png textures into " + CosmeticManager.CAPES_FOLDER + " and " + CosmeticManager.SKINS_FOLDER + " | Client-side only", this.width / 2 - 260, this.height - 24, 0xFF94A3B8);
+        } else if (isSettingsView()) {
+            extractor.text(this.font, "General settings apply to the whole client and save automatically", this.width / 2 - 210, this.height - 24, 0xFF94A3B8);
         } else {
             extractor.text(this.font, "Drag HUD elements to reposition them | Double-click to reset to default", this.width / 2 - 180, this.height - 24, 0xFF94A3B8);
         }
     }
 
+    private int menuAccent() {
+        return ModernClient.getInstance().getClientSettings().getMenuAccentColor();
+    }
+
+    private int menuAccentDark() {
+        return ModernClient.getInstance().getClientSettings().getMenuAccentDarkColor();
+    }
+
+    private int menuAccent(float alphaMultiplier) {
+        int accent = menuAccent();
+        return (Math.round(alphaMultiplier * 255) << 24) | (accent & 0x00FFFFFF);
+    }
+
+    private int menuBg() {
+        return 0xF0000000 | (ModernClient.getInstance().getClientSettings().getMenuBackgroundColor() & 0x00FFFFFF);
+    }
+
+    private int menuBgBase() {
+        return ModernClient.getInstance().getClientSettings().getMenuBackgroundColor();
+    }
+
+    private int menuBgLight() {
+        return ModernClient.getInstance().getClientSettings().getMenuBackgroundLightColor();
+    }
+
+    private int menuBgDark() {
+        return ModernClient.getInstance().getClientSettings().getMenuBackgroundDarkColor();
+    }
+
     private boolean isCosmeticsView() {
         return selectedCategory == Category.COSMETICS && !isSearching();
+    }
+
+    private boolean isSettingsView() {
+        return selectedCategory == Category.SETTINGS && !isSearching();
+    }
+
+    private List<SettingRow> buildSettingsRows(double scroll) {
+        List<SettingRow> rows = new ArrayList<>();
+        int startX = (this.width - guiWidth) / 2 + SIDEBAR_WIDTH + 16;
+        int settingY = (int) ((double) (this.height - guiHeight) / 2 + PANEL_TOP_OFFSET - scroll);
+        int cardWidth = guiWidth - SIDEBAR_WIDTH - 32;
+
+        for (Setting<?> setting : ModernClient.getInstance().getClientSettings().getSettings()) {
+            int height = setting instanceof NumberSetting ? 26 : 20;
+            rows.add(new SettingRow(setting, startX + 10, settingY, cardWidth - 20, height));
+            settingY += height + 4;
+        }
+        return rows;
     }
 
     private List<CosmeticRow> buildCosmeticRows(double scroll) {
@@ -233,9 +300,9 @@ public class ClickGuiScreen extends Screen {
 
         boolean hovered = row.contains(mouseX, mouseY);
         int accent = isEquipped ? 0xFF34D399 : (isReloadRow ? 0xFFFBBF24 : 0xFF334155);
-        if (hovered && accent == 0xFF334155) accent = 0xFF38BDF8;
+        if (hovered && accent == 0xFF334155) accent = menuAccent();
 
-        extractor.fill(row.x, row.y, row.x + row.width, row.y + COSMETIC_ROW_HEIGHT, hovered ? 0xFF1E293B : 0xFF0F172A);
+        extractor.fill(row.x, row.y, row.x + row.width, row.y + COSMETIC_ROW_HEIGHT, hovered ? menuBgLight() : menuBgBase());
         extractor.fill(row.x, row.y, row.x + 3, row.y + COSMETIC_ROW_HEIGHT, accent);
 
         if (isReloadRow) {
@@ -271,7 +338,7 @@ public class ClickGuiScreen extends Screen {
                 blitRegion(extractor, cosmetic.textureId(), row.x + 12, row.y + 5, 20, 20, 8 / 64.0F, 16 / 64.0F, 8 / 64.0F, 16 / 64.0F);
                 blitRegion(extractor, cosmetic.textureId(), row.x + 11, row.y + 4, 22, 22, 40 / 64.0F, 48 / 64.0F, 8 / 64.0F, 16 / 64.0F);
             }
-            extractor.text(this.font, cosmetic.displayName(), row.x + 50, row.y + 5, isEquipped ? 0xFF38BDF8 : 0xFFE2E8F0);
+            extractor.text(this.font, cosmetic.displayName(), row.x + 50, row.y + 5, isEquipped ? menuAccent() : 0xFFE2E8F0);
             extractor.text(this.font, "Click to " + (isEquipped ? "unequip" : "equip"), row.x + 50, row.y + 19, 0xFF64748B);
         }
 
@@ -284,13 +351,13 @@ public class ClickGuiScreen extends Screen {
         Module module = slot.module;
         int cardWidth = slot.width;
 
-        int cardBg = module.isEnabled() ? 0xFF1E293B : 0xFF0F172A;
-        int border = module.isEnabled() ? 0xFF0EA5E9 : 0xFF334155;
+        int cardBg = module.isEnabled() ? menuBgLight() : menuBgBase();
+        int border = module.isEnabled() ? menuAccentDark() : 0xFF334155;
 
         extractor.fill(slot.x, slot.y, slot.x + cardWidth, slot.y + CARD_HEIGHT, cardBg);
         extractor.fill(slot.x, slot.y, slot.x + 3, slot.y + CARD_HEIGHT, border);
 
-        int titleColor = module.isEnabled() ? 0xFF38BDF8 : 0xFFF8FAFC;
+        int titleColor = module.isEnabled() ? menuAccent() : 0xFFF8FAFC;
         extractor.text(this.font, module.getName(), slot.x + 12, slot.y + 6, titleColor);
         extractor.text(this.font, module.getDescription(), slot.x + 12, slot.y + 20, 0xFF64748B);
 
@@ -303,19 +370,19 @@ public class ClickGuiScreen extends Screen {
         boolean binding = bindingModule == module;
         boolean keyHovered = mouseX >= slot.x + 4 && mouseX <= slot.x + cardWidth - 4
                 && mouseY >= keyY && mouseY <= keyY + KEYBIND_HEIGHT;
-        int keyBg = binding ? 0xFF0E7490 : (keyHovered ? 0xFF1E293B : 0xFF0F172A);
+        int keyBg = binding ? menuAccentDark() : (keyHovered ? menuBgLight() : menuBgBase());
         extractor.fill(slot.x + 4, keyY, slot.x + cardWidth - 4, keyY + KEYBIND_HEIGHT, keyBg);
 
         extractor.text(this.font, "Key Bind", slot.x + 14, keyY + 4, 0xFF94A3B8);
         String keyLabel = binding ? "Press a key..." : (module.getKeyBind() == GLFW.GLFW_KEY_UNKNOWN ? "None" : keyName(module.getKeyBind()));
-        int keyColor = binding ? 0xFFFFD54F : (module.getKeyBind() == GLFW.GLFW_KEY_UNKNOWN ? 0xFF64748B : 0xFF38BDF8);
+        int keyColor = binding ? 0xFFFFD54F : (module.getKeyBind() == GLFW.GLFW_KEY_UNKNOWN ? 0xFF64748B : menuAccent());
         extractor.text(this.font, keyLabel, slot.x + cardWidth - 14 - this.font.width(keyLabel), keyY + 4, keyColor);
     }
 
     private void drawSetting(GuiGraphicsExtractor extractor, SettingRow row, int mouseX, int mouseY) {
         Setting<?> setting = row.setting;
         boolean hovered = row.contains(mouseX, mouseY);
-        int bg = hovered ? 0xFF1E293B : 0xFF0F172A;
+        int bg = hovered ? menuBgLight() : menuBgBase();
         extractor.fill(row.x, row.y, row.x + row.width, row.y + row.height, bg);
 
         if (setting instanceof BooleanSetting booleanSetting) {
@@ -326,11 +393,18 @@ public class ClickGuiScreen extends Screen {
         } else if (setting instanceof ModeSetting modeSetting) {
             extractor.text(this.font, setting.getName(), row.x + 4, row.y + 4, 0xFFE2E8F0);
             String value = modeSetting.getValue();
-            extractor.text(this.font, value, row.x + row.width - this.font.width(value) - 4, row.y + 4, 0xFF38BDF8);
+            if (setting instanceof ColorModeSetting colorSetting) {
+                int swatch = 12;
+                int sx = row.x + row.width - this.font.width(value) - 4 - swatch - 8;
+                int sy = row.y + (row.height - swatch) / 2;
+                extractor.fill(sx, sy, sx + swatch, sy + swatch, colorSetting.getColor());
+                drawOutline(extractor, sx, sy, sx + swatch, sy + swatch, 0xFF64748B);
+            }
+            extractor.text(this.font, value, row.x + row.width - this.font.width(value) - 4, row.y + 4, menuAccent());
         } else if (setting instanceof NumberSetting numberSetting) {
             extractor.text(this.font, setting.getName(), row.x + 4, row.y + 3, 0xFFE2E8F0);
             String value = formatValue(numberSetting.getValue());
-            extractor.text(this.font, value, row.x + row.width - this.font.width(value) - 4, row.y + 3, 0xFF38BDF8);
+            extractor.text(this.font, value, row.x + row.width - this.font.width(value) - 4, row.y + 3, menuAccent());
 
             int trackY = row.y + row.height - 8;
             int trackHeight = 4;
@@ -339,9 +413,29 @@ public class ClickGuiScreen extends Screen {
             double range = numberSetting.getMax() - numberSetting.getMin();
             double t = range <= 0 ? 0 : (numberSetting.getValue() - numberSetting.getMin()) / range;
             int fillWidth = (int) ((row.width - 8) * t);
-            extractor.fill(row.x + 4, trackY, row.x + 4 + fillWidth, trackY + trackHeight, 0xFF38BDF8);
+            extractor.fill(row.x + 4, trackY, row.x + 4 + fillWidth, trackY + trackHeight, menuAccent());
             extractor.fill(row.x + 2 + fillWidth, trackY - 2, row.x + 6 + fillWidth, trackY + trackHeight + 2, 0xFFFFFFFF);
+        } else if (setting instanceof TextSetting textSetting) {
+            extractor.text(this.font, setting.getName(), row.x + 4, row.y + 4, 0xFFE2E8F0);
+            String value = textSetting.getValue();
+            boolean blank = value == null || value.isBlank();
+            String label = blank ? "(click to edit)" : shorten(value, row.width - 60);
+            extractor.text(this.font, label, row.x + row.width - this.font.width(label) - 4, row.y + 4, blank ? 0xFF64748B : menuAccent());
+        } else if (setting instanceof NickEntryListSetting) {
+            extractor.text(this.font, setting.getName(), row.x + 4, row.y + 4, 0xFFE2E8F0);
+            int count = net.modernclient.module.NickToolState.getEntries().size();
+            String label = count == 0 ? "(empty)" : count + " entries";
+            extractor.text(this.font, label, row.x + row.width - this.font.width(label) - 4, row.y + 4, 0xFF64748B);
         }
+    }
+
+    private String shorten(String value, int maxWidth) {
+        if (this.font.width(value) <= maxWidth) return value;
+        String suffix = "...";
+        while (this.font.width(value + suffix) > maxWidth && value.length() > 1) {
+            value = value.substring(0, value.length() - 1);
+        }
+        return value + suffix;
     }
 
     private List<ModuleSlot> buildModuleSlots(double scroll) {
@@ -373,6 +467,13 @@ public class ClickGuiScreen extends Screen {
             int contentHeight = rowCount * (COSMETIC_ROW_HEIGHT + COSMETIC_GAP) - COSMETIC_GAP;
             return Math.max(0, contentHeight - viewportHeight);
         }
+        if (isSettingsView()) {
+            int contentHeight = 0;
+            for (SettingRow row : buildSettingsRows(0)) {
+                contentHeight += row.height + 4;
+            }
+            return Math.max(0, contentHeight - viewportHeight);
+        }
         int contentHeight = 0;
         for (ModuleSlot slot : buildModuleSlots(0)) {
             contentHeight += slot.totalHeight + 8;
@@ -397,7 +498,7 @@ public class ClickGuiScreen extends Screen {
 
     private void drawSearchBar(GuiGraphicsExtractor extractor, int x, int y, int width, int mouseX, int mouseY, float delta) {
         boolean hovered = mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + SEARCH_HEIGHT;
-        extractor.fill(x, y, x + width, y + SEARCH_HEIGHT, hovered ? 0xFF1E293B : 0xFF0B1120);
+        extractor.fill(x, y, x + width, y + SEARCH_HEIGHT, hovered ? menuBgLight() : menuBgDark());
         extractor.fill(x, y, x + width, y + 1, 0xFF334155);
         extractor.fill(x, y, x + 1, y + SEARCH_HEIGHT, 0xFF334155);
         extractor.fill(x + width - 1, y, x + width, y + SEARCH_HEIGHT, 0xFF334155);
@@ -456,6 +557,8 @@ public class ClickGuiScreen extends Screen {
         } else if (setting instanceof NumberSetting numberSetting) {
             draggingSetting = setting;
             applySliderValue(numberSetting, mouseX, row);
+        } else if (setting instanceof TextSetting || setting instanceof NickEntryListSetting) {
+            Minecraft.getInstance().gui.setScreen(new NickToolScreen(this));
         }
     }
 
@@ -561,6 +664,17 @@ public class ClickGuiScreen extends Screen {
             }
         }
 
+        // Check General Settings Rows
+        else if (isSettingsView()) {
+            for (SettingRow row : buildSettingsRows(moduleScroll)) {
+                if (row.contains(mouseX, mouseY)) {
+                    handleSettingClick(row, mouseX);
+                    ModernClient.getInstance().getConfigManager().saveConfig();
+                    return true;
+                }
+            }
+        }
+
         // Check Module Cards Toggle and Setting Interaction
         else {
             for (ModuleSlot slot : buildModuleSlots(moduleScroll)) {
@@ -619,11 +733,20 @@ public class ClickGuiScreen extends Screen {
         HudLayout layout = ModernClient.getInstance().getHudLayout();
 
         if (draggingSetting instanceof NumberSetting numberSetting) {
-            for (ModuleSlot slot : buildModuleSlots(moduleScroll)) {
-                for (SettingRow row : slot.rows) {
+            if (isSettingsView()) {
+                for (SettingRow row : buildSettingsRows(moduleScroll)) {
                     if (row.setting == draggingSetting) {
                         applySliderValue(numberSetting, event.x(), row);
                         return true;
+                    }
+                }
+            } else {
+                for (ModuleSlot slot : buildModuleSlots(moduleScroll)) {
+                    for (SettingRow row : slot.rows) {
+                        if (row.setting == draggingSetting) {
+                            applySliderValue(numberSetting, event.x(), row);
+                            return true;
+                        }
                     }
                 }
             }
@@ -706,7 +829,12 @@ public class ClickGuiScreen extends Screen {
     @Override
     public void onClose() {
         ModernClient.getInstance().getConfigManager().saveConfig();
-        super.onClose();
+        Minecraft client = Minecraft.getInstance();
+        if (parent != null) {
+            client.gui.setScreen(parent);
+        } else {
+            super.onClose();
+        }
     }
 
     private static class ModuleSlot {

@@ -10,6 +10,7 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
 import net.modernclient.config.ConfigManager;
+import net.modernclient.ClientSettings;
 import net.modernclient.cosmetics.CosmeticManager;
 import net.modernclient.gui.ClickGuiScreen;
 import net.modernclient.gui.HudLayout;
@@ -33,8 +34,10 @@ public class ModernClient implements ClientModInitializer {
     private CosmeticManager cosmeticManager;
     private FabricModManager modManager;
     private HudLayout hudLayout;
+    private ClientSettings clientSettings;
     private KeyMapping clickGuiKeyBind;
     private boolean configLoaded;
+    private boolean clickGuiKeyHeld;
 
     @Override
     public void onInitializeClient() {
@@ -47,6 +50,7 @@ public class ModernClient implements ClientModInitializer {
         this.cosmeticManager = new CosmeticManager();
         this.modManager = new FabricModManager();
         this.hudLayout = new HudLayout();
+        this.clientSettings = new ClientSettings();
 
         // Register ClickGUI Keybind (Default: RSHIFT)
         this.clickGuiKeyBind = KeyMappingHelper.registerKeyMapping(new KeyMapping(
@@ -68,16 +72,21 @@ public class ModernClient implements ClientModInitializer {
                 this.configLoaded = true;
                 this.configManager.loadConfig();
             }
-            if (client.player != null && client.level != null) {
+            boolean inGame = client.player != null && client.level != null;
+            if (inGame) {
                 if (client.gui.screen() == null) {
                     this.moduleManager.handleKeybinds(client);
                 }
                 this.moduleManager.onTick(client);
-
-                if (clickGuiKeyBind.consumeClick()) {
-                    client.gui.setScreen(new ClickGuiScreen());
-                }
             }
+
+            boolean clickGuiKeyDown = clickGuiKeyBind.isDown()
+                    || InputConstants.isKeyDown(client.getWindow(), GLFW.GLFW_KEY_RIGHT_SHIFT);
+            if (clickGuiKeyDown && !this.clickGuiKeyHeld && !(client.gui.screen() instanceof ClickGuiScreen)) {
+                LOGGER.info("Opening ClickGUI from screen: {}", client.gui.screen());
+                client.gui.setScreen(new ClickGuiScreen(client.gui.screen()));
+            }
+            this.clickGuiKeyHeld = clickGuiKeyDown;
         });
 
         // Register HUD Element
@@ -120,5 +129,9 @@ public class ModernClient implements ClientModInitializer {
 
     public HudLayout getHudLayout() {
         return hudLayout;
+    }
+
+    public ClientSettings getClientSettings() {
+        return clientSettings;
     }
 }

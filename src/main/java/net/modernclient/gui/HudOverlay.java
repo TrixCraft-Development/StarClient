@@ -7,6 +7,7 @@ import net.minecraft.world.item.ItemStack;
 import net.modernclient.ModernClient;
 import net.modernclient.module.ChestEspState;
 import net.modernclient.module.Module;
+import net.modernclient.module.OreEspState;
 import net.modernclient.setting.Setting;
 
 import java.util.ArrayDeque;
@@ -16,6 +17,14 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class HudOverlay {
+
+    private static void hudText(GuiGraphicsExtractor extractor, Minecraft client, String text, int x, int y, int color) {
+        extractor.text(client.font, text, x, y, color, ModernClient.getInstance().getClientSettings().isHudTextShadow());
+    }
+
+    private static int translucentBoxColor(Module module) {
+        return (module.getBackgroundColor() & 0x00FFFFFF) | 0xCC000000;
+    }
 
     public static void render(GuiGraphicsExtractor extractor) {
         Minecraft client = Minecraft.getInstance();
@@ -33,8 +42,10 @@ public class HudOverlay {
 
             int fX = layout.effectiveX(HudLayout.FPS, screenWidth, 0);
             int fY = layout.effectiveY(HudLayout.FPS, screenHeight);
-            extractor.fill(fX, fY, fX + HudLayout.FPS_WIDTH, fY + HudLayout.ELEMENT_HEIGHT, 0xCC0F172A);
-            extractor.text(client.font, stats, fX + 6, fY + 5, 0xFFF1F5F9);
+            if (!fpsMod.isTransparentBackground()) {
+                extractor.fill(fX, fY, fX + HudLayout.FPS_WIDTH, fY + HudLayout.ELEMENT_HEIGHT, translucentBoxColor(fpsMod));
+            }
+            hudText(extractor, client, stats, fX + 6, fY + 5, 0xFFF1F5F9);
         }
 
         // 2. Ping Display (Bottom Left, toggled by "Ping Display" module)
@@ -46,8 +57,10 @@ public class HudOverlay {
 
                 int pX = layout.effectiveX(HudLayout.PING, screenWidth, 0);
                 int pY = layout.effectiveY(HudLayout.PING, screenHeight);
-                extractor.fill(pX, pY, pX + HudLayout.PING_WIDTH, pY + HudLayout.ELEMENT_HEIGHT, 0xCC0F172A);
-                extractor.text(client.font, stats, pX + 6, pY + 5, 0xFFF1F5F9);
+                if (!pingMod.isTransparentBackground()) {
+                    extractor.fill(pX, pY, pX + HudLayout.PING_WIDTH, pY + HudLayout.ELEMENT_HEIGHT, translucentBoxColor(pingMod));
+                }
+                hudText(extractor, client, stats, pX + 6, pY + 5, 0xFFF1F5F9);
             }
         }
 
@@ -61,8 +74,10 @@ public class HudOverlay {
 
             int cX = layout.effectiveX(HudLayout.COORDINATES, screenWidth, 0);
             int cY = layout.effectiveY(HudLayout.COORDINATES, screenHeight);
-            extractor.fill(cX, cY, cX + HudLayout.COORDS_WIDTH, cY + HudLayout.ELEMENT_HEIGHT, 0xCC0F172A);
-            extractor.text(client.font, stats, cX + 6, cY + 5, 0xFFF1F5F9);
+            if (!coordsMod.isTransparentBackground()) {
+                extractor.fill(cX, cY, cX + HudLayout.COORDS_WIDTH, cY + HudLayout.ELEMENT_HEIGHT, translucentBoxColor(coordsMod));
+            }
+            hudText(extractor, client, stats, cX + 6, cY + 5, 0xFFF1F5F9);
         }
 
         // 4. Active Modules Arraylist (Top Right, toggled by "Active Modules" module)
@@ -73,6 +88,9 @@ public class HudOverlay {
                     .sorted(Comparator.comparing(m -> m.getName().toLowerCase()))
                     .collect(Collectors.toList());
 
+            boolean transparentList = activeModsMod.isTransparentBackground();
+            int listBgColor = translucentBoxColor(activeModsMod);
+
             int maxModWidth = activeModules.stream().mapToInt(m -> client.font.width(m.getName()) + 12).max().orElse(0);
             boolean arrayAuto = layout.isAuto(HudLayout.ARRAYLIST);
             int arrayLeft = layout.effectiveX(HudLayout.ARRAYLIST, screenWidth, maxModWidth);
@@ -82,9 +100,11 @@ public class HudOverlay {
                 int modWidth = client.font.width(name) + 12;
                 int modX = arrayAuto ? screenWidth - modWidth - 8 : arrayLeft;
 
-                extractor.fill(modX, arrayY, modX + modWidth, arrayY + 14, 0xCC0F172A);
-                extractor.fill(modX + modWidth - 2, arrayY, modX + modWidth, arrayY + 14, 0xFF38BDF8); // Accent bar
-                extractor.text(client.font, name, modX + 6, arrayY + 3, 0xFF38BDF8);
+                if (!transparentList) {
+                    extractor.fill(modX, arrayY, modX + modWidth, arrayY + 14, listBgColor);
+                    extractor.fill(modX + modWidth - 2, arrayY, modX + modWidth, arrayY + 14, 0xFF38BDF8); // Accent bar
+                }
+                hudText(extractor, client, name, modX + 6, arrayY + 3, 0xFF38BDF8);
 
                 arrayY += 16;
             }
@@ -133,6 +153,21 @@ public class HudOverlay {
             if (labelSetting != null) chestLabels = (boolean) labelSetting.getValue();
             ChestEsp.render(extractor, client, ChestEspState.getEntries(), chestBoxes, chestTracers, chestLabels);
         }
+
+        // 9. Ore ESP (ore blocks highlighted through walls)
+        Module oreEspMod = ModernClient.getInstance().getModuleManager().getModuleByName("Ore ESP");
+        if (oreEspMod != null && oreEspMod.isEnabled()) {
+            boolean oreBoxes = true;
+            boolean oreTracers = true;
+            boolean oreLabels = true;
+            Setting<?> oreBoxSetting = oreEspMod.getSetting("Boxes");
+            Setting<?> oreTracerSetting = oreEspMod.getSetting("Tracers");
+            Setting<?> oreLabelSetting = oreEspMod.getSetting("Labels");
+            if (oreBoxSetting != null) oreBoxes = (boolean) oreBoxSetting.getValue();
+            if (oreTracerSetting != null) oreTracers = (boolean) oreTracerSetting.getValue();
+            if (oreLabelSetting != null) oreLabels = (boolean) oreLabelSetting.getValue();
+            OreEsp.render(extractor, client, OreEspState.getEntries(), oreBoxes, oreTracers, oreLabels);
+        }
     }
 
     private static void renderArmor(GuiGraphicsExtractor extractor, Minecraft client, Module module) {
@@ -149,13 +184,18 @@ public class HudOverlay {
         int aX = layout.effectiveX(HudLayout.ARMOR, screenWidth, 0);
         int aY = layout.effectiveY(HudLayout.ARMOR, screenHeight);
 
+        boolean transparent = module.isTransparentBackground();
+        int slotColor = (module.getBackgroundColor() & 0x00FFFFFF) | 0x66000000;
+
         for (int i = 0; i < order.length; i++) {
             int x = vertical ? aX : aX + i * 18;
             int y = vertical ? aY + i * 36 : aY;
 
             assert client.player != null;
             ItemStack stack = client.player.getItemBySlot(order[i]);
-            extractor.fill(x, y, x + 18, y + 18, 0x660F172A);
+            if (!transparent) {
+                extractor.fill(x, y, x + 18, y + 18, slotColor);
+            }
             if (stack.isEmpty()) continue;
 
             extractor.item(stack, x + 1, y + 1);
@@ -167,7 +207,7 @@ public class HudOverlay {
                 String durability = current + "/" + max;
                 float ratio = max <= 0 ? 1.0F : (float) current / max;
                 int color = ratio > 0.5F ? 0xFF34D399 : (ratio > 0.2F ? 0xFFF59E0B : 0xFFEF4444);
-                extractor.text(client.font, durability, x + 1 + (16 - client.font.width(durability)) / 2, y + 19, color);
+                hudText(extractor, client, durability, x + 1 + (16 - client.font.width(durability)) / 2, y + 19, color);
             }
         }
     }
@@ -196,36 +236,41 @@ public class HudOverlay {
         boolean s = client.options.keyDown.isDown();
         boolean d = client.options.keyRight.isDown();
 
-        drawKey(extractor, client, "W", kX + 22, kY, 20, 20, w);
-        drawKey(extractor, client, "A", kX, kY + 22, 20, 20, a);
-        drawKey(extractor, client, "S", kX + 22, kY + 22, 20, 20, s);
-        drawKey(extractor, client, "D", kX + 44, kY + 22, 20, 20, d);
+        boolean transparent = module.isTransparentBackground();
+        int bgColor = translucentBoxColor(module);
+
+        drawKey(extractor, client, "W", kX + 22, kY, 20, 20, w, transparent, bgColor);
+        drawKey(extractor, client, "A", kX, kY + 22, 20, 20, a, transparent, bgColor);
+        drawKey(extractor, client, "S", kX + 22, kY + 22, 20, 20, s, transparent, bgColor);
+        drawKey(extractor, client, "D", kX + 44, kY + 22, 20, 20, d, transparent, bgColor);
 
         Setting<?> showMouseSetting = module.getSetting("Show Mouse");
         boolean showMouse = showMouseSetting == null || (boolean) showMouseSetting.getValue();
         if (showMouse) {
             updateClickCps();
             int mbY = kY + 44;
-            drawMouse(extractor, client, "LMB", leftClickTimes.size(), kX, mbY, 33, 22, client.mouseHandler.isLeftPressed());
-            drawMouse(extractor, client, "RMB", rightClickTimes.size(), kX + 33, mbY, 33, 22, client.mouseHandler.isRightPressed());
+            drawMouse(extractor, client, "LMB", leftClickTimes.size(), kX, mbY, 33, 22, client.mouseHandler.isLeftPressed(), transparent, bgColor);
+            drawMouse(extractor, client, "RMB", rightClickTimes.size(), kX + 33, mbY, 33, 22, client.mouseHandler.isRightPressed(), transparent, bgColor);
         }
     }
 
-    private static void drawMouse(GuiGraphicsExtractor extractor, Minecraft client, String label, int cps, int x, int y, int w, int h, boolean pressed) {
-        int bg = pressed ? 0xFF0EA5E9 : 0xCC0F172A;
+    private static void drawMouse(GuiGraphicsExtractor extractor, Minecraft client, String label, int cps, int x, int y, int w, int h, boolean pressed, boolean transparent, int bgColor) {
         int labelCol = pressed ? 0xFFFFFFFF : 0xFF94A3B8;
 
-        extractor.fill(x, y, x + w, y + h, bg);
-        extractor.text(client.font, label, x + (w - client.font.width(label)) / 2, y + 3, labelCol);
+        if (!transparent) {
+            extractor.fill(x, y, x + w, y + h, pressed ? 0xFF0EA5E9 : bgColor);
+        }
+        hudText(extractor, client, label, x + (w - client.font.width(label)) / 2, y + 3, labelCol);
         String cpsText = cps + " CPS";
-        extractor.text(client.font, cpsText, x + (w - client.font.width(cpsText)) / 2, y + 12, 0xFF38BDF8);
+        hudText(extractor, client, cpsText, x + (w - client.font.width(cpsText)) / 2, y + 12, labelCol);
     }
 
-    private static void drawKey(GuiGraphicsExtractor extractor, Minecraft client, String label, int x, int y, int w, int h, boolean pressed) {
-        int bg = pressed ? 0xFF0EA5E9 : 0xCC0F172A;
+    private static void drawKey(GuiGraphicsExtractor extractor, Minecraft client, String label, int x, int y, int w, int h, boolean pressed, boolean transparent, int bgColor) {
         int textCol = pressed ? 0xFFFFFFFF : 0xFF94A3B8;
 
-        extractor.fill(x, y, x + w, y + h, bg);
-        extractor.text(client.font, label, x + (w - client.font.width(label)) / 2, y + (h - 8) / 2, textCol);
+        if (!transparent) {
+            extractor.fill(x, y, x + w, y + h, pressed ? 0xFF0EA5E9 : bgColor);
+        }
+        hudText(extractor, client, label, x + (w - client.font.width(label)) / 2, y + (h - 8) / 2, textCol);
     }
 }

@@ -3,34 +3,43 @@ package net.modernclient.module;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.InteractionHand;import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.FishingHook;
 import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.InventoryMenu;
-import net.minecraft.world.item.Item;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ItemAttributeModifiers;
 import net.minecraft.world.item.equipment.Equippable;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
 import net.modernclient.gui.EntityEsp;
+import net.modernclient.mixin.FishingHookAccessor;
 import net.modernclient.mixin.MinecraftAccessor;
 import net.modernclient.mixin.MultiPlayerGameModeAccessor;
 import net.modernclient.setting.BooleanSetting;
 import net.modernclient.setting.ModeSetting;
+import net.modernclient.setting.NickEntryListSetting;
 import net.modernclient.setting.NumberSetting;
 import net.modernclient.setting.Setting;
+import net.modernclient.setting.TextSetting;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
@@ -132,9 +141,11 @@ public class ModuleManager {
             private double previousFov = 70.0;
             private boolean previousSmoothCamera = false;
 
+            private static final double DEFAULT_ZOOM_FOV = 50.0;
+
             {
                 ZoomState.setZoomModule(this);
-                addSetting(new NumberSetting("FOV", "Zoomed-in field of view", 30.0, 1.0, 70.0, 1.0));
+                addSetting(new NumberSetting("FOV", "Zoomed-in field of view", DEFAULT_ZOOM_FOV, 20.0, 110.0, 1.0));
                 addSetting(new BooleanSetting("Smooth Camera", "Enable cinematic smooth camera while zoomed", true));
             }
 
@@ -147,6 +158,10 @@ public class ModuleManager {
             public void onEnable() {
                 previousFov = mc.options.fov().get();
                 previousSmoothCamera = mc.options.smoothCamera;
+                Setting<?> setting = getSetting("FOV");
+                if (setting instanceof NumberSetting number) {
+                    number.setValue(DEFAULT_ZOOM_FOV);
+                }
                 applyZoom();
             }
 
@@ -170,7 +185,7 @@ public class ModuleManager {
             }
 
             private void applyZoom() {
-                mc.options.fov().set((int) getFov());
+                mc.options.fov().set((int) Math.clamp(getFov(), 30.0, 110.0));
                 mc.options.smoothCamera = isSmoothCamera();
             }
 
@@ -371,6 +386,96 @@ public class ModuleManager {
             }
         });
 
+        register(new Module("Scaffold", "Automatically places blocks beneath you while you walk.", Category.CHEATS) {
+            private int placeCooldown;
+            private int previousSlot = -1;
+
+            {
+                addSetting(new BooleanSetting("Tower", "Hold the jump key while standing still to climb up", true));
+            }
+
+            @Override
+            public void onEnable() {
+                previousSlot = -1;
+            }
+
+            @Override
+            public void onDisable() {
+                Minecraft client = Minecraft.getInstance();
+                if (previousSlot >= 0 && client.player != null) {
+                    client.player.getInventory().setSelectedSlot(previousSlot);
+                }
+                previousSlot = -1;
+                placeCooldown = 0;
+            }
+
+            @Override
+            public void onTick(Minecraft client) {
+                if (placeCooldown > 0) placeCooldown--;
+                if (client.player == null || client.level == null || client.gameMode == null) return;
+                Player player = client.player;
+                if (player.containerMenu != player.inventoryMenu) return;
+                if (player.isUsingItem()) return;
+
+                BlockPos target = findTargetBlock(client, player);
+                if (target == null) return;
+                BlockHitResult hit = findSupport(client, target);
+                if (hit == null) return;
+                if (placeCooldown > 0) return;
+
+                int blockSlot = findBlockSlot(player);
+                if (blockSlot < 0) return;
+
+                Inventory inventory = player.getInventory();
+                if (blockSlot != inventory.getSelectedSlot()) {
+                    if (previousSlot < 0) previousSlot = inventory.getSelectedSlot();
+                    inventory.setSelectedSlot(blockSlot);
+                }
+
+                client.gameMode.useItemOn(client.player, InteractionHand.MAIN_HAND, hit);
+                client.player.swing(InteractionHand.MAIN_HAND);
+                placeCooldown = 2;
+            }
+
+            private BlockPos findTargetBlock(Minecraft client, Player player) {
+                Vec3 motion = player.getDeltaMovement();
+                boolean still = motion.x * motion.x + motion.z * motion.z < 0.01;
+                boolean tower = isTower() && client.options.keyJump.isDown() && still;
+                BlockPos target = tower ? player.blockPosition() : player.blockPosition().below();
+                assert client.level != null;
+                if (!client.level.getBlockState(target).isAir()) return null;
+                return target;
+            }
+
+            private BlockHitResult findSupport(Minecraft client, BlockPos target) {
+                assert client.level != null;
+                for (Direction direction : Direction.values()) {
+                    BlockPos neighbor = target.relative(direction);
+                    Direction normal = direction.getOpposite();
+                    if (!client.level.getBlockState(neighbor).isFaceSturdy(client.level, neighbor, normal)) continue;
+                    Vec3 location = Vec3.atCenterOf(neighbor)
+                            .add(normal.getStepX() * 0.5, normal.getStepY() * 0.5, normal.getStepZ() * 0.5);
+                    return new BlockHitResult(location, normal, neighbor, false);
+                }
+                return null;
+            }
+
+            private int findBlockSlot(Player player) {
+                Inventory inventory = player.getInventory();
+                int selected = inventory.getSelectedSlot();
+                if (inventory.getItem(selected).getItem() instanceof BlockItem) return selected;
+                for (int i = 0; i < 9; i++) {
+                    if (inventory.getItem(i).getItem() instanceof BlockItem) return i;
+                }
+                return -1;
+            }
+
+            private boolean isTower() {
+                Setting<?> setting = getSetting("Tower");
+                return setting == null || (boolean) setting.getValue();
+            }
+        });
+
         register(new Module("Free Cam", "Detaches the camera so you can fly freely around your body.", Category.CHEATS, GLFW.GLFW_KEY_U) {
             private Vec3 originalPos = Vec3.ZERO;
 
@@ -445,6 +550,9 @@ public class ModuleManager {
 
             @Override
             public void onEnable() {
+                if (Minecraft.getInstance().player != null) {
+                    FreeLookState.setRotation(Minecraft.getInstance().player.getYRot() + 180.0F, 0.0F);
+                }
                 FreeLookState.setInitialized(false);
             }
 
@@ -499,7 +607,7 @@ public class ModuleManager {
                         doAttack(client, target, false);
                     } else if (cooldownTicks <= 0) {
                         doAttack(client, target, true);
-                        cooldownTicks = (int) Math.round(getWeaponCooldownSeconds(client.player.getMainHandItem()) * 20.0);
+                        cooldownTicks = getWeaponCooldownTicks(client.player.getMainHandItem());
                     }
                 }
             }
@@ -509,29 +617,13 @@ public class ModuleManager {
                 cooldownTicks = 0;
             }
 
-            private static double getWeaponCooldownSeconds(ItemStack stack) {
-                if (stack.isEmpty()) return 0.25;
-                Item item = stack.getItem();
-                if (item == Items.WOODEN_SWORD || item == Items.STONE_SWORD || item == Items.IRON_SWORD
-                        || item == Items.GOLDEN_SWORD || item == Items.DIAMOND_SWORD || item == Items.NETHERITE_SWORD
-                        || item == Items.COPPER_SWORD) {
-                    return 0.63;
+            private static int getWeaponCooldownTicks(ItemStack stack) {
+                double speed = Attributes.ATTACK_SPEED.value().getDefaultValue();
+                ItemAttributeModifiers modifiers = stack.get(DataComponents.ATTRIBUTE_MODIFIERS);
+                if (modifiers != null) {
+                    speed = modifiers.compute(Attributes.ATTACK_SPEED, speed, EquipmentSlot.MAINHAND);
                 }
-                if (item == Items.WOODEN_SHOVEL || item == Items.STONE_SHOVEL || item == Items.IRON_SHOVEL
-                        || item == Items.GOLDEN_SHOVEL || item == Items.DIAMOND_SHOVEL || item == Items.NETHERITE_SHOVEL
-                        || item == Items.COPPER_SHOVEL) {
-                    return 1.00;
-                }
-                if (item == Items.WOODEN_PICKAXE || item == Items.STONE_PICKAXE || item == Items.IRON_PICKAXE
-                        || item == Items.GOLDEN_PICKAXE || item == Items.DIAMOND_PICKAXE || item == Items.NETHERITE_PICKAXE
-                        || item == Items.COPPER_PICKAXE) {
-                    return 0.83;
-                }
-                if (item == Items.WOODEN_AXE || item == Items.GOLDEN_AXE) return 1.00;
-                if (item == Items.IRON_AXE || item == Items.COPPER_AXE) return 1.11;
-                if (item == Items.STONE_AXE || item == Items.DIAMOND_AXE || item == Items.NETHERITE_AXE) return 1.25;
-                if (item == Items.WOODEN_HOE || item == Items.STONE_HOE) return 0.50;
-                return 0.25;
+                return (int) Math.round((1.0 / Math.max(speed, 0.01)) * 20.0);
             }
 
             private void doAttack(Minecraft client, Entity target, boolean resetCooldown) {
@@ -548,17 +640,20 @@ public class ModuleManager {
                 Entity best = null;
                 double bestDist = Double.MAX_VALUE;
                 assert client.level != null;
-                for (Entity entity : client.level.entitiesForRendering()) {
-                    if (entity == client.player || !entity.isAlive()) continue;
-                    boolean isPlayer = entity instanceof Player;
-                    boolean isMob = entity instanceof Mob;
-                    boolean match = switch (targets) {
-                        case "Players Only" -> isPlayer;
-                        case "Mobs Only" -> isMob;
-                        default -> isPlayer || isMob;
-                    };
-                    if (!match) continue;
-                    assert client.player != null;
+                assert client.player != null;
+                List<Entity> candidates = client.level.getEntities(client.player,
+                        client.player.getBoundingBox().inflate(maxRange),
+                        entity -> {
+                            if (entity == client.player || !entity.isAlive()) return false;
+                            boolean isPlayer = entity instanceof Player;
+                            boolean isMob = entity instanceof Mob;
+                            return switch (targets) {
+                                case "Players Only" -> isPlayer;
+                                case "Mobs Only" -> isMob;
+                                default -> isPlayer || isMob;
+                            };
+                        });
+                for (Entity entity : candidates) {
                     double dist = entity.distanceTo(client.player);
                     if (dist <= maxRange && dist < bestDist) {
                         bestDist = dist;
@@ -604,6 +699,154 @@ public class ModuleManager {
             private String getPvpMode() {
                 Setting<?> setting = getSetting("PVP Mode");
                 return setting == null ? "1.9+" : (String) setting.getValue();
+            }
+        });
+
+        register(new Module("Kill Aura", "Automatically attacks nearby entities within range.", Category.CHEATS) {
+            private int cooldownTicks;
+
+            {
+                addSetting(new NumberSetting("Range", "Attack entities within this range in blocks", 4.5, 1.0, 8.0, 0.5));
+                addSetting(new BooleanSetting("Players Only", "Only attack other players", false));
+                addSetting(new ModeSetting("Priority", "Target selection priority", "Closest", List.of("Closest", "Lowest HP", "Angle")));
+                addSetting(new ModeSetting("Attack Mode", "Cooldown behaviour", "1.9+", List.of("1.9+", "1.8")));
+            }
+
+            @Override
+            public void onTick(Minecraft client) {
+                if (cooldownTicks > 0) cooldownTicks--;
+                if (client.player == null || client.level == null || client.gameMode == null) return;
+                Entity target = findTarget(client);
+                if (target == null) return;
+
+                if ("1.9+".equals(getAttackMode())) {
+                    if (client.player.getAttackStrengthScale(0.0F) < 0.9F) return;
+                    doAttack(client, target);
+                } else {
+                    if (cooldownTicks > 0) return;
+                    doAttack(client, target);
+                    cooldownTicks = 2;
+                }
+            }
+
+            @Override
+            public void onDisable() {
+                cooldownTicks = 0;
+            }
+
+            private void doAttack(Minecraft client, Entity target) {
+                assert client.player != null;
+                assert client.gameMode != null;
+                client.gameMode.attack(client.player, target);
+                client.player.resetAttackStrengthTicker();
+                client.player.swing(InteractionHand.MAIN_HAND);
+            }
+
+            private Entity findTarget(Minecraft client) {
+                boolean playersOnly = isPlayersOnly();
+                String priority = getPriority();
+                double range = getRange();
+                Entity best = null;
+                double bestScore = Double.MAX_VALUE;
+                assert client.level != null;
+                assert client.player != null;
+                List<Entity> candidates = client.level.getEntities(client.player,
+                        client.player.getBoundingBox().inflate(range),
+                        entity -> {
+                            if (entity == client.player || !entity.isAlive()) return false;
+                            boolean isPlayer = entity instanceof Player;
+                            if (playersOnly) return isPlayer;
+                            return isPlayer || entity instanceof Mob;
+                        });
+                for (Entity entity : candidates) {
+                    double dist = entity.distanceTo(client.player);
+                    if (dist > range) continue;
+
+                    double score;
+                    if ("Lowest HP".equals(priority)) {
+                        score = ((LivingEntity) entity).getHealth();
+                    } else if ("Angle".equals(priority)) {
+                        score = angleTo(client.player, entity);
+                    } else {
+                        score = dist;
+                    }
+                    if (score < bestScore) {
+                        bestScore = score;
+                        best = entity;
+                    }
+                }
+                return best;
+            }
+
+            private static double angleTo(Player player, Entity target) {
+                Vec3 look = player.getLookAngle();
+                Vec3 delta = target.position()
+                        .add(-player.getX(), -(player.getY() + player.getEyeHeight()), -player.getZ())
+                        .normalize();
+                double dot = look.x * delta.x + look.y * delta.y + look.z * delta.z;
+                return Math.acos(Math.clamp(dot, -1.0, 1.0));
+            }
+
+            private boolean isPlayersOnly() {
+                Setting<?> setting = getSetting("Players Only");
+                return setting != null && (boolean) setting.getValue();
+            }
+
+            private String getPriority() {
+                Setting<?> setting = getSetting("Priority");
+                return setting == null ? "Closest" : (String) setting.getValue();
+            }
+
+            private String getAttackMode() {
+                Setting<?> setting = getSetting("Attack Mode");
+                return setting == null ? "1.9+" : (String) setting.getValue();
+            }
+
+            private double getRange() {
+                Setting<?> setting = getSetting("Range");
+                return setting == null ? 4.5 : (double) setting.getValue();
+            }
+        });
+
+        register(new Module("Auto Clicker", "Automatically attacks entities under your crosshair at high speed.", Category.CHEATS) {
+            private int cooldownTicks;
+
+            {
+                addSetting(new NumberSetting("CPS", "Attacks per second", 12.0, 1.0, 30.0, 1.0));
+                addSetting(new BooleanSetting("When Holding", "Only click while you are holding left-click", true));
+            }
+
+            @Override
+            public void onTick(Minecraft client) {
+                if (cooldownTicks > 0) cooldownTicks--;
+                if (client.player == null || client.level == null || client.gameMode == null) return;
+                if (client.gui.screen() != null) return;
+                Player player = client.player;
+                if (isWhenHolding() && !client.mouseHandler.isLeftPressed()) return;
+
+                HitResult hit = client.hitResult;
+                if (!(hit instanceof EntityHitResult entityHit)) return;
+                Entity target = entityHit.getEntity();
+                if (target == player || !target.isAlive() || !(target instanceof LivingEntity)) return;
+
+                double reach = player.getAttributeValue(Attributes.ENTITY_INTERACTION_RANGE);
+                if (player.distanceToSqr(target) > reach * reach) return;
+                if (cooldownTicks > 0) return;
+
+                client.gameMode.attack(player, target);
+                player.resetAttackStrengthTicker();
+                player.swing(InteractionHand.MAIN_HAND);
+                cooldownTicks = Math.max(1, (int) Math.round(20.0 / getCps()));
+            }
+
+            private boolean isWhenHolding() {
+                Setting<?> setting = getSetting("When Holding");
+                return setting == null || (boolean) setting.getValue();
+            }
+
+            private double getCps() {
+                Setting<?> setting = getSetting("CPS");
+                return setting == null ? 12.0 : (double) setting.getValue();
             }
         });
 
@@ -744,6 +987,205 @@ public class ModuleManager {
             }
         });
 
+        register(new Module("Auto Totem", "Automatically puts a Totem of Undying into your off-hand whenever you lose one.", Category.PLAYER) {
+            private boolean restocking;
+
+            @Override
+            public void onEnable() {
+                restocking = false;
+            }
+
+            @Override
+            public void onTick(Minecraft client) {
+                if (client.player == null || client.level == null || client.gameMode == null) return;
+                Player player = client.player;
+                if (player.containerMenu != player.inventoryMenu) return;
+
+                ItemStack offhand = player.getOffhandItem();
+                if (offhand.is(Items.TOTEM_OF_UNDYING)) {
+                    restocking = false;
+                    return;
+                }
+                if (restocking) return;
+
+                Inventory inventory = player.getInventory();
+                int totemSlot = -1;
+                for (int i = 0; i < 36; i++) {
+                    if (inventory.getItem(i).is(Items.TOTEM_OF_UNDYING)) {
+                        totemSlot = i;
+                        break;
+                    }
+                }
+                if (totemSlot < 0) return;
+
+                int menuSlot = totemSlot < 9
+                        ? InventoryMenu.USE_ROW_SLOT_START + totemSlot
+                        : InventoryMenu.INV_SLOT_START + (totemSlot - 9);
+                client.gameMode.handleContainerInput(InventoryMenu.CONTAINER_ID, menuSlot,
+                        40, ContainerInput.SWAP, player);
+                restocking = true;
+            }
+        });
+
+        register(new Module("Auto Eat", "Automatically eats food when your hunger gets low.", Category.PLAYER) {
+            private boolean holdingUse;
+
+            {
+                addSetting(new NumberSetting("Hunger Threshold", "Eat when hunger drops below this value", 12.0, 1.0, 19.0, 1.0));
+                addSetting(new BooleanSetting("Select Food", "Search the hotbar for food if your main hand is empty", true));
+            }
+
+            @Override
+            public void onEnable() {
+                holdingUse = false;
+            }
+
+            @Override
+            public void onDisable() {
+                releaseUse();
+            }
+
+            @Override
+            public void onTick(Minecraft client) {
+                if (client.player == null || client.level == null || client.gameMode == null) {
+                    releaseUse();
+                    return;
+                }
+                Player player = client.player;
+                boolean hungry = player.containerMenu == player.inventoryMenu
+                        && player.getFoodData().getFoodLevel() < getHungerThreshold();
+
+                boolean foodReady = false;
+                if (hungry) {
+                    ItemStack mainHand = player.getMainHandItem();
+                    if (isFood(mainHand)) {
+                        foodReady = true;
+                    } else if (isSelectFood()) {
+                        selectFoodSlot(player);
+                        foodReady = isFood(player.getMainHandItem());
+                    }
+                }
+                if (!hungry || !foodReady) {
+                    releaseUse();
+                    return;
+                }
+
+                if (player.isUsingItem()) {
+                    if (holdingUse || isFood(player.getUseItem())) {
+                        holdingUse = true;
+                        client.options.keyUse.setDown(true);
+                    }
+                    return;
+                }
+
+                if (client.options.keyUse.isDown()) return;
+
+                holdingUse = true;
+                client.options.keyUse.setDown(true);
+            }
+
+            private void releaseUse() {
+                if (holdingUse && Minecraft.getInstance().options != null) {
+                    Minecraft.getInstance().options.keyUse.setDown(false);
+                }
+                holdingUse = false;
+            }
+
+            private static void selectFoodSlot(Player player) {
+                Inventory inventory = player.getInventory();
+                int selected = inventory.getSelectedSlot();
+                for (int i = 0; i < 9; i++) {
+                    int slot = (selected + i) % 9;
+                    if (isFood(inventory.getItem(slot))) {
+                        if (slot != selected) inventory.setSelectedSlot(slot);
+                        return;
+                    }
+                }
+            }
+
+            private static boolean isFood(ItemStack stack) {
+                return !stack.isEmpty() && stack.get(DataComponents.FOOD) != null;
+            }
+
+            private boolean isSelectFood() {
+                Setting<?> setting = getSetting("Select Food");
+                return setting != null && (boolean) setting.getValue();
+            }
+
+            private double getHungerThreshold() {
+                Setting<?> setting = getSetting("Hunger Threshold");
+                return setting == null ? 12.0 : (double) setting.getValue();
+            }
+        });
+
+        register(new Module("Auto Fish", "Automatically casts, detects bites and reels in fish.", Category.PLAYER) {
+            private int cooldownTicks;
+            private boolean pendingRelease;
+
+            {
+                addSetting(new BooleanSetting("Auto Recast", "Cast the rod again after catching a fish", true));
+            }
+
+            @Override
+            public void onEnable() {
+                cooldownTicks = 0;
+                pendingRelease = false;
+            }
+
+            @Override
+            public void onDisable() {
+                if (pendingRelease) {
+                    Minecraft.getInstance().options.keyUse.setDown(false);
+                    pendingRelease = false;
+                }
+            }
+
+            @Override
+            public void onTick(Minecraft client) {
+                if (pendingRelease) {
+                    client.options.keyUse.setDown(false);
+                    pendingRelease = false;
+                }
+                if (cooldownTicks > 0) cooldownTicks--;
+                if (client.player == null || client.level == null || client.gameMode == null) return;
+                Player player = client.player;
+                if (player.containerMenu != player.inventoryMenu) return;
+                if (!player.getMainHandItem().is(Items.FISHING_ROD)) return;
+                if (client.options.keyUse.isDown()) return;
+                if (cooldownTicks > 0) return;
+
+                FishingHook bobber = findBobber(client, player);
+                if (bobber != null) {
+                    if (((FishingHookAccessor) bobber).isBiting()) {
+                        pressUse(client);
+                    }
+                    return;
+                }
+                if (!isAutoRecast()) return;
+                pressUse(client);
+            }
+
+            private static FishingHook findBobber(Minecraft client, Player player) {
+                assert client.level != null;
+                for (Entity entity : client.level.getEntities(player, player.getBoundingBox().inflate(48.0),
+                        e -> e instanceof FishingHook hook && hook.getPlayerOwner() == player)) {
+                    return (FishingHook) entity;
+                }
+                return null;
+            }
+
+            private void pressUse(Minecraft client) {
+                client.options.keyUse.setDown(true);
+                pendingRelease = true;
+                cooldownTicks = 10;
+            }
+
+            private boolean isAutoRecast() {
+                Setting<?> setting = getSetting("Auto Recast");
+                return setting == null || (boolean) setting.getValue();
+            }
+        });
+
         register(new Module("No Fall", "Prevents fall damage.", Category.CHEATS) {
             {
                 addSetting(new ModeSetting("Mode", "Prevention technique", "Safe", List.of("Safe", "Strict")));
@@ -811,6 +1253,51 @@ public class ModuleManager {
             private double getRange() {
                 Setting<?> setting = getSetting("Range");
                 return setting == null ? 48.0 : (double) setting.getValue();
+            }
+        });
+
+        register(new Module("Ore ESP", "Highlights ore blocks through walls.", Category.CHEATS) {
+            private int scanTicks;
+            private final boolean[] enabled = new boolean[OreEspState.Ore.values().length];
+
+            {
+                for (OreEspState.Ore ore : OreEspState.Ore.values()) {
+                    addSetting(new BooleanSetting("Show " + ore.label,
+                            "Highlight " + ore.label + " ore",
+                            ore == OreEspState.Ore.DIAMOND || ore == OreEspState.Ore.ANCIENT_DEBRIS));
+                }
+                addSetting(new NumberSetting("Range", "Scan range in blocks", 32.0, 8.0, 64.0, 4.0));
+                addSetting(new BooleanSetting("Boxes", "Draw outlines around ore blocks.", true));
+                addSetting(new BooleanSetting("Tracers", "Draw lines from your crosshair to ore blocks.", true));
+                addSetting(new BooleanSetting("Labels", "Show names and distances.", true));
+            }
+
+            @Override
+            public void onEnable() {
+                OreEspState.clear();
+                scanTicks = 0;
+            }
+
+            @Override
+            public void onTick(Minecraft client) {
+                if (client.player == null || client.level == null) return;
+                if (++scanTicks < 20) return;
+                scanTicks = 0;
+                for (OreEspState.Ore ore : OreEspState.Ore.values()) {
+                    Setting<?> setting = getSetting("Show " + ore.label);
+                    enabled[ore.ordinal()] = setting == null || (boolean) setting.getValue();
+                }
+                OreEspState.update(client, getRange(), enabled);
+            }
+
+            @Override
+            public void onDisable() {
+                OreEspState.clear();
+            }
+
+            private double getRange() {
+                Setting<?> setting = getSetting("Range");
+                return setting == null ? 32.0 : (double) setting.getValue();
             }
         });
 
@@ -948,6 +1435,14 @@ public class ModuleManager {
             private boolean isCloseAfter() {
                 Setting<?> setting = getSetting("Close After");
                 return setting == null || (boolean) setting.getValue();
+            }
+        });
+
+        register(new Module("Nick-Tool", "Client-side nick hider: change your own and other players' displayed names.", Category.PLAYER) {
+            {
+                NickToolState.setModule(this);
+                addSetting(new TextSetting("Your Nick", "The display name shown for you", ""));
+                addSetting(new NickEntryListSetting("Nick List", "Map real usernames to nicknames"));
             }
         });
     }
