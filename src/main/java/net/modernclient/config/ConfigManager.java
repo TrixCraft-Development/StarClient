@@ -126,6 +126,8 @@ public class ConfigManager {
                 settingsObj.addProperty(setting.getName(), ns.getValue());
             } else if (setting instanceof ModeSetting ms) {
                 settingsObj.addProperty(setting.getName(), ms.getValue());
+            } else if (setting instanceof TextSetting ts) {
+                settingsObj.addProperty(setting.getName(), ts.getValue());
             }
         }
         return settingsObj;
@@ -197,6 +199,8 @@ public class ConfigManager {
                                     ns.setValue(settingsObj.get(setting.getName()).getAsDouble());
                             case ModeSetting ms ->
                                     ms.setValue(settingsObj.get(setting.getName()).getAsString());
+                            case TextSetting ts ->
+                                    ts.setValue(settingsObj.get(setting.getName()).getAsString());
                             default -> {
                             }
                         }

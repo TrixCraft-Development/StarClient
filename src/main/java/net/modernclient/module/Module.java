@@ -102,6 +102,18 @@ public abstract class Module {
         return false;
     }
 
+    /**
+     * Whether the keybind toggles the module. Action modules such as a key-triggered lookup
+     * return false and receive {@link #onKeyPress(Minecraft)} on the rising edge instead, so the
+     * same keybind row in the ClickGUI still works for them.
+     */
+    public boolean isKeyBindToggleable() {
+        return true;
+    }
+
+    /** Called on the rising edge of the keybind when the module is enabled and non-toggleable. */
+    public void onKeyPress(Minecraft client) {}
+
     public void setKeyDownLastTick(boolean keyDownLastTick) {
         this.keyDownLastTick = keyDownLastTick;
     }

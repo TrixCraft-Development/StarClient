@@ -8,6 +8,7 @@ public enum Category {
     COSMETICS("Cosmetics", "✨"),
     PLAYER("Player", "🛡"),
     WORLD("World", "🌍"),
+    SERVER("Server", "🖥"),
     UI("UI & Visuals", "🎨"),
     SETTINGS("Settings", "⚙");
 

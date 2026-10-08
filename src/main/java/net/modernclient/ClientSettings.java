@@ -3,6 +3,7 @@ package net.modernclient;
 import net.modernclient.setting.BooleanSetting;
 import net.modernclient.setting.ColorModeSetting;
 import net.modernclient.setting.Setting;
+import net.modernclient.setting.TextSetting;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,6 +38,7 @@ public final class ClientSettings {
     private final BooleanSetting hudTextShadow;
     private final BooleanSetting tabIcon;
     private final BooleanSetting removeSplash;
+    private final TextSetting hypixelApiKey;
     private final ColorModeSetting menuAccentColor;
     private final ColorModeSetting menuBackgroundColor;
 
@@ -47,6 +49,8 @@ public final class ClientSettings {
                 "Show the Star icon next to your name in the tab list and above your head", true);
         this.removeSplash = new BooleanSetting("Remove Splash Text",
                 "Hide the random yellow splash text on the title screen", true);
+        this.hypixelApiKey = new TextSetting("Hypixel API Key",
+                "Required by Server modules that query the Hypixel API. Create a free key at hypixel.dev", "", true);
         this.menuAccentColor = new ColorModeSetting("Client Menu Color",
                 "Accent colour used across the client's menu", "Sky Blue", MENU_ACCENT_COLORS);
         this.menuBackgroundColor = new ColorModeSetting("Client Menu Background",
@@ -55,6 +59,7 @@ public final class ClientSettings {
         settings.add(hudTextShadow);
         settings.add(tabIcon);
         settings.add(removeSplash);
+        settings.add(hypixelApiKey);
         settings.add(menuAccentColor);
         settings.add(menuBackgroundColor);
     }
@@ -73,6 +78,11 @@ public final class ClientSettings {
 
     public boolean isRemoveSplash() {
         return removeSplash.getValue();
+    }
+
+    public String getHypixelApiKey() {
+        String key = hypixelApiKey.getValue();
+        return key == null ? "" : key.trim();
     }
 
     public int getMenuAccentColor() {

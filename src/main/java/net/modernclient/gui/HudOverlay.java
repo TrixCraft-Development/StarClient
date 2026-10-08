@@ -168,6 +168,50 @@ public class HudOverlay {
             if (oreLabelSetting != null) oreLabels = (boolean) oreLabelSetting.getValue();
             OreEsp.render(extractor, client, OreEspState.getEntries(), oreBoxes, oreTracers, oreLabels);
         }
+
+        // 10. Hypixel Level Head (server module, drawn above players' heads)
+        Module levelHeadMod = ModernClient.getInstance().getModuleManager().getModuleByName("Hypixel Level Head");
+        if (levelHeadMod != null && levelHeadMod.isEnabled() && !(client.gui.screen() instanceof ClickGuiScreen)) {
+            String levelType = "Network";
+            String labelColor = "Gold";
+            boolean showPrefix = true;
+            boolean showSelf = false;
+            boolean hypixelOnly = true;
+            boolean showBackground = true;
+            boolean distanceScale = false;
+            double levelRange = 64.0;
+            int yOffset = -20;
+            Setting<?> typeSetting = levelHeadMod.getSetting("Level Type");
+            Setting<?> colorSetting = levelHeadMod.getSetting("Level Color");
+            Setting<?> prefixSetting = levelHeadMod.getSetting("Show Prefix");
+            Setting<?> backgroundSetting = levelHeadMod.getSetting("Background");
+            Setting<?> scaleSetting = levelHeadMod.getSetting("Distance Scale");
+            Setting<?> selfSetting = levelHeadMod.getSetting("Show Self");
+            Setting<?> hypixelSetting = levelHeadMod.getSetting("Hypixel Only");
+            Setting<?> levelRangeSetting = levelHeadMod.getSetting("Range");
+            Setting<?> offsetSetting = levelHeadMod.getSetting("Y Offset");
+            if (typeSetting != null) levelType = (String) typeSetting.getValue();
+            if (colorSetting != null) labelColor = (String) colorSetting.getValue();
+            if (prefixSetting != null) showPrefix = (boolean) prefixSetting.getValue();
+            if (backgroundSetting != null) showBackground = (boolean) backgroundSetting.getValue();
+            if (scaleSetting != null) distanceScale = (boolean) scaleSetting.getValue();
+            if (selfSetting != null) showSelf = (boolean) selfSetting.getValue();
+            if (hypixelSetting != null) hypixelOnly = (boolean) hypixelSetting.getValue();
+            if (levelRangeSetting != null) levelRange = (double) levelRangeSetting.getValue();
+            if (offsetSetting != null) yOffset = (int) (double) offsetSetting.getValue();
+
+            int color = HypixelLevelHead.LEVEL_COLORS.getOrDefault(labelColor, 0xFFFACC15);
+            HypixelLevelHead.render(extractor, client, levelType, showSelf, showPrefix, hypixelOnly, levelRange,
+                    yOffset, color, showBackground, distanceScale);
+
+            String levelStatus = HypixelLevelHead.status(client, hypixelOnly);
+            if (levelStatus != null) {
+                extractor.text(client.font, levelStatus,
+                        screenWidth / 2 - client.font.width(levelStatus) / 2,
+                        4,
+                        0xFFFBBF24, true);
+            }
+        }
     }
 
     private static void renderArmor(GuiGraphicsExtractor extractor, Minecraft client, Module module) {

@@ -2,6 +2,7 @@ package net.modernclient.module;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponents;
@@ -30,11 +31,15 @@ import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
+import net.modernclient.api.HypixelApi;
 import net.modernclient.gui.EntityEsp;
+import net.modernclient.gui.HypixelLevelHead;
+import net.modernclient.gui.HypixelPlayerStats;
 import net.modernclient.mixin.FishingHookAccessor;
 import net.modernclient.mixin.MinecraftAccessor;
 import net.modernclient.mixin.MultiPlayerGameModeAccessor;
 import net.modernclient.setting.BooleanSetting;
+import net.modernclient.setting.ColorModeSetting;
 import net.modernclient.setting.ModeSetting;
 import net.modernclient.setting.NickEntryListSetting;
 import net.modernclient.setting.NumberSetting;
@@ -44,10 +49,15 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class ModuleManager {
     private final List<Module> modules = new ArrayList<>();
+
+    /** How long a key-triggered Hypixel lookup waits before giving up. */
+    private static final long LOOKUP_TIMEOUT_MILLIS = 10_000L;
 
     public ModuleManager() {
         // Register Default Client Modules
@@ -1445,6 +1455,320 @@ public class ModuleManager {
                 addSetting(new NickEntryListSetting("Nick List", "Map real usernames to nicknames"));
             }
         });
+
+        register(new Module("Hypixel Level Head", "Shows Hypixel Network / Bedwars / Skywars levels above players' heads.", Category.SERVER) {
+            private int ticks;
+
+            {
+                addSetting(new ModeSetting("Level Type", "Which Hypixel level to show above each player's head",
+                        "Network", List.of("Network", "Bedwars", "Skywars")));
+                addSetting(new ColorModeSetting("Level Color", "Colour of the level label", "Gold", HypixelLevelHead.LEVEL_COLORS));
+                addSetting(new BooleanSetting("Show Prefix", "Prefix the number with the level type, e.g. 'Bedwars: 412'", true));
+                addSetting(new BooleanSetting("Background", "Draw a dark plate behind the level badge", true));
+                addSetting(new BooleanSetting("Show Self", "Also draw your own level above your head", false));
+                addSetting(new BooleanSetting("Hypixel Only", "Only work while connected to Hypixel", true));
+                addSetting(new NumberSetting("Range", "How far away a player can be and still get a level", 64.0, 1.0, 256.0, 1.0));
+                addSetting(new NumberSetting("Y Offset", "Vertical offset of the label relative to the top of the head", -20.0, -60.0, 20.0, 1.0));
+                addSetting(new NumberSetting("Update Interval", "Seconds between level refreshes for the same player", 60.0, 10.0, 600.0, 10.0));
+            }
+
+            @Override
+            public void onEnable() {
+                ticks = 0;
+                HypixelApi.invalidateIfKeyChanged();
+            }
+
+            @Override
+            public void onDisable() {
+                HypixelApi.clear();
+            }
+
+            @Override
+            public void onTick(Minecraft client) {
+                if (ticks++ % getUpdateInterval() != 0) {
+                    return;
+                }
+                HypixelLevelHead.request(client, getRange(), isHypixelOnly(), getUpdateInterval() * 1000L);
+            }
+
+            private boolean isHypixelOnly() {
+                Setting<?> setting = getSetting("Hypixel Only");
+                return setting == null || (boolean) setting.getValue();
+            }
+
+            private double getRange() {
+                Setting<?> setting = getSetting("Range");
+                return setting == null ? 64.0 : (double) setting.getValue();
+            }
+
+            private int getUpdateInterval() {
+                Setting<?> setting = getSetting("Update Interval");
+                return setting == null ? 60 : Math.max(1, (int) (double) setting.getValue());
+            }
+        });
+
+        register(new Module("Hypixel Player Stats", "Press your keybind to print a player's Bedwars, SkyWars and Duels stats in chat.", Category.SERVER) {
+            private UUID pending;
+            private String pendingName;
+            private long pendingSince;
+
+            {
+                addSetting(new ModeSetting("Target", "Who to look up: the player on your crosshair, the one closest to it, or yourself",
+                        "Crosshair", List.of("Crosshair", "Nearest", "Self")));
+                addSetting(new BooleanSetting("Bedwars", "Include Bedwars stats", true));
+                addSetting(new BooleanSetting("SkyWars", "Include SkyWars stats", true));
+                addSetting(new BooleanSetting("Duels", "Include Duels stats", true));
+                addSetting(new BooleanSetting("Show Level", "Show the game level next to each game name", true));
+                addSetting(new BooleanSetting("Show Wins/Losses", "Show wins, losses and win rate", true));
+                addSetting(new BooleanSetting("Show Kills/Deaths", "Show kills, deaths and the K/D ratio", true));
+                addSetting(new BooleanSetting("Show Extras", "Also show finals, beds, goals, assists and winstreak", false));
+                addSetting(new BooleanSetting("Hypixel Only", "Only work while connected to Hypixel", true));
+                addSetting(new NumberSetting("Range", "How far away a player can be for 'Nearest' to pick them", 64.0, 1.0, 256.0, 1.0));
+                addSetting(new NumberSetting("Cache Duration", "Seconds a result is reused before it is fetched again", 300.0, 30.0, 3600.0, 30.0));
+                addSetting(new BooleanSetting("Debug", "Print what every lookup is doing in chat, step by step", true));
+            }
+
+            @Override
+            public boolean isKeyBindToggleable() {
+                return false;
+            }
+
+            @Override
+            public void onEnable() {
+                pending = null;
+                HypixelApi.invalidateIfKeyChanged();
+            }
+
+            @Override
+            public void onDisable() {
+                HypixelApi.unpin(pending);
+                pending = null;
+            }
+
+            @Override
+            public void onKeyPress(Minecraft client) {
+                if (!isEnabled()) {
+                    // The keybind is a one-shot action rather than a toggle, so a disabled module
+                    // would otherwise swallow the keypress with no feedback at all.
+                    chat(client, "[Hypixel] Hypixel Player Stats is disabled. Enable it in the module list first.");
+                    return;
+                }
+
+                HypixelApi.invalidateIfKeyChanged();
+                drainDebug(client);
+                debug(client, "keybind pressed; player=" + (client.player == null ? "none" : client.player.getName().getString())
+                        + " level=" + (client.level == null ? "none" : "loaded")
+                        + " apiKey=" + (HypixelApi.isConfigured() ? "set" : "MISSING")
+                        + " hypixel=" + HypixelLevelHead.isHypixel(client));
+
+                if (!HypixelApi.isConfigured()) {
+                    chat(client, "[Hypixel] Set your API key in the client menu first.");
+                    return;
+                }
+                if (isHypixelOnly() && !HypixelLevelHead.isHypixel(client)) {
+                    chat(client, "[Hypixel] Not on Hypixel.");
+                    return;
+                }
+                if (client.gui.screen() != null) {
+                    debug(client, "ignored: a screen is open");
+                    return;
+                }
+
+                Player target = resolveTarget(client);
+                if (target == null) {
+                    debug(client, "no target resolved (mode=" + getString("Target", "Crosshair") + ")");
+                    chat(client, "[Hypixel] No player to look up.");
+                    return;
+                }
+
+                UUID uuid = target.getUUID();
+                String name = target.getName().getString();
+                long ttl = getCacheDuration() * 1000L;
+                debug(client, "target " + name + " uuid=" + uuid + " ttl=" + (ttl / 1000L) + "s");
+
+                HypixelApi.Stats cached = HypixelApi.getStats(uuid);
+                if (cached != null && !cached.isStale(ttl)) {
+                    debug(client, "cache hit, " + ((ttl - (System.currentTimeMillis() - cached.fetchedAt())) / 1000L) + "s of TTL left");
+                    print(client, name, cached);
+                    drainDebug(client);
+                    return;
+                }
+                if (cached != null) {
+                    debug(client, "cache entry is stale, refetching");
+                }
+                if (HypixelApi.isBlocked(uuid)) {
+                    debug(client, "blocked, cannot request right now");
+                    chat(client, "[Hypixel] API is cooling down, try again shortly.");
+                    return;
+                }
+
+                // Pinned so the level head's cache pruning cannot delete the result before the
+                // tick below reads it.
+                HypixelApi.pin(uuid);
+                String refusal = HypixelApi.request(uuid, ttl);
+                if (refusal != null) {
+                    HypixelApi.unpin(uuid);
+                    debug(client, "request refused: " + refusal);
+                    chat(client, "[Hypixel] " + refusal + ".");
+                    return;
+                }
+
+                pending = uuid;
+                pendingName = name;
+                pendingSince = System.currentTimeMillis();
+                chat(client, "[Hypixel] Looking up " + name + "...");
+                drainDebug(client);
+            }
+
+            @Override
+            public void onTick(Minecraft client) {
+                drainDebug(client);
+                if (pending == null) {
+                    return;
+                }
+                HypixelApi.Stats stats = HypixelApi.getStats(pending);
+                if (stats != null) {
+                    debug(client, "result arrived for " + pendingName + " after "
+                            + (System.currentTimeMillis() - pendingSince) + "ms");
+                    String name = pendingName;
+                    HypixelApi.unpin(pending);
+                    pending = null;
+                    print(client, name, stats);
+                    drainDebug(client);
+                    return;
+                }
+                // The worker fills FAILED_UNTIL when every endpoint fails, and rate limiting backs
+                // the whole client off, so either ends the wait instead of polling forever.
+                if (HypixelApi.isBlocked(pending) || System.currentTimeMillis() - pendingSince > LOOKUP_TIMEOUT_MILLIS) {
+                    debug(client, "giving up: blocked=" + HypixelApi.isBlocked(pending)
+                            + " waited=" + (System.currentTimeMillis() - pendingSince) + "ms");
+                    chat(client, "[Hypixel] No Hypixel data for " + pendingName + ".");
+                    HypixelApi.unpin(pending);
+                    pending = null;
+                }
+            }
+
+            private Player resolveTarget(Minecraft client) {
+                if (client.player == null || client.level == null) {
+                    return null;
+                }
+
+                String mode = getString("Target", "Crosshair");
+                if ("Self".equalsIgnoreCase(mode)) {
+                    return client.player;
+                }
+
+                if (client.hitResult instanceof EntityHitResult hit
+                        && hit.getEntity() instanceof Player player
+                        && player != client.player) {
+                    return player;
+                }
+                if ("Crosshair".equalsIgnoreCase(mode)) {
+                    debug(client, "crosshair mode: nothing under the crosshair");
+                    return null;
+                }
+
+                Vec3 look = client.player.getLookAngle();
+                Vec3 eye = client.player.getEyePosition();
+                double range = getNumber("Range", 64.0);
+                int seen = 0;
+                double bestDot = -Double.MAX_VALUE;
+                double bestDistance = Double.MAX_VALUE;
+                Player nearest = null;
+                for (Entity entity : client.level.entitiesForRendering()) {
+                    if (!(entity instanceof Player player) || !player.isAlive() || player == client.player) {
+                        continue;
+                    }
+                    double distance = player.distanceTo(client.player);
+                    if (distance > range) {
+                        continue;
+                    }
+                    Vec3 delta = player.getEyePosition().subtract(eye);
+                    double length = delta.length();
+                    if (length < 1.0E-4) {
+                        continue;
+                    }
+                    // Pick the player closest to where the user is looking, falling back to raw
+                    // distance so overlapping players still resolve to a single target.
+                    double dot = delta.normalize().dot(look);
+                    seen++;
+                    if (dot > bestDot + 1.0E-6 || (Math.abs(dot - bestDot) <= 1.0E-6 && distance < bestDistance)) {
+                        bestDot = dot;
+                        bestDistance = distance;
+                        nearest = player;
+                    }
+                }
+                debug(client, "nearest mode: " + seen + " player(s) in range, picked "
+                        + (nearest == null ? "none" : nearest.getName().getString()
+                        + " dot=" + String.format(Locale.ROOT, "%.3f", bestDot)
+                        + " dist=" + String.format(Locale.ROOT, "%.1f", bestDistance)));
+                return nearest;
+            }
+
+            private void print(Minecraft client, String name, HypixelApi.Stats stats) {
+                debug(client, "printing: network=" + stats.networkLevel()
+                        + " bw=" + (stats.bedwars().isEmpty() ? "none" : stats.bedwars().kills() + "/" + stats.bedwars().deaths())
+                        + " sw=" + (stats.skywars().isEmpty() ? "none" : stats.skywars().kills() + "/" + stats.skywars().deaths())
+                        + " duels=" + (stats.duels().isEmpty() ? "none" : stats.duels().kills() + "/" + stats.duels().deaths()));
+                HypixelPlayerStats.print(client, name, stats, new HypixelPlayerStats.Options(
+                        isOn("Bedwars"),
+                        isOn("SkyWars"),
+                        isOn("Duels"),
+                        isOn("Show Level"),
+                        isOn("Show Wins/Losses"),
+                        isOn("Show Kills/Deaths"),
+                        isOn("Show Extras")));
+            }
+
+            private boolean isDebug() {
+                return isOn("Debug");
+            }
+
+            private void debug(Minecraft client, String message) {
+                if (isDebug()) {
+                    chat(client, "[Hypixel][debug] " + message);
+                }
+            }
+
+            /**
+             * Moves the worker's diagnostics onto the client thread. Chat is not thread safe, so
+             * the worker only ever writes to a buffer.
+             */
+            private void drainDebug(Minecraft client) {
+                for (String line : HypixelApi.drainDebug()) {
+                    if (isDebug()) {
+                        chat(client, "[Hypixel][debug] " + line);
+                    }
+                }
+            }
+
+            private boolean isOn(String name) {
+                Setting<?> setting = getSetting(name);
+                return setting == null || (boolean) setting.getValue();
+            }
+
+            private boolean isHypixelOnly() {
+                return isOn("Hypixel Only");
+            }
+
+            private String getString(String name, String fallback) {
+                Setting<?> setting = getSetting(name);
+                return setting == null ? fallback : (String) setting.getValue();
+            }
+
+            private double getNumber(String name, double fallback) {
+                Setting<?> setting = getSetting(name);
+                return setting == null ? fallback : (double) setting.getValue();
+            }
+
+            private long getCacheDuration() {
+                return (long) getNumber("Cache Duration", 300.0);
+            }
+
+            private static void chat(Minecraft client, String message) {
+                client.gui.hud.getChat().addClientSystemMessage(Component.literal(message));
+            }
+        });
     }
 
     private void register(Module module) {
@@ -1478,10 +1802,15 @@ public class ModuleManager {
             if (key != GLFW.GLFW_KEY_UNKNOWN) {
                 down = InputConstants.isKeyDown(client.getWindow(), key);
             }
+            boolean pressed = down && !module.isKeyDownLastTick();
             if (module.isHoldKey()) {
                 module.setEnabled(down);
-            } else if (down && !module.isKeyDownLastTick()) {
+            } else if (pressed && module.isKeyBindToggleable()) {
                 module.toggle();
+            } else if (pressed) {
+                // Action modules decide for themselves whether they can run, so a disabled one
+                // gets the chance to tell the user instead of silently eating the keypress.
+                module.onKeyPress(client);
             }
             module.setKeyDownLastTick(down);
         }

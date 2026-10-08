@@ -419,7 +419,7 @@ public class ClickGuiScreen extends Screen {
             extractor.text(this.font, setting.getName(), row.x + 4, row.y + 4, 0xFFE2E8F0);
             String value = textSetting.getValue();
             boolean blank = value == null || value.isBlank();
-            String label = blank ? "(click to edit)" : shorten(value, row.width - 60);
+            String label = blank ? "(click to edit)" : shorten(textSetting.isSecret() ? mask(value) : value, row.width - 60);
             extractor.text(this.font, label, row.x + row.width - this.font.width(label) - 4, row.y + 4, blank ? 0xFF64748B : menuAccent());
         } else if (setting instanceof NickEntryListSetting) {
             extractor.text(this.font, setting.getName(), row.x + 4, row.y + 4, 0xFFE2E8F0);
@@ -436,6 +436,12 @@ public class ClickGuiScreen extends Screen {
             value = value.substring(0, value.length() - 1);
         }
         return value + suffix;
+    }
+
+    private static String mask(String value) {
+        String trimmed = value.strip();
+        if (trimmed.length() <= 4) return "*".repeat(trimmed.length());
+        return "****" + trimmed.substring(trimmed.length() - 4);
     }
 
     private List<ModuleSlot> buildModuleSlots(double scroll) {
@@ -557,7 +563,9 @@ public class ClickGuiScreen extends Screen {
         } else if (setting instanceof NumberSetting numberSetting) {
             draggingSetting = setting;
             applySliderValue(numberSetting, mouseX, row);
-        } else if (setting instanceof TextSetting || setting instanceof NickEntryListSetting) {
+        } else if (setting instanceof TextSetting textSetting) {
+            Minecraft.getInstance().gui.setScreen(new TextSettingScreen(textSetting, this));
+        } else if (setting instanceof NickEntryListSetting) {
             Minecraft.getInstance().gui.setScreen(new NickToolScreen(this));
         }
     }
