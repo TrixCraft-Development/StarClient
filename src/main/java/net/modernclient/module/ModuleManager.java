@@ -120,6 +120,10 @@ public class ModuleManager {
             {
                 setEnabled(false);
                 addSetting(new ModeSetting("Orientation", "HUD layout alignment", "Vertical", List.of("Horizontal", "Vertical")));
+                addSetting(new BooleanSetting("Mirror Items", "Reverse armor order (Helmet <-> Boots)", false));
+                addSetting(new ModeSetting("Durability", "How armor durability text is displayed",
+                        "Show current & max Durability",
+                        List.of("Show current & max Durability", "Only current", "Hidden")));
             }
         });
 
@@ -1769,6 +1773,159 @@ public class ModuleManager {
                 client.gui.hud.getChat().addClientSystemMessage(Component.literal(message));
             }
         });
+
+        register(new Module("Target HUD", "Displays a card with target player or entity health, distance and armor.", Category.UI) {
+            {
+                addSetting(new ModeSetting("Target Mode", "When to show Target HUD", "Crosshair & Attack",
+                        List.of("Crosshair & Attack", "Attack Only", "Crosshair Only")));
+                addSetting(new BooleanSetting("Players Only", "Only display Target HUD for players", false));
+                addSetting(new BooleanSetting("Show Armor", "Display target's equipped armor and held items", true));
+                addSetting(new NumberSetting("Hold Time", "Seconds to keep showing target after looking away", 3.0, 0.5, 10.0, 0.5));
+            }
+        });
+
+        register(new Module("Potion Effects", "Displays active potion effects with icons and remaining timers on the HUD.", Category.UI) {
+            {
+                addSetting(new BooleanSetting("Hide Vanilla Icons", "Hide vanilla top-right effect icons when enabled", true));
+            }
+        });
+
+        register(new Module("CPS Display", "Displays your left and right clicks per second.", Category.UI) {
+            {
+                addSetting(new BooleanSetting("Show Right Click", "Display both LMB and RMB CPS", true));
+            }
+        });
+
+        register(new Module("Reach Display", "Displays the distance of your last melee hit.", Category.UI) {
+            {
+                addSetting(new NumberSetting("Reset Time", "Seconds before reach resets to 0.00", 5.0, 1.0, 15.0, 1.0));
+            }
+        });
+
+        register(new Module("Speedometer", "Displays your movement speed in blocks/sec or km/h.", Category.UI) {
+            {
+                addSetting(new ModeSetting("Unit", "Speed measurement unit", "m/s", List.of("m/s", "km/h")));
+            }
+        });
+
+        register(new Module("Custom Crosshair", "Replaces the vanilla crosshair with a customizable crosshair.", Category.UI) {
+            {
+                CustomCrosshairState.setModule(this);
+                addSetting(new ModeSetting("Shape", "Crosshair style", "Cross", List.of("Cross", "Circle", "Dot", "Cross + Dot")));
+                addSetting(new BooleanSetting("Use Client Color", "Match crosshair color to Client Menu Color", true));
+                addSetting(new ColorModeSetting("Color", "Custom crosshair color when Use Client Color is off", "Sky Blue", BlockOutlineState.OUTLINE_COLORS));
+                addSetting(new BooleanSetting("Center Dot", "Draw a center dot", true));
+                addSetting(new BooleanSetting("Outline", "Draw a dark outline around the crosshair", true));
+                addSetting(new BooleanSetting("Dynamic", "Expand gap when moving or attacking", true));
+                addSetting(new NumberSetting("Size", "Arm length or radius in pixels", 4.0, 1.0, 12.0, 1.0));
+                addSetting(new NumberSetting("Gap", "Distance from center in pixels", 2.0, 0.0, 10.0, 1.0));
+                addSetting(new NumberSetting("Thickness", "Line thickness in pixels", 1.0, 1.0, 4.0, 1.0));
+            }
+        });
+
+        register(new Module("Hit Color", "Customizes the damage flash color and opacity on hit entities.", Category.RENDER) {
+            {
+                addSetting(new BooleanSetting("Use Client Color", "Match hit tint to Client Menu Color", false));
+                addSetting(new ColorModeSetting("Tint Color", "Damage overlay color", "Crimson Red", HitColorState.HIT_COLORS));
+                addSetting(new NumberSetting("Opacity", "Damage overlay opacity", 0.6, 0.1, 1.0, 0.05));
+            }
+
+            @Override
+            public void onEnable() {
+                HitColorState.setActive(true);
+                sync();
+            }
+
+            @Override
+            public void onTick(Minecraft client) {
+                HitColorState.setActive(true);
+                sync();
+            }
+
+            @Override
+            public void onDisable() {
+                HitColorState.setActive(false);
+            }
+
+            private void sync() {
+                Setting<?> useClient = getSetting("Use Client Color");
+                boolean clientCol = useClient != null && (boolean) useClient.getValue();
+                int rgb = 0xFFEF4444;
+                if (clientCol && net.modernclient.ModernClient.getInstance() != null) {
+                    rgb = net.modernclient.ModernClient.getInstance().getClientSettings().getMenuAccentColor();
+                } else if (getSetting("Tint Color") instanceof ColorModeSetting cms) {
+                    rgb = cms.getColor();
+                }
+                double alpha = getSetting("Opacity") instanceof NumberSetting ns ? ns.getValue() : 0.6;
+                HitColorState.update(rgb, alpha);
+            }
+        });
+
+        register(new Module("Block Outline", "Customizes the block selection outline color and thickness.", Category.RENDER) {
+            {
+                BlockOutlineState.setModule(this);
+                addSetting(new BooleanSetting("Use Client Color", "Match block outline to Client Menu Color", true));
+                addSetting(new ColorModeSetting("Color", "Outline color when Use Client Color is off", "Sky Blue", BlockOutlineState.OUTLINE_COLORS));
+                addSetting(new NumberSetting("Thickness", "Outline thickness multiplier", 2.0, 1.0, 5.0, 0.5));
+                addSetting(new NumberSetting("Opacity", "Outline alpha opacity", 0.85, 0.1, 1.0, 0.05));
+            }
+        });
+
+        register(new Module("No Hurt Cam", "Reduces or disables screen shake when taking damage.", Category.RENDER) {
+            {
+                addSetting(new NumberSetting("Hurt Shake %", "Percentage of vanilla hurt camera shake (0% = none)", 0.0, 0.0, 100.0, 5.0));
+            }
+
+            @Override
+            public void onEnable() {
+                NoHurtCamState.setActive(true);
+                sync();
+            }
+
+            @Override
+            public void onTick(Minecraft client) {
+                NoHurtCamState.setActive(true);
+                sync();
+            }
+
+            @Override
+            public void onDisable() {
+                NoHurtCamState.setActive(false);
+            }
+
+            private void sync() {
+                double pct = getSetting("Hurt Shake %") instanceof NumberSetting ns ? ns.getValue() : 0.0;
+                NoHurtCamState.setMultiplier(pct / 100.0);
+            }
+        });
+
+        register(new Module("Low Fire", "Lowers the first-person fire overlay so it does not block your view.", Category.RENDER) {
+            {
+                addSetting(new NumberSetting("Height Offset", "How far to lower the fire overlay", -0.25, -0.5, 0.0, 0.05));
+            }
+
+            @Override
+            public void onEnable() {
+                LowFireState.setActive(true);
+                sync();
+            }
+
+            @Override
+            public void onTick(Minecraft client) {
+                LowFireState.setActive(true);
+                sync();
+            }
+
+            @Override
+            public void onDisable() {
+                LowFireState.setActive(false);
+            }
+
+            private void sync() {
+                double offset = getSetting("Height Offset") instanceof NumberSetting ns ? ns.getValue() : -0.25;
+                LowFireState.setOffset(offset);
+            }
+        });
     }
 
     private void register(Module module) {
@@ -1790,6 +1947,10 @@ public class ModuleManager {
     public void onTick(Minecraft client) {
         for (Module module : modules) {
             if (module.isEnabled()) {
+                if (!module.canUse()) {
+                    module.setEnabled(false);
+                    continue;
+                }
                 module.onTick(client);
             }
         }
@@ -1797,6 +1958,13 @@ public class ModuleManager {
 
     public void handleKeybinds(Minecraft client) {
         for (Module module : modules) {
+            if (!module.canUse()) {
+                if (module.isEnabled()) {
+                    module.setEnabled(false);
+                }
+                module.setKeyDownLastTick(false);
+                continue;
+            }
             int key = module.getKeyBind();
             boolean down = false;
             if (key != GLFW.GLFW_KEY_UNKNOWN) {

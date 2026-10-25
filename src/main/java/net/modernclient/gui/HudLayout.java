@@ -18,11 +18,20 @@ public class HudLayout {
     public static final String ARRAYLIST = "modules";
     public static final String KEYSTROKES = "keystrokes";
     public static final String ARMOR = "armor";
+    public static final String CPS = "cps";
+    public static final String REACH = "reach";
+    public static final String SPEED = "speed";
+    public static final String POTIONS = "potions";
+    public static final String TARGET_HUD = "target_hud";
     public static final int AUTO = Integer.MIN_VALUE;
 
     public static final int FPS_WIDTH = 130;
     public static final int PING_WIDTH = 130;
     public static final int COORDS_WIDTH = 150;
+    public static final int STAT_WIDTH = 130;
+    public static final int POTIONS_WIDTH = 140;
+    public static final int TARGET_HUD_WIDTH = 152;
+    public static final int TARGET_HUD_HEIGHT = 48;
     public static final int ELEMENT_HEIGHT = 18;
 
     private final Map<String, int[]> positions = new HashMap<>();
@@ -39,6 +48,11 @@ public class HudLayout {
         positions.put(ARRAYLIST, new int[]{AUTO, AUTO});
         positions.put(KEYSTROKES, new int[]{AUTO, AUTO});
         positions.put(ARMOR, new int[]{AUTO, AUTO});
+        positions.put(CPS, new int[]{AUTO, AUTO});
+        positions.put(REACH, new int[]{AUTO, AUTO});
+        positions.put(SPEED, new int[]{AUTO, AUTO});
+        positions.put(POTIONS, new int[]{AUTO, AUTO});
+        positions.put(TARGET_HUD, new int[]{AUTO, AUTO});
     }
 
     public boolean isAuto(String id) {
@@ -62,10 +76,11 @@ public class HudLayout {
 
     public int effectiveX(String id, int screenWidth, int maxModWidth) {
         return switch (id) {
-            case FPS, PING, COORDINATES -> isAuto(id) ? 8 : getX(id);
+            case FPS, PING, COORDINATES, CPS, REACH, SPEED, POTIONS -> isAuto(id) ? 8 : getX(id);
             case ARRAYLIST -> isAuto(id) ? screenWidth - maxModWidth - 8 : getX(id);
             case KEYSTROKES -> isAuto(id) ? screenWidth - 80 : getX(id);
             case ARMOR -> isAuto(id) ? (screenWidth - armorWidth()) / 2 : getX(id);
+            case TARGET_HUD -> isAuto(id) ? screenWidth / 2 + 20 : getX(id);
             default -> getX(id);
         };
     }
@@ -75,9 +90,14 @@ public class HudLayout {
             case FPS -> isAuto(id) ? screenHeight - 26 : getY(id);
             case PING -> isAuto(id) ? screenHeight - 50 : getY(id);
             case COORDINATES -> isAuto(id) ? screenHeight - 74 : getY(id);
+            case CPS -> isAuto(id) ? screenHeight - 98 : getY(id);
+            case REACH -> isAuto(id) ? screenHeight - 122 : getY(id);
+            case SPEED -> isAuto(id) ? screenHeight - 146 : getY(id);
+            case POTIONS -> isAuto(id) ? 8 : getY(id);
             case ARRAYLIST -> isAuto(id) ? 8 : getY(id);
             case KEYSTROKES -> isAuto(id) ? screenHeight - 85 : getY(id);
             case ARMOR -> isAuto(id) ? screenHeight - armorHeight() - 8 : getY(id);
+            case TARGET_HUD -> isAuto(id) ? screenHeight / 2 + 12 : getY(id);
             default -> getY(id);
         };
     }
@@ -91,12 +111,38 @@ public class HudLayout {
         return false;
     }
 
+    public String armorDurabilityMode() {
+        Module module = ModernClient.getInstance().getModuleManager().getModuleByName("Armor HUD");
+        if (module != null) {
+            Setting<?> durability = module.getSetting("Durability");
+            if (durability != null && durability.getValue() instanceof String mode) {
+                return mode;
+            }
+        }
+        return "Show current & max Durability";
+    }
+
+    public int armorHorizontalStride() {
+        String mode = armorDurabilityMode();
+        if ("Hidden".equals(mode)) {
+            return 20;
+        }
+        if ("Only current".equals(mode)) {
+            return 26;
+        }
+        return 48;
+    }
+
     public int armorWidth() {
-        return isArmorVertical() ? 18 : 72;
+        return isArmorVertical() ? 18 : armorHorizontalStride() * 4;
     }
 
     public int armorHeight() {
-        return isArmorVertical() ? 144 : 36;
+        boolean hidden = "Hidden".equals(armorDurabilityMode());
+        if (isArmorVertical()) {
+            return hidden ? 78 : 128;
+        }
+        return hidden ? 18 : 30;
     }
 
     public JsonObject toJson() {
@@ -114,7 +160,7 @@ public class HudLayout {
 
     public void fromJson(JsonObject obj) {
         reset();
-        for (String id : new String[]{FPS, PING, COORDINATES, ARRAYLIST, KEYSTROKES, ARMOR}) {
+        for (String id : new String[]{FPS, PING, COORDINATES, ARRAYLIST, KEYSTROKES, ARMOR, CPS, REACH, SPEED, POTIONS, TARGET_HUD}) {
             if (obj.has(id)) {
                 JsonObject o = obj.getAsJsonObject(id);
                 setPosition(id, o.get("x").getAsInt(), o.get("y").getAsInt());
@@ -143,6 +189,26 @@ public class HudLayout {
         int coordsX = layout.effectiveX(COORDINATES, screenWidth, 0);
         int coordsY = layout.effectiveY(COORDINATES, screenHeight);
         rects.add(new Rect(COORDINATES, coordsX, coordsY, coordsX + COORDS_WIDTH, coordsY + ELEMENT_HEIGHT));
+
+        int cpsX = layout.effectiveX(CPS, screenWidth, 0);
+        int cpsY = layout.effectiveY(CPS, screenHeight);
+        rects.add(new Rect(CPS, cpsX, cpsY, cpsX + STAT_WIDTH, cpsY + ELEMENT_HEIGHT));
+
+        int reachX = layout.effectiveX(REACH, screenWidth, 0);
+        int reachY = layout.effectiveY(REACH, screenHeight);
+        rects.add(new Rect(REACH, reachX, reachY, reachX + STAT_WIDTH, reachY + ELEMENT_HEIGHT));
+
+        int speedX = layout.effectiveX(SPEED, screenWidth, 0);
+        int speedY = layout.effectiveY(SPEED, screenHeight);
+        rects.add(new Rect(SPEED, speedX, speedY, speedX + STAT_WIDTH, speedY + ELEMENT_HEIGHT));
+
+        int potX = layout.effectiveX(POTIONS, screenWidth, 0);
+        int potY = layout.effectiveY(POTIONS, screenHeight);
+        rects.add(new Rect(POTIONS, potX, potY, potX + POTIONS_WIDTH, potY + 48));
+
+        int targetX = layout.effectiveX(TARGET_HUD, screenWidth, 0);
+        int targetY = layout.effectiveY(TARGET_HUD, screenHeight);
+        rects.add(new Rect(TARGET_HUD, targetX, targetY, targetX + TARGET_HUD_WIDTH, targetY + TARGET_HUD_HEIGHT));
 
         int maxModWidth = activeModules.stream().mapToInt(m -> font.width(m.getName()) + 12).max().orElse(0);
         int arrayLeft = layout.effectiveX(ARRAYLIST, screenWidth, maxModWidth);

@@ -13,6 +13,7 @@ import net.modernclient.cosmetics.CosmeticManager;
 import net.modernclient.module.Category;
 import net.modernclient.module.Module;
 import net.modernclient.module.ModuleManager;
+import net.modernclient.rank.Rank;
 import net.modernclient.setting.BooleanSetting;
 import net.modernclient.setting.ColorModeSetting;
 import net.modernclient.setting.ModeSetting;
@@ -56,6 +57,8 @@ public class ClickGuiScreen extends Screen {
     private long lastHudClickTime;
 
     private Setting<?> draggingSetting;
+    private boolean draggingScrollbar;
+    private double scrollbarDragOffsetY;
     private Module bindingModule;
     private double moduleScroll;
     private EditBox searchBox;
@@ -176,6 +179,8 @@ public class ClickGuiScreen extends Screen {
             }
         }
         extractor.disableScissor();
+
+        drawScrollbar(extractor, startX + guiWidth - 10, panelTop, panelBottom, mouseX, mouseY);
 
         // HUD elements rendered in the menu so they can be repositioned
         HudOverlay.render(extractor);
@@ -350,16 +355,24 @@ public class ClickGuiScreen extends Screen {
     private void drawModuleCard(GuiGraphicsExtractor extractor, ModuleSlot slot, int mouseX, int mouseY) {
         Module module = slot.module;
         int cardWidth = slot.width;
+        boolean locked = !module.canUse();
+        Rank requiredRank = module.getRequiredRank();
 
         int cardBg = module.isEnabled() ? menuBgLight() : menuBgBase();
-        int border = module.isEnabled() ? menuAccentDark() : 0xFF334155;
+        int border = locked ? requiredRank.getArgb() : (module.isEnabled() ? menuAccentDark() : 0xFF334155);
 
         extractor.fill(slot.x, slot.y, slot.x + cardWidth, slot.y + CARD_HEIGHT, cardBg);
         extractor.fill(slot.x, slot.y, slot.x + 3, slot.y + CARD_HEIGHT, border);
 
-        int titleColor = module.isEnabled() ? menuAccent() : 0xFFF8FAFC;
+        int titleColor = locked ? 0xFF94A3B8 : (module.isEnabled() ? menuAccent() : 0xFFF8FAFC);
         extractor.text(this.font, module.getName(), slot.x + 12, slot.y + 6, titleColor);
         extractor.text(this.font, module.getDescription(), slot.x + 12, slot.y + 20, 0xFF64748B);
+
+        if (locked) {
+            String lockText = "[🔒 " + requiredRank.getDisplayName() + "]";
+            extractor.text(this.font, lockText, slot.x + cardWidth - this.font.width(lockText) - 10, slot.y + 12, requiredRank.getArgb());
+            return;
+        }
 
         String status = module.isEnabled() ? "ON" : "OFF";
         int statusColor = module.isEnabled() ? 0xFF34D399 : 0xFF94A3B8;
@@ -452,6 +465,12 @@ public class ClickGuiScreen extends Screen {
 
         for (Module module : getVisibleModules()) {
             ModuleSlot slot = new ModuleSlot(module, startX, moduleY, cardWidth);
+            if (!module.canUse()) {
+                slot.totalHeight = CARD_HEIGHT + 2;
+                slots.add(slot);
+                moduleY += slot.totalHeight + 8;
+                continue;
+            }
             int settingY = moduleY + CARD_HEIGHT + KEYBIND_HEIGHT;
             for (Setting<?> setting : module.getSettings()) {
                 int height = setting instanceof NumberSetting ? 26 : 20;
@@ -516,6 +535,27 @@ public class ClickGuiScreen extends Screen {
         moduleScroll = Math.clamp(moduleScroll, 0, computeMaxScroll());
     }
 
+    private void drawScrollbar(GuiGraphicsExtractor extractor, int sbX, int sbTop, int sbBottom, int mouseX, int mouseY) {
+        int sbWidth = 4;
+        int trackHeight = sbBottom - sbTop;
+        extractor.fill(sbX, sbTop, sbX + sbWidth, sbBottom, menuBgDark());
+
+        double maxScroll = computeMaxScroll();
+        if (maxScroll <= 0) {
+            extractor.fill(sbX, sbTop, sbX + sbWidth, sbBottom, 0xFF334155);
+            return;
+        }
+
+        double totalContentHeight = trackHeight + maxScroll;
+        int thumbHeight = Math.max(24, (int) Math.round((double) trackHeight * trackHeight / totalContentHeight));
+        int scrollableTrack = Math.max(1, trackHeight - thumbHeight);
+        int thumbY = sbTop + (int) Math.round((moduleScroll / maxScroll) * scrollableTrack);
+
+        boolean hovered = mouseX >= sbX - 3 && mouseX <= sbX + sbWidth + 3 && mouseY >= sbTop && mouseY <= sbBottom;
+        int thumbColor = (draggingScrollbar || hovered) ? menuAccent() : 0xFF64748B;
+        extractor.fill(sbX, thumbY, sbX + sbWidth, thumbY + thumbHeight, thumbColor);
+    }
+
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
         int startX = (this.width - guiWidth) / 2;
@@ -550,6 +590,11 @@ public class ClickGuiScreen extends Screen {
             case HudLayout.ARRAYLIST -> "Active Modules";
             case HudLayout.KEYSTROKES -> "Keystrokes";
             case HudLayout.ARMOR -> "Armor HUD";
+            case HudLayout.CPS -> "CPS Display";
+            case HudLayout.REACH -> "Reach Display";
+            case HudLayout.SPEED -> "Speedometer";
+            case HudLayout.POTIONS -> "Potion Effects";
+            case HudLayout.TARGET_HUD -> "Target HUD";
             default -> "";
         };
     }
@@ -661,6 +706,31 @@ public class ClickGuiScreen extends Screen {
             catY += 28;
         }
 
+        // Check Scrollbar Click / Drag
+        int panelTop = startY + PANEL_TOP_OFFSET;
+        int panelBottom = startY + guiHeight - 8;
+        int sbX = startX + guiWidth - 10;
+        int sbWidth = 4;
+        double maxScroll = computeMaxScroll();
+        if (maxScroll > 0 && mouseX >= sbX - 4 && mouseX <= sbX + sbWidth + 4 && mouseY >= panelTop && mouseY <= panelBottom) {
+            int trackHeight = panelBottom - panelTop;
+            double totalContentHeight = trackHeight + maxScroll;
+            int thumbHeight = Math.max(24, (int) Math.round((double) trackHeight * trackHeight / totalContentHeight));
+            int scrollableTrack = Math.max(1, trackHeight - thumbHeight);
+            int thumbY = panelTop + (int) Math.round((moduleScroll / maxScroll) * scrollableTrack);
+
+            this.draggingScrollbar = true;
+            if (mouseY >= thumbY && mouseY <= thumbY + thumbHeight) {
+                this.scrollbarDragOffsetY = mouseY - thumbY;
+            } else {
+                this.scrollbarDragOffsetY = thumbHeight / 2.0;
+                double ratio = (mouseY - this.scrollbarDragOffsetY - panelTop) / (double) scrollableTrack;
+                this.moduleScroll = Math.clamp(ratio, 0.0, 1.0) * maxScroll;
+            }
+            return true;
+        }
+
+        if (mouseY >= panelTop && mouseY <= panelBottom) {
         // Check Cosmetics Rows
         if (isCosmeticsView()) {
             for (CosmeticRow row : buildCosmeticRows(moduleScroll)) {
@@ -686,6 +756,12 @@ public class ClickGuiScreen extends Screen {
         // Check Module Cards Toggle and Setting Interaction
         else {
             for (ModuleSlot slot : buildModuleSlots(moduleScroll)) {
+            if (!slot.module.canUse()) {
+                if (mouseX >= slot.x && mouseX <= slot.x + slot.width && mouseY >= slot.y && mouseY <= slot.y + CARD_HEIGHT) {
+                    return true;
+                }
+                continue;
+            }
             int keyY = slot.y + CARD_HEIGHT;
             if (mouseX >= slot.x + 4 && mouseX <= slot.x + slot.width - 4
                     && mouseY >= keyY && mouseY <= keyY + KEYBIND_HEIGHT) {
@@ -705,6 +781,7 @@ public class ClickGuiScreen extends Screen {
                 return true;
             }
             }
+        }
         }
 
         // Check HUD Element drag / reset
@@ -739,6 +816,22 @@ public class ClickGuiScreen extends Screen {
     @Override
     public boolean mouseDragged(@NonNull MouseButtonEvent event, double deltaX, double deltaY) {
         HudLayout layout = ModernClient.getInstance().getHudLayout();
+
+        if (draggingScrollbar) {
+            int startY = (this.height - guiHeight) / 2;
+            int panelTop = startY + PANEL_TOP_OFFSET;
+            int panelBottom = startY + guiHeight - 8;
+            double maxScroll = computeMaxScroll();
+            if (maxScroll > 0) {
+                int trackHeight = panelBottom - panelTop;
+                double totalContentHeight = trackHeight + maxScroll;
+                int thumbHeight = Math.max(24, (int) Math.round((double) trackHeight * trackHeight / totalContentHeight));
+                int scrollableTrack = Math.max(1, trackHeight - thumbHeight);
+                double ratio = (event.y() - scrollbarDragOffsetY - panelTop) / (double) scrollableTrack;
+                this.moduleScroll = Math.clamp(ratio, 0.0, 1.0) * maxScroll;
+            }
+            return true;
+        }
 
         if (draggingSetting instanceof NumberSetting numberSetting) {
             if (isSettingsView()) {
@@ -787,6 +880,10 @@ public class ClickGuiScreen extends Screen {
 
     @Override
     public boolean mouseReleased(@NonNull MouseButtonEvent event) {
+        if (draggingScrollbar) {
+            draggingScrollbar = false;
+            return true;
+        }
         if (draggingSetting != null) {
             draggingSetting = null;
             ModernClient.getInstance().getConfigManager().saveConfig();

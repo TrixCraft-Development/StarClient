@@ -9,14 +9,15 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
+import net.modernclient.account.AccountManager;
 import net.modernclient.config.ConfigManager;
-import net.modernclient.ClientSettings;
 import net.modernclient.cosmetics.CosmeticManager;
 import net.modernclient.gui.ClickGuiScreen;
 import net.modernclient.gui.HudLayout;
 import net.modernclient.gui.HudOverlay;
 import net.modernclient.mod.FabricModManager;
 import net.modernclient.module.ModuleManager;
+import net.modernclient.rank.RankManager;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,10 +26,13 @@ public class ModernClient implements ClientModInitializer {
     public static final String MOD_ID = "starclient";
     public static final String CLIENT_NAME = "Star Client";
     public static final String CONFIG_FOLDER = "config/starclient";
-    public static final String CLIENT_VERSION = "v" + getModVersion();
+    public static final String MOD_VERSION = getModVersion();
+    public static final String CLIENT_VERSION = "v" + MOD_VERSION;
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
     private static ModernClient instance;
+    private RankManager rankManager;
+    private AccountManager accountManager;
     private ModuleManager moduleManager;
     private ConfigManager configManager;
     private CosmeticManager cosmeticManager;
@@ -45,6 +49,8 @@ public class ModernClient implements ClientModInitializer {
         LOGGER.info("Initializing Star Client {} for Minecraft 26.2...", CLIENT_VERSION);
 
         // Initialize Managers
+        this.rankManager = new RankManager();
+        this.accountManager = new AccountManager();
         this.moduleManager = new ModuleManager();
         this.configManager = new ConfigManager();
         this.cosmeticManager = new CosmeticManager();
@@ -68,10 +74,7 @@ public class ModernClient implements ClientModInitializer {
 
         // Register Client Tick Callback (config loaded on first tick when Minecraft is fully ready)
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (!this.configLoaded) {
-                this.configLoaded = true;
-                this.configManager.loadConfig();
-            }
+            ensureConfigLoaded();
             boolean inGame = client.player != null && client.level != null;
             if (inGame) {
                 if (client.gui.screen() == null) {
@@ -111,6 +114,14 @@ public class ModernClient implements ClientModInitializer {
         return instance;
     }
 
+    public RankManager getRankManager() {
+        return rankManager;
+    }
+
+    public AccountManager getAccountManager() {
+        return accountManager;
+    }
+
     public ModuleManager getModuleManager() {
         return moduleManager;
     }
@@ -133,5 +144,12 @@ public class ModernClient implements ClientModInitializer {
 
     public ClientSettings getClientSettings() {
         return clientSettings;
+    }
+
+    public void ensureConfigLoaded() {
+        if (!this.configLoaded && this.configManager != null) {
+            this.configLoaded = true;
+            this.configManager.loadConfig();
+        }
     }
 }

@@ -1,6 +1,8 @@
 package net.modernclient.module;
 
 import net.minecraft.client.Minecraft;
+import net.modernclient.ModernClient;
+import net.modernclient.rank.Rank;
 import net.modernclient.setting.BooleanSetting;
 import net.modernclient.setting.ColorModeSetting;
 import net.modernclient.setting.Setting;
@@ -25,11 +27,26 @@ public abstract class Module {
             "Purple", "FF581C87",
             "Pink", "FF831843");
 
+    private static final Map<String, Integer> TEXT_COLORS = ColorModeSetting.ofPairs(
+            "White", "FFF1F5F9",
+            "Sky Blue", "FF38BDF8",
+            "Blue", "FF60A5FA",
+            "Cyan", "FF22D3EE",
+            "Green", "FF34D399",
+            "Lime", "FFA3E635",
+            "Yellow", "FFFACC15",
+            "Orange", "FFFB923C",
+            "Red", "FFF87171",
+            "Pink", "FFF472B6",
+            "Purple", "FFA78BFA");
+
     private final String name;
     private final String description;
     private final Category category;
     private final BooleanSetting transparentBackground;
     private final ColorModeSetting backgroundColor;
+    private final ColorModeSetting textColor;
+    private Rank requiredRank = Rank.USER;
     private boolean enabled;
     private int keyBind;
     private boolean keyDownLastTick;
@@ -38,21 +55,29 @@ public abstract class Module {
     protected static final Minecraft mc = Minecraft.getInstance();
 
     public Module(String name, String description, Category category) {
-        this(name, description, category, GLFW.GLFW_KEY_UNKNOWN);
+        this(name, description, category, GLFW.GLFW_KEY_UNKNOWN, Rank.USER);
     }
 
     public Module(String name, String description, Category category, int defaultKeyBind) {
+        this(name, description, category, defaultKeyBind, Rank.USER);
+    }
+
+    public Module(String name, String description, Category category, int defaultKeyBind, Rank requiredRank) {
         this.name = name;
         this.description = description;
         this.category = category;
         this.keyBind = defaultKeyBind;
+        this.requiredRank = requiredRank == null ? Rank.USER : requiredRank;
         this.enabled = false;
         this.transparentBackground = new BooleanSetting("Transparent Background",
                 "Render the module's element on screen without a background, only the text", false);
         this.backgroundColor = new ColorModeSetting("Background Color",
                 "The background colour of the module's element on screen", "Dark Blue", BACKGROUND_COLORS);
+        this.textColor = new ColorModeSetting("Text Color",
+                "The text colour of the module's element on screen", "White", TEXT_COLORS);
         addSetting(transparentBackground);
         addSetting(backgroundColor);
+        addSetting(textColor);
     }
 
     public String getName() {
@@ -67,11 +92,35 @@ public abstract class Module {
         return category;
     }
 
+    public Rank getRequiredRank() {
+        return requiredRank;
+    }
+
+    public Module setRequiredRank(Rank requiredRank) {
+        this.requiredRank = requiredRank == null ? Rank.USER : requiredRank;
+        return this;
+    }
+
+    /** Returns true if the local player's rank allows using this module. */
+    public boolean canUse() {
+        if (requiredRank == null || requiredRank == Rank.USER) {
+            return true;
+        }
+        ModernClient client = ModernClient.getInstance();
+        if (client == null || client.getRankManager() == null) {
+            return false;
+        }
+        return client.getRankManager().hasAccess(requiredRank);
+    }
+
     public boolean isEnabled() {
         return enabled;
     }
 
     public void setEnabled(boolean enabled) {
+        if (enabled && !canUse()) {
+            return;
+        }
         if (this.enabled != enabled) {
             this.enabled = enabled;
             if (enabled) {
@@ -83,6 +132,9 @@ public abstract class Module {
     }
 
     public void toggle() {
+        if (!enabled && !canUse()) {
+            return;
+        }
         setEnabled(!enabled);
     }
 
@@ -141,6 +193,10 @@ public abstract class Module {
 
     public int getBackgroundColor() {
         return backgroundColor.getColor();
+    }
+
+    public int getTextColor() {
+        return textColor.getColor();
     }
 
     public void onEnable() {}

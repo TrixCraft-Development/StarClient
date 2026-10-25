@@ -4,12 +4,14 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.modernclient.module.AutoToolState;
+import net.modernclient.module.CombatStatsTracker;
 import net.modernclient.module.FastBreakState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -65,6 +67,11 @@ public abstract class MultiPlayerGameModeMixin {
         float progress = this.destroyProgress;
         if (progress < 0.001F) return;
         this.destroyProgress = Math.min(0.99F, progress + progress * (speed - 1.0F));
+    }
+
+    @Inject(method = "attack(Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/entity/Entity;)V", at = @At("HEAD"))
+    private void recordAttackStats(Player player, Entity target, CallbackInfo ci) {
+        CombatStatsTracker.onAttack(player, target);
     }
 
     @Unique
