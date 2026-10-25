@@ -13,6 +13,7 @@ import net.modernclient.account.AccountManager;
 import net.modernclient.config.ConfigManager;
 import net.modernclient.cosmetics.CosmeticManager;
 import net.modernclient.gui.ClickGuiScreen;
+import net.modernclient.gui.HudEditorScreen;
 import net.modernclient.gui.HudLayout;
 import net.modernclient.gui.HudOverlay;
 import net.modernclient.mod.FabricModManager;
@@ -95,7 +96,9 @@ public class ModernClient implements ClientModInitializer {
         // Register HUD Element
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "hud"), (extractor, deltaTracker) -> {
             Minecraft client = Minecraft.getInstance();
-            if (client.player != null && client.level != null && !client.gui.hud.isHidden()) {
+            if (client.player != null && client.level != null && !client.gui.hud.isHidden()
+                    && !(client.gui.screen() instanceof ClickGuiScreen)
+                    && !(client.gui.screen() instanceof HudEditorScreen)) {
                 HudOverlay.render(extractor);
             }
         });

@@ -121,6 +121,8 @@ public class ModuleManager {
                 setEnabled(false);
                 addSetting(new ModeSetting("Orientation", "HUD layout alignment", "Vertical", List.of("Horizontal", "Vertical")));
                 addSetting(new BooleanSetting("Mirror Items", "Reverse armor order (Helmet <-> Boots)", false));
+                addSetting(new BooleanSetting("Show Held Item", "Also display the main-hand item alongside armor", false));
+                addSetting(new BooleanSetting("Low Durability Alert", "Flash a red border and warning when any armor piece drops to <= 15%", true));
                 addSetting(new ModeSetting("Durability", "How armor durability text is displayed",
                         "Show current & max Durability",
                         List.of("Show current & max Durability", "Only current", "Hidden")));
@@ -1926,6 +1928,148 @@ public class ModuleManager {
                 LowFireState.setOffset(offset);
             }
         });
+
+        register(new Module("Combo Counter", "Displays your consecutive melee hit combo without taking damage.", Category.UI) {
+            {
+                addSetting(new NumberSetting("Reset Time", "Seconds without hitting before the combo resets", 4.0, 1.0, 10.0, 0.5));
+            }
+        });
+
+        register(new Module("Toggle Sneak", "Tap your sneak key to toggle sneaking on or off.", Category.MOVEMENT) {
+            {
+                addSetting(new BooleanSetting("Unsneak in Containers", "Automatically release sneak when opening chests or inventories", true));
+            }
+
+            @Override
+            public void onEnable() {
+                ToggleSneakState.reset();
+                ToggleSneakState.setUnsneakInContainers(isUnsneakInContainers());
+            }
+
+            @Override
+            public void onTick(Minecraft client) {
+                ToggleSneakState.setUnsneakInContainers(isUnsneakInContainers());
+                ToggleSneakState.updateOnTick(client);
+            }
+
+            @Override
+            public void onDisable() {
+                ToggleSneakState.releaseSneak(mc);
+            }
+
+            private boolean isUnsneakInContainers() {
+                Setting<?> s = getSetting("Unsneak in Containers");
+                return s == null || (boolean) s.getValue();
+            }
+        });
+
+        register(new Module("Item Physics", "Dropped items tumble in the air and lie flat on the ground.", Category.RENDER) {
+            {
+                addSetting(new NumberSetting("Rotation Speed", "Tumble speed of dropped items in mid-air", 2.0, 0.5, 5.0, 0.5));
+            }
+
+            @Override
+            public void onEnable() {
+                ItemPhysicsState.setActive(true);
+                sync();
+            }
+
+            @Override
+            public void onTick(Minecraft client) {
+                ItemPhysicsState.setActive(true);
+                sync();
+            }
+
+            @Override
+            public void onDisable() {
+                ItemPhysicsState.setActive(false);
+            }
+
+            private void sync() {
+                double speed = getSetting("Rotation Speed") instanceof NumberSetting ns ? ns.getValue() : 2.0;
+                ItemPhysicsState.setRotationSpeed(speed);
+            }
+        });
+
+        register(new Module("Hit Particles", "Spawns extra customizable particles when hitting entities.", Category.RENDER) {
+            {
+                addSetting(new BooleanSetting("Always Crit", "Always spawn crit particles on every melee hit", true));
+                addSetting(new ModeSetting("Particle Type", "Which particle effect to spawn on hits",
+                        "Crit", List.of("Crit", "Enchanted", "Both", "Heart", "Flame")));
+                addSetting(new NumberSetting("Multiplier", "Extra particle bursts per hit", 2.0, 1.0, 10.0, 1.0));
+            }
+
+            @Override
+            public void onEnable() {
+                HitParticlesState.setActive(true);
+                sync();
+            }
+
+            @Override
+            public void onTick(Minecraft client) {
+                HitParticlesState.setActive(true);
+                sync();
+            }
+
+            @Override
+            public void onDisable() {
+                HitParticlesState.setActive(false);
+            }
+
+            private void sync() {
+                boolean alwaysCrit = !(getSetting("Always Crit") instanceof BooleanSetting bs) || bs.getValue();
+                String type = getSetting("Particle Type") instanceof ModeSetting ms ? ms.getValue() : "Crit";
+                int mult = getSetting("Multiplier") instanceof NumberSetting ns ? (int) Math.round(ns.getValue()) : 2;
+                HitParticlesState.setAlwaysCrit(alwaysCrit);
+                HitParticlesState.setParticleType(type);
+                HitParticlesState.setMultiplier(mult);
+            }
+        });
+
+        register(new Module("Motion Blur", "Applies a directional blur post-effect when rotating the camera.", Category.RENDER) {
+            {
+                addSetting(new NumberSetting("Strength", "Camera rotation blur intensity (1 = Very Subtle, 5 = Strong)", 2.0, 1.0, 5.0, 1.0));
+            }
+
+            @Override
+            public void onEnable() {
+                MotionBlurState.setActive(true);
+                sync();
+            }
+
+            @Override
+            public void onTick(Minecraft client) {
+                MotionBlurState.setActive(true);
+                sync();
+            }
+
+            @Override
+            public void onDisable() {
+                MotionBlurState.setActive(false);
+            }
+
+            private void sync() {
+                double strength = getSetting("Strength") instanceof NumberSetting ns ? ns.getValue() : 2.0;
+                MotionBlurState.setStrength(strength);
+            }
+        });
+
+        register(new Module("TNT Timer", "Displays a live fuse countdown timer above primed TNT.", Category.SERVER) {
+            @Override
+            public void onEnable() {
+                TntTimerState.setActive(true);
+            }
+
+            @Override
+            public void onTick(Minecraft client) {
+                TntTimerState.setActive(true);
+            }
+
+            @Override
+            public void onDisable() {
+                TntTimerState.setActive(false);
+            }
+        });
     }
 
     private void register(Module module) {
@@ -1945,6 +2089,7 @@ public class ModuleManager {
     }
 
     public void onTick(Minecraft client) {
+        CombatStatsTracker.updateOnTick(client.player);
         for (Module module : modules) {
             if (module.isEnabled()) {
                 if (!module.canUse()) {

@@ -66,17 +66,18 @@ public class HudOverlay {
         // 2. Ping Display (Bottom Left, toggled by "Ping Display" module)
         Module pingMod = ModernClient.getInstance().getModuleManager().getModuleByName("Ping Display");
         if (pingMod != null && pingMod.isEnabled()) {
+            int ping = 0;
             if (client.player.connection != null && client.player.connection.getPlayerInfo(client.player.getUUID()) != null) {
-                int ping = Objects.requireNonNull(client.player.connection.getPlayerInfo(client.player.getUUID())).getLatency();
-                String stats = "Ping: " + ping + "ms";
-
-                int pX = layout.effectiveX(HudLayout.PING, screenWidth, 0);
-                int pY = layout.effectiveY(HudLayout.PING, screenHeight);
-                if (!pingMod.isTransparentBackground()) {
-                    extractor.fill(pX, pY, pX + HudLayout.PING_WIDTH, pY + HudLayout.ELEMENT_HEIGHT, translucentBoxColor(pingMod));
-                }
-                hudText(extractor, client, stats, pX + 6, pY + 5, pingMod.getTextColor());
+                ping = Objects.requireNonNull(client.player.connection.getPlayerInfo(client.player.getUUID())).getLatency();
             }
+            String stats = "Ping: " + ping + "ms";
+
+            int pX = layout.effectiveX(HudLayout.PING, screenWidth, 0);
+            int pY = layout.effectiveY(HudLayout.PING, screenHeight);
+            if (!pingMod.isTransparentBackground()) {
+                extractor.fill(pX, pY, pX + HudLayout.PING_WIDTH, pY + HudLayout.ELEMENT_HEIGHT, translucentBoxColor(pingMod));
+            }
+            hudText(extractor, client, stats, pX + 6, pY + 5, pingMod.getTextColor());
         }
 
         // 3. Coordinates Display (Bottom Left, toggled by "Coordinates" module)
@@ -145,6 +146,22 @@ public class HudOverlay {
                 extractor.fill(sX, sY, sX + HudLayout.STAT_WIDTH, sY + HudLayout.ELEMENT_HEIGHT, translucentBoxColor(speedMod));
             }
             hudText(extractor, client, stats, sX + 6, sY + 5, speedMod.getTextColor());
+        }
+
+        // 3d2. Combo Counter
+        Module comboMod = ModernClient.getInstance().getModuleManager().getModuleByName("Combo Counter");
+        if (comboMod != null && comboMod.isEnabled()) {
+            Setting<?> resetSetting = comboMod.getSetting("Reset Time");
+            double resetSec = resetSetting == null ? 4.0 : (double) resetSetting.getValue();
+            int combo = CombatStatsTracker.getComboCount(resetSec);
+            String stats = combo <= 0 ? "No Combo" : (combo + (combo == 1 ? " Hit" : " Combo"));
+
+            int cbX = layout.effectiveX(HudLayout.COMBO, screenWidth, 0);
+            int cbY = layout.effectiveY(HudLayout.COMBO, screenHeight);
+            if (!comboMod.isTransparentBackground()) {
+                extractor.fill(cbX, cbY, cbX + HudLayout.STAT_WIDTH, cbY + HudLayout.ELEMENT_HEIGHT, translucentBoxColor(comboMod));
+            }
+            hudText(extractor, client, stats, cbX + 6, cbY + 5, comboMod.getTextColor());
         }
 
         // 3e. Potion Effects HUD
@@ -308,10 +325,23 @@ public class HudOverlay {
         Setting<?> mirrorSetting = module.getSetting("Mirror Items");
         boolean mirror = mirrorSetting != null && Boolean.TRUE.equals(mirrorSetting.getValue());
 
+        Setting<?> heldSetting = module.getSetting("Show Held Item");
+        boolean showHeld = heldSetting != null && Boolean.TRUE.equals(heldSetting.getValue());
+
+        Setting<?> alertSetting = module.getSetting("Low Durability Alert");
+        boolean lowAlert = alertSetting == null || Boolean.TRUE.equals(alertSetting.getValue());
+
         boolean headFirst = vertical != mirror;
-        EquipmentSlot[] order = headFirst
-                ? new EquipmentSlot[]{EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET}
-                : new EquipmentSlot[]{EquipmentSlot.FEET, EquipmentSlot.LEGS, EquipmentSlot.CHEST, EquipmentSlot.HEAD};
+        EquipmentSlot[] order;
+        if (showHeld) {
+            order = headFirst
+                    ? new EquipmentSlot[]{EquipmentSlot.MAINHAND, EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET}
+                    : new EquipmentSlot[]{EquipmentSlot.FEET, EquipmentSlot.LEGS, EquipmentSlot.CHEST, EquipmentSlot.HEAD, EquipmentSlot.MAINHAND};
+        } else {
+            order = headFirst
+                    ? new EquipmentSlot[]{EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET}
+                    : new EquipmentSlot[]{EquipmentSlot.FEET, EquipmentSlot.LEGS, EquipmentSlot.CHEST, EquipmentSlot.HEAD};
+        }
 
         HudLayout layout = ModernClient.getInstance().getHudLayout();
         int screenWidth = extractor.guiWidth();
@@ -325,6 +355,9 @@ public class HudOverlay {
         int strideX = layout.armorHorizontalStride();
         int boxOffsetX = vertical ? 0 : (strideX - 18) / 2;
         int stepY = hidden ? 20 : 32;
+        boolean pulseRed = (System.currentTimeMillis() / 350L) % 2L == 0L;
+        boolean anyLowArmor = false;
+        boolean anyLowHeld = false;
 
         for (int i = 0; i < order.length; i++) {
             int x = vertical ? aX : aX + i * strideX + boxOffsetX;
@@ -340,14 +373,36 @@ public class HudOverlay {
             extractor.item(stack, x + 1, y + 1);
             extractor.itemDecorations(client.font, stack, x + 1, y + 1);
 
-            if (!hidden && stack.isDamageableItem()) {
+            if (stack.isDamageableItem()) {
                 int max = stack.getMaxDamage();
                 int current = Math.max(max - stack.getDamageValue(), 0);
-                String durability = onlyCurrent ? String.valueOf(current) : (current + "/" + max);
                 float ratio = max <= 0 ? 1.0F : (float) current / max;
-                int color = ratio > 0.5F ? 0xFF34D399 : (ratio > 0.2F ? 0xFFF59E0B : 0xFFEF4444);
-                hudText(extractor, client, durability, x + 9 - client.font.width(durability) / 2, y + 19, color);
+                if (lowAlert && ratio <= 0.15F) {
+                    if (order[i] == EquipmentSlot.MAINHAND) {
+                        anyLowHeld = true;
+                    } else {
+                        anyLowArmor = true;
+                    }
+                    int warnCol = pulseRed ? 0xFFEF4444 : 0x88EF4444;
+                    extractor.fill(x, y, x + 18, y + 1, warnCol);
+                    extractor.fill(x, y + 17, x + 18, y + 18, warnCol);
+                    extractor.fill(x, y, x + 1, y + 18, warnCol);
+                    extractor.fill(x + 17, y, x + 18, y + 18, warnCol);
+                }
+                if (!hidden) {
+                    String durability = onlyCurrent ? String.valueOf(current) : (current + "/" + max);
+                    int color = ratio > 0.5F ? 0xFF34D399 : (ratio > 0.2F ? 0xFFF59E0B : 0xFFEF4444);
+                    hudText(extractor, client, durability, x + 9 - client.font.width(durability) / 2, y + 19, color);
+                }
             }
+        }
+
+        if (anyLowArmor || anyLowHeld) {
+            String warnText = anyLowArmor ? "⚠ Low Armor!" : "⚠ Low Durability!";
+            int warnColor = pulseRed ? 0xFFEF4444 : 0xFFF59E0B;
+            int warnX = aX + (layout.armorWidth() - client.font.width(warnText)) / 2;
+            int warnY = Math.max(2, aY - 11);
+            hudText(extractor, client, warnText, warnX, warnY, warnColor);
         }
     }
 
@@ -432,7 +487,7 @@ public class HudOverlay {
                 target = attacked;
             }
         }
-        if (target == null && client.gui.screen() instanceof ClickGuiScreen) {
+        if (target == null && (client.gui.screen() instanceof ClickGuiScreen || client.gui.screen() instanceof HudEditorScreen)) {
             target = client.player;
         }
         if (target == null) return;
@@ -521,7 +576,7 @@ public class HudOverlay {
         int accent = ModernClient.getInstance().getClientSettings().getMenuAccentColor();
 
         if (active.isEmpty()) {
-            if (client.gui.screen() instanceof ClickGuiScreen) {
+            if (client.gui.screen() instanceof ClickGuiScreen || client.gui.screen() instanceof HudEditorScreen) {
                 if (!transparent) {
                     extractor.fill(pX, pY, pX + HudLayout.POTIONS_WIDTH, pY + 22, bgColor);
                 }

@@ -21,6 +21,7 @@ public class HudLayout {
     public static final String CPS = "cps";
     public static final String REACH = "reach";
     public static final String SPEED = "speed";
+    public static final String COMBO = "combo";
     public static final String POTIONS = "potions";
     public static final String TARGET_HUD = "target_hud";
     public static final int AUTO = Integer.MIN_VALUE;
@@ -51,6 +52,7 @@ public class HudLayout {
         positions.put(CPS, new int[]{AUTO, AUTO});
         positions.put(REACH, new int[]{AUTO, AUTO});
         positions.put(SPEED, new int[]{AUTO, AUTO});
+        positions.put(COMBO, new int[]{AUTO, AUTO});
         positions.put(POTIONS, new int[]{AUTO, AUTO});
         positions.put(TARGET_HUD, new int[]{AUTO, AUTO});
     }
@@ -76,7 +78,7 @@ public class HudLayout {
 
     public int effectiveX(String id, int screenWidth, int maxModWidth) {
         return switch (id) {
-            case FPS, PING, COORDINATES, CPS, REACH, SPEED, POTIONS -> isAuto(id) ? 8 : getX(id);
+            case FPS, PING, COORDINATES, CPS, REACH, SPEED, COMBO, POTIONS -> isAuto(id) ? 8 : getX(id);
             case ARRAYLIST -> isAuto(id) ? screenWidth - maxModWidth - 8 : getX(id);
             case KEYSTROKES -> isAuto(id) ? screenWidth - 80 : getX(id);
             case ARMOR -> isAuto(id) ? (screenWidth - armorWidth()) / 2 : getX(id);
@@ -93,6 +95,7 @@ public class HudLayout {
             case CPS -> isAuto(id) ? screenHeight - 98 : getY(id);
             case REACH -> isAuto(id) ? screenHeight - 122 : getY(id);
             case SPEED -> isAuto(id) ? screenHeight - 146 : getY(id);
+            case COMBO -> isAuto(id) ? screenHeight - 170 : getY(id);
             case POTIONS -> isAuto(id) ? 8 : getY(id);
             case ARRAYLIST -> isAuto(id) ? 8 : getY(id);
             case KEYSTROKES -> isAuto(id) ? screenHeight - 85 : getY(id);
@@ -109,6 +112,19 @@ public class HudLayout {
             return orientation != null && "Vertical".equals(orientation.getValue());
         }
         return false;
+    }
+
+    public boolean isArmorShowHeldItem() {
+        Module module = ModernClient.getInstance().getModuleManager().getModuleByName("Armor HUD");
+        if (module != null) {
+            Setting<?> held = module.getSetting("Show Held Item");
+            return held != null && Boolean.TRUE.equals(held.getValue());
+        }
+        return false;
+    }
+
+    public int armorSlotCount() {
+        return isArmorShowHeldItem() ? 5 : 4;
     }
 
     public String armorDurabilityMode() {
@@ -134,13 +150,14 @@ public class HudLayout {
     }
 
     public int armorWidth() {
-        return isArmorVertical() ? 18 : armorHorizontalStride() * 4;
+        return isArmorVertical() ? 18 : armorHorizontalStride() * armorSlotCount();
     }
 
     public int armorHeight() {
         boolean hidden = "Hidden".equals(armorDurabilityMode());
+        int count = armorSlotCount();
         if (isArmorVertical()) {
-            return hidden ? 78 : 128;
+            return hidden ? (count * 20 - 2) : (count * 32);
         }
         return hidden ? 18 : 30;
     }
@@ -160,7 +177,7 @@ public class HudLayout {
 
     public void fromJson(JsonObject obj) {
         reset();
-        for (String id : new String[]{FPS, PING, COORDINATES, ARRAYLIST, KEYSTROKES, ARMOR, CPS, REACH, SPEED, POTIONS, TARGET_HUD}) {
+        for (String id : new String[]{FPS, PING, COORDINATES, ARRAYLIST, KEYSTROKES, ARMOR, CPS, REACH, SPEED, COMBO, POTIONS, TARGET_HUD}) {
             if (obj.has(id)) {
                 JsonObject o = obj.getAsJsonObject(id);
                 setPosition(id, o.get("x").getAsInt(), o.get("y").getAsInt());
@@ -169,11 +186,10 @@ public class HudLayout {
     }
 
     public record Rect(String id, int x1, int y1, int x2, int y2) {
-
         public boolean contains(double x, double y) {
-                return x >= x1 && x <= x2 && y >= y1 && y <= y2;
-            }
+            return x >= x1 && x <= x2 && y >= y1 && y <= y2;
         }
+    }
 
     public static List<Rect> computeRects(Font font, List<Module> activeModules, int screenWidth, int screenHeight, HudLayout layout) {
         List<Rect> rects = new ArrayList<>();
@@ -201,6 +217,10 @@ public class HudLayout {
         int speedX = layout.effectiveX(SPEED, screenWidth, 0);
         int speedY = layout.effectiveY(SPEED, screenHeight);
         rects.add(new Rect(SPEED, speedX, speedY, speedX + STAT_WIDTH, speedY + ELEMENT_HEIGHT));
+
+        int comboX = layout.effectiveX(COMBO, screenWidth, 0);
+        int comboY = layout.effectiveY(COMBO, screenHeight);
+        rects.add(new Rect(COMBO, comboX, comboY, comboX + STAT_WIDTH, comboY + ELEMENT_HEIGHT));
 
         int potX = layout.effectiveX(POTIONS, screenWidth, 0);
         int potY = layout.effectiveY(POTIONS, screenHeight);

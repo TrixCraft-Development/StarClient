@@ -75,13 +75,15 @@ public class ClickGuiScreen extends Screen {
         this.parent = parent;
     }
 
+    private static final int HUD_EDITOR_BTN_WIDTH = 74;
+
     @Override
     protected void init() {
         super.init();
         int startX = (this.width - guiWidth) / 2;
         int startY = (this.height - guiHeight) / 2;
         int searchX = startX + 16 + this.font.width("⭐ " + ModernClient.CLIENT_NAME + " " + ModernClient.CLIENT_VERSION) + 24;
-        int searchWidth = startX + guiWidth - 16 - searchX;
+        int searchWidth = startX + guiWidth - 16 - (HUD_EDITOR_BTN_WIDTH + 8) - searchX;
 
         this.searchBox = new EditBox(this.font, searchX + 4, startY + (HEADER_HEIGHT - SEARCH_HEIGHT) / 2, searchWidth - 4, SEARCH_HEIGHT, Component.literal(""));
         this.searchBox.setResponder(value -> this.searchQuery = value);
@@ -106,11 +108,24 @@ public class ClickGuiScreen extends Screen {
         extractor.fill(startX, startY, startX + guiWidth, startY + HEADER_HEIGHT, menuBgLight());
         String headerTitle = "⭐ " + ModernClient.CLIENT_NAME + " " + ModernClient.CLIENT_VERSION;
         extractor.text(this.font, headerTitle, startX + 16, startY + 12, menuAccent());
-        drawSearchBar(extractor,
-                startX + 16 + this.font.width(headerTitle) + 24,
-                startY + (HEADER_HEIGHT - SEARCH_HEIGHT) / 2,
-                startX + guiWidth - 16 - (startX + 16 + this.font.width(headerTitle) + 24),
-                mouseX, mouseY, delta);
+        int headerBarY = startY + (HEADER_HEIGHT - SEARCH_HEIGHT) / 2;
+        int searchX = startX + 16 + this.font.width(headerTitle) + 24;
+        int searchW = startX + guiWidth - 16 - (HUD_EDITOR_BTN_WIDTH + 8) - searchX;
+        drawSearchBar(extractor, searchX, headerBarY, searchW, mouseX, mouseY, delta);
+
+        // Edit HUD Button
+        int hudBtnX = startX + guiWidth - 16 - HUD_EDITOR_BTN_WIDTH;
+        boolean hudBtnHover = mouseX >= hudBtnX && mouseX <= hudBtnX + HUD_EDITOR_BTN_WIDTH
+                && mouseY >= headerBarY && mouseY <= headerBarY + SEARCH_HEIGHT;
+        extractor.fill(hudBtnX, headerBarY, hudBtnX + HUD_EDITOR_BTN_WIDTH, headerBarY + SEARCH_HEIGHT,
+                hudBtnHover ? menuAccentDark() : menuBgDark());
+        drawOutline(extractor, hudBtnX, headerBarY, hudBtnX + HUD_EDITOR_BTN_WIDTH, headerBarY + SEARCH_HEIGHT,
+                hudBtnHover ? menuAccent() : 0xFF334155);
+        String hudBtnText = "✥ Edit HUD";
+        extractor.text(this.font, hudBtnText,
+                hudBtnX + (HUD_EDITOR_BTN_WIDTH - this.font.width(hudBtnText)) / 2,
+                headerBarY + (SEARCH_HEIGHT - 8) / 2,
+                hudBtnHover ? 0xFFFFFFFF : menuAccent());
 
         // Sidebar - Category Selector
         extractor.fill(startX, startY + 36, startX + SIDEBAR_WIDTH, startY + guiHeight, menuBgDark());
@@ -595,6 +610,7 @@ public class ClickGuiScreen extends Screen {
             case HudLayout.SPEED -> "Speedometer";
             case HudLayout.POTIONS -> "Potion Effects";
             case HudLayout.TARGET_HUD -> "Target HUD";
+            case HudLayout.COMBO -> "Combo Counter";
             default -> "";
         };
     }
@@ -686,6 +702,15 @@ public class ClickGuiScreen extends Screen {
         int button = event.button();
         int startX = (this.width - guiWidth) / 2;
         int startY = (this.height - guiHeight) / 2;
+
+        // Check Edit HUD Button
+        int headerBarY = startY + (HEADER_HEIGHT - SEARCH_HEIGHT) / 2;
+        int hudBtnX = startX + guiWidth - 16 - HUD_EDITOR_BTN_WIDTH;
+        if (mouseX >= hudBtnX && mouseX <= hudBtnX + HUD_EDITOR_BTN_WIDTH
+                && mouseY >= headerBarY && mouseY <= headerBarY + SEARCH_HEIGHT) {
+            Minecraft.getInstance().gui.setScreen(new HudEditorScreen(this));
+            return true;
+        }
 
         boolean onSearchBar = mouseX >= this.searchBox.getX() && mouseX <= this.searchBox.getX() + this.searchBox.getWidth()
                 && mouseY >= this.searchBox.getY() && mouseY <= this.searchBox.getY() + SEARCH_HEIGHT;
@@ -858,18 +883,32 @@ public class ClickGuiScreen extends Screen {
         // bounds, using the offsets latched when the drag started.
         List<HudLayout.Rect> rects = HudLayout.computeRects(this.font, getActiveModules(), this.width, this.height, layout);
         if (draggingElement != null) {
-            boolean visible = false;
+            HudLayout.Rect draggedRect = null;
             for (HudLayout.Rect rect : rects) {
                 if (rect.id().equals(draggingElement) && isHudElementVisible(rect.id())) {
-                    visible = true;
+                    draggedRect = rect;
                     break;
                 }
             }
-            if (visible) {
+            if (draggedRect != null) {
+                int rectW = Math.max(20, draggedRect.x2() - draggedRect.x1());
+                int rectH = Math.max(14, draggedRect.y2() - draggedRect.y1());
                 int newX = (int) Math.round(event.x() - dragOffsetX);
                 int newY = (int) Math.round(event.y() - dragOffsetY);
-                newX = Math.clamp(newX, 0, this.width - 20);
-                newY = Math.clamp(newY, 0, this.height - 20);
+
+                // Snap to center & screen margins (6px threshold)
+                int centerX = (this.width - rectW) / 2;
+                int centerY = (this.height - rectH) / 2;
+                if (Math.abs(newX - centerX) <= 6) newX = centerX;
+                else if (Math.abs(newX - 8) <= 6) newX = 8;
+                else if (Math.abs((newX + rectW) - (this.width - 8)) <= 6) newX = this.width - 8 - rectW;
+
+                if (Math.abs(newY - centerY) <= 6) newY = centerY;
+                else if (Math.abs(newY - 8) <= 6) newY = 8;
+                else if (Math.abs((newY + rectH) - (this.height - 8)) <= 6) newY = this.height - 8 - rectH;
+
+                newX = Math.clamp(newX, 0, Math.max(0, this.width - 20));
+                newY = Math.clamp(newY, 0, Math.max(0, this.height - 20));
                 layout.setPosition(draggingElement, newX, newY);
                 this.hudDragMoved = true;
                 return true;
