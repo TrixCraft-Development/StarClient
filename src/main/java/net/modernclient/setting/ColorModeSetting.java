@@ -15,6 +15,10 @@ public class ColorModeSetting extends ModeSetting {
         return colors.getOrDefault(getValue(), 0x00000000);
     }
 
+    public int getColorFor(String mode) {
+        return colors.getOrDefault(mode, 0xFF000000);
+    }
+
     public Map<String, Integer> getColors() {
         return colors;
     }

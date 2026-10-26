@@ -5,14 +5,31 @@ import net.modernclient.ModernClient;
 import net.modernclient.rank.Rank;
 import net.modernclient.setting.BooleanSetting;
 import net.modernclient.setting.ColorModeSetting;
+import net.modernclient.setting.NickEntryListSetting;
 import net.modernclient.setting.Setting;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public abstract class Module {
+    private static final Set<String> HUD_MODULE_NAMES = Set.of(
+            "FPS Display",
+            "Ping Display",
+            "Coordinates",
+            "Active Modules",
+            "Keystrokes",
+            "Armor HUD",
+            "CPS Display",
+            "Reach Display",
+            "Speedometer",
+            "Combo Counter",
+            "Potion Effects",
+            "Target HUD"
+    );
+
     private static final Map<String, Integer> BACKGROUND_COLORS = ColorModeSetting.ofPairs(
             "Dark Blue", "FF0F172A",
             "Black", "FF000000",
@@ -48,6 +65,8 @@ public abstract class Module {
     private final ColorModeSetting textColor;
     private Rank requiredRank = Rank.USER;
     private boolean enabled;
+    private boolean favorite;
+    private final int defaultKeyBind;
     private int keyBind;
     private boolean keyDownLastTick;
     private final List<Setting<?>> settings = new ArrayList<>();
@@ -66,9 +85,11 @@ public abstract class Module {
         this.name = name;
         this.description = description;
         this.category = category;
+        this.defaultKeyBind = defaultKeyBind;
         this.keyBind = defaultKeyBind;
         this.requiredRank = requiredRank == null ? Rank.USER : requiredRank;
         this.enabled = false;
+        this.favorite = false;
         this.transparentBackground = new BooleanSetting("Transparent Background",
                 "Render the module's element on screen without a background, only the text", false);
         this.backgroundColor = new ColorModeSetting("Background Color",
@@ -142,8 +163,62 @@ public abstract class Module {
         return keyBind;
     }
 
+    public int getDefaultKeyBind() {
+        return defaultKeyBind;
+    }
+
     public void setKeyBind(int keyBind) {
         this.keyBind = keyBind;
+    }
+
+    public boolean isFavorite() {
+        return favorite;
+    }
+
+    public void setFavorite(boolean favorite) {
+        this.favorite = favorite;
+    }
+
+    public void toggleFavorite() {
+        this.favorite = !this.favorite;
+    }
+
+    public boolean hasHudElement() {
+        return HUD_MODULE_NAMES.contains(this.name);
+    }
+
+    public boolean isHudAppearanceSetting(Setting<?> setting) {
+        return setting == transparentBackground || setting == backgroundColor || setting == textColor;
+    }
+
+    public List<Setting<?>> getGeneralSettings() {
+        List<Setting<?>> result = new ArrayList<>();
+        for (Setting<?> setting : settings) {
+            if (!isHudAppearanceSetting(setting)) {
+                result.add(setting);
+            }
+        }
+        return result;
+    }
+
+    public List<Setting<?>> getHudAppearanceSettings() {
+        if (!hasHudElement()) {
+            return List.of();
+        }
+        return List.of(transparentBackground, backgroundColor, textColor);
+    }
+
+    public int getVisibleSettingCount() {
+        return getGeneralSettings().size() + getHudAppearanceSettings().size();
+    }
+
+    public void resetSettingsToDefault() {
+        this.keyBind = this.defaultKeyBind;
+        for (Setting<?> setting : settings) {
+            if (!(setting instanceof NickEntryListSetting)) {
+                setting.reset();
+            }
+        }
     }
 
     public boolean isKeyDownLastTick() {

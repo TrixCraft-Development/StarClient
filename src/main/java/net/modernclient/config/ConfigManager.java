@@ -22,7 +22,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 
 public class ConfigManager {
     private static final String LEGACY_FOLDER = "config/modernclient";
@@ -80,6 +79,7 @@ public class ConfigManager {
         for (Module module : ModernClient.getInstance().getModuleManager().getModules()) {
             JsonObject modObj = new JsonObject();
             modObj.addProperty("enabled", module.isEnabled());
+            modObj.addProperty("favorite", module.isFavorite());
             modObj.addProperty("keybind", module.getKeyBind());
 
             if (!module.getSettings().isEmpty()) {
@@ -148,6 +148,9 @@ public class ConfigManager {
                         JsonObject modObj = modulesObj.getAsJsonObject(module.getName());
                         if (modObj.has("enabled")) {
                             module.setEnabled(modObj.get("enabled").getAsBoolean());
+                        }
+                        if (modObj.has("favorite")) {
+                            module.setFavorite(modObj.get("favorite").getAsBoolean());
                         }
                         if (modObj.has("keybind")) {
                             module.setKeyBind(modObj.get("keybind").getAsInt());

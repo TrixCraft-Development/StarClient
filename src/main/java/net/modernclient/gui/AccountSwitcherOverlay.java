@@ -23,8 +23,8 @@ public final class AccountSwitcherOverlay {
     private static final int BOX_X = 8;
     private static final int BOX_Y = 8;
     private static final int BOX_H = 26;
-    private static final int MIN_BOX_WIDTH = 148;
-    private static final int ROW_HEIGHT = 22;
+    private static final int MIN_BOX_WIDTH = 152;
+    private static final int ROW_HEIGHT = 24;
     private static final int BTN_HEIGHT = 20;
 
     private String cachedProfileName;
@@ -45,29 +45,30 @@ public final class AccountSwitcherOverlay {
         int rankColor = rank.getArgb();
 
         var cs = modernClient != null ? modernClient.getClientSettings() : null;
-        int menuBg = cs != null ? cs.getMenuBackgroundColor() : 0xFF0F172A;
-        int menuBgLight = cs != null ? cs.getMenuBackgroundLightColor() : 0xFF1E293B;
+        int menuBg = cs != null ? (0xF2000000 | (cs.getMenuBackgroundColor() & 0x00FFFFFF)) : 0xF20F172A;
+        int menuSurface = cs != null ? cs.getMenuSurfaceColor() : 0xFF162036;
+        int menuSurfaceHover = cs != null ? cs.getMenuSurfaceHoverColor() : 0xFF1E293B;
+        int menuBorder = cs != null ? cs.getMenuBorderColor() : 0xFF334155;
         int menuAccent = cs != null ? cs.getMenuAccentColor() : 0xFF38BDF8;
         int menuAccentDark = cs != null ? cs.getMenuAccentDarkColor() : 0xFF0284C7;
 
-        int headSize = 18;
-        int padX = 6;
+        int headSize = 16;
+        int padX = 7;
         int gap = 6;
-        String arrow = dropdownOpen ? "▲" : "▾";
+        String arrow = dropdownOpen ? "▴" : "▾";
         int arrowW = client.font.width(arrow);
         int textWidth = client.font.width(playerName);
-        int boxW = Math.max(MIN_BOX_WIDTH, padX + headSize + gap + textWidth + 6 + arrowW + 8);
+        int boxW = Math.max(MIN_BOX_WIDTH, padX + headSize + gap + textWidth + 8 + arrowW + 8);
         this.lastHeaderWidth = boxW;
 
         boolean headerHovered = hovered(BOX_X, BOX_Y, boxW, BOX_H, mouseX, mouseY);
-        int headerBg = headerHovered || dropdownOpen ? menuBgLight : menuBg;
+        int headerBg = headerHovered || dropdownOpen ? menuSurfaceHover : menuBg;
+        int headerBorder = headerHovered || dropdownOpen ? menuAccent : menuBorder;
 
-        // Card background & subtle border
-        graphics.fill(BOX_X, BOX_Y, BOX_X + boxW, BOX_Y + BOX_H, headerBg);
-        graphics.fill(BOX_X, BOX_Y, BOX_X + boxW, BOX_Y + 1, 0xFF334155);
-        graphics.fill(BOX_X, BOX_Y + BOX_H - 1, BOX_X + boxW, BOX_Y + BOX_H, 0xFF334155);
-        graphics.fill(BOX_X, BOX_Y, BOX_X + 1, BOX_Y + BOX_H, 0xFF334155);
-        graphics.fill(BOX_X + boxW - 1, BOX_Y, BOX_X + boxW, BOX_Y + BOX_H, 0xFF334155);
+        // Rounded card background, soft shadow & crisp outline
+        GuiRenderUtils.drawDropShadow(graphics, BOX_X, BOX_Y, boxW, BOX_H, 6, 4, 90);
+        GuiRenderUtils.fillRoundedRect(graphics, BOX_X, BOX_Y, boxW, BOX_H, 6, headerBg);
+        GuiRenderUtils.drawRoundedOutline(graphics, BOX_X, BOX_Y, boxW, BOX_H, 6, headerBorder);
 
         // Player Head (face + outer hat layer)
         int headX = BOX_X + padX;
@@ -79,7 +80,8 @@ public final class AccountSwitcherOverlay {
         int textX = headX + headSize + gap;
         int textY = BOX_Y + (BOX_H - client.font.lineHeight) / 2 + 1;
         graphics.text(client.font, playerName, textX, textY, rankColor);
-        graphics.text(client.font, arrow, BOX_X + boxW - arrowW - 6, textY, 0xFF94A3B8);
+        graphics.text(client.font, arrow, BOX_X + boxW - arrowW - 7, textY,
+                headerHovered || dropdownOpen ? menuAccent : 0xFF94A3B8);
 
         if (!dropdownOpen || modernClient == null || modernClient.getAccountManager() == null) {
             return;
@@ -88,25 +90,30 @@ public final class AccountSwitcherOverlay {
         AccountManager accountManager = modernClient.getAccountManager();
         List<MinecraftAccount> accounts = accountManager.getAccounts();
         int dropX = BOX_X;
-        int dropY = BOX_Y + BOX_H + 2;
+        int dropY = BOX_Y + BOX_H + 4;
         int dropW = boxW;
-        int listH = accounts.size() * ROW_HEIGHT;
+        int listH = accounts.size() * ROW_HEIGHT + 4;
         int buttonsAreaH = 6 + BTN_HEIGHT + 4 + BTN_HEIGHT + 6;
         int dropH = listH + buttonsAreaH;
 
-        // Dropdown panel background & border matching Client Menu Background
-        graphics.fill(dropX, dropY, dropX + dropW, dropY + dropH, menuBg);
-        graphics.fill(dropX, dropY, dropX + dropW, dropY + 1, 0xFF334155);
-        graphics.fill(dropX, dropY + dropH - 1, dropX + dropW, dropY + dropH, 0xFF334155);
-        graphics.fill(dropX, dropY, dropX + 1, dropY + dropH, 0xFF334155);
-        graphics.fill(dropX + dropW - 1, dropY, dropX + dropW, dropY + dropH, 0xFF334155);
+        // Rounded dropdown panel with soft drop shadow & border
+        GuiRenderUtils.drawDropShadow(graphics, dropX, dropY, dropW, dropH, 6, 5, 110);
+        GuiRenderUtils.fillRoundedRect(graphics, dropX, dropY, dropW, dropH, 6, menuBg);
+        GuiRenderUtils.drawRoundedOutline(graphics, dropX, dropY, dropW, dropH, 6, menuBorder);
 
-        int rowY = dropY;
+        int rowY = dropY + 3;
         for (MinecraftAccount acc : accounts) {
             boolean active = accountManager.isActive(acc);
-            boolean rowHover = hovered(dropX + 1, rowY, dropW - 2, ROW_HEIGHT, mouseX, mouseY);
-            if (rowHover || active) {
-                graphics.fill(dropX + 1, rowY, dropX + dropW - 1, rowY + ROW_HEIGHT, menuBgLight);
+            boolean rowHover = hovered(dropX + 4, rowY, dropW - 8, ROW_HEIGHT - 2, mouseX, mouseY);
+            if (active || rowHover) {
+                int rowBg = active
+                        ? GuiRenderUtils.lerpColor(menuSurface, menuAccentDark, 0.22F)
+                        : menuSurfaceHover;
+                GuiRenderUtils.fillRoundedRect(graphics, dropX + 4, rowY, dropW - 8, ROW_HEIGHT - 2, 5, rowBg);
+                if (active) {
+                    GuiRenderUtils.drawRoundedOutline(graphics, dropX + 4, rowY, dropW - 8, ROW_HEIGHT - 2, 5,
+                            GuiRenderUtils.withAlpha(menuAccent, 130));
+                }
             }
 
             Rank accRank = rankManager != null
@@ -114,45 +121,52 @@ public final class AccountSwitcherOverlay {
                     : Rank.USER;
             int accColor = accRank.getArgb();
 
-            int statusLineColor = active ? 0xFF34D399 : 0xFF64748B;
-            graphics.fill(dropX + 1, rowY + 2, dropX + 3, rowY + ROW_HEIGHT - 2, statusLineColor);
-
             Identifier rowSkin = accountManager.getSkinTexture(acc);
-            drawHead(graphics, rowSkin, dropX + 6, rowY + 4, 14);
+            drawHead(graphics, rowSkin, dropX + 8, rowY + 4, 14);
 
-            int nameY = rowY + (ROW_HEIGHT - client.font.lineHeight) / 2 + 1;
-            int rightEdge = dropX + dropW - 5;
+            int nameY = rowY + (ROW_HEIGHT - 2 - client.font.lineHeight) / 2 + 1;
+            int rightEdge = dropX + dropW - 8;
 
-            if (!acc.isInitialSession() && !active) {
-                int delW = client.font.width("x") + 4;
+            if (active) {
+                int dotW = client.font.width("●");
+                graphics.text(client.font, "●", rightEdge - dotW - 2, nameY, 0xFF34D399);
+                rightEdge -= dotW + 6;
+            } else if (!acc.isInitialSession()) {
+                int delW = 14;
+                int delH = 14;
                 int delX = rightEdge - delW;
-                boolean delHover = hovered(delX - 1, rowY + 3, delW + 2, ROW_HEIGHT - 6, mouseX, mouseY);
-                graphics.text(client.font, "x", delX + 2, nameY, delHover ? 0xFFEF4444 : 0xFF64748B);
-                rightEdge = delX - 2;
+                int delY = rowY + (ROW_HEIGHT - 2 - delH) / 2;
+                boolean delHover = hovered(delX, delY, delW, delH, mouseX, mouseY);
+                if (delHover) {
+                    GuiRenderUtils.fillRoundedRect(graphics, delX, delY, delW, delH, 4, 0x33EF4444);
+                }
+                GuiRenderUtils.drawCenteredText(graphics, client.font, "✕", delX + delW / 2, delY + 3,
+                        delHover ? 0xFFEF4444 : 0xFF64748B);
+                rightEdge = delX - 3;
             }
 
-            int maxNameW = Math.max(24, rightEdge - (dropX + 24) - 4);
+            int maxNameW = Math.max(24, rightEdge - (dropX + 26) - 4);
             String displayName = acc.getUsername();
             if (client.font.width(displayName) > maxNameW) {
                 displayName = client.font.plainSubstrByWidth(displayName, Math.max(8, maxNameW - 6)) + "..";
             }
-            graphics.text(client.font, displayName, dropX + 24, nameY, accColor);
+            graphics.text(client.font, displayName, dropX + 26, nameY, accColor);
 
             rowY += ROW_HEIGHT;
         }
 
         // Divider line before buttons
-        graphics.fill(dropX + 6, rowY + 2, dropX + dropW - 6, rowY + 3, 0xFF334155);
+        graphics.fill(dropX + 6, rowY + 1, dropX + dropW - 6, rowY + 2, menuBorder);
 
         int btnX = dropX + 6;
         int btnW = dropW - 12;
-        int offlineBtnY = rowY + 6;
+        int offlineBtnY = rowY + 5;
         int msBtnY = offlineBtnY + BTN_HEIGHT + 4;
 
         drawDropdownButton(graphics, client, "+ Offline Username", btnX, offlineBtnY, btnW, BTN_HEIGHT,
-                menuBgLight, 0xFF475569, mouseX, mouseY);
+                menuSurface, menuSurfaceHover, menuBorder, mouseX, mouseY);
         drawDropdownButton(graphics, client, "+ Microsoft Account", btnX, msBtnY, btnW, BTN_HEIGHT,
-                menuAccent, menuAccentDark, mouseX, mouseY);
+                menuAccentDark, menuAccent, menuAccent, mouseX, mouseY);
     }
 
     public boolean mouseClicked(Screen parentScreen, MouseButtonEvent event) {
@@ -182,9 +196,9 @@ public final class AccountSwitcherOverlay {
         List<MinecraftAccount> accounts = accountManager.getAccounts();
 
         int dropX = BOX_X;
-        int dropY = BOX_Y + BOX_H + 2;
+        int dropY = BOX_Y + BOX_H + 4;
         int dropW = this.lastHeaderWidth;
-        int listH = accounts.size() * ROW_HEIGHT;
+        int listH = accounts.size() * ROW_HEIGHT + 4;
         int buttonsAreaH = 6 + BTN_HEIGHT + 4 + BTN_HEIGHT + 6;
         int dropH = listH + buttonsAreaH;
 
@@ -193,14 +207,16 @@ public final class AccountSwitcherOverlay {
             return false;
         }
 
-        int rowY = dropY;
+        int rowY = dropY + 3;
         for (MinecraftAccount acc : accounts) {
-            if (hovered(dropX + 1, rowY, dropW - 2, ROW_HEIGHT, mouseX, mouseY)) {
+            if (hovered(dropX + 4, rowY, dropW - 8, ROW_HEIGHT - 2, mouseX, mouseY)) {
                 boolean active = accountManager.isActive(acc);
                 if (!acc.isInitialSession() && !active && client.font != null) {
-                    int delW = client.font.width("x") + 4;
-                    int delX = dropX + dropW - 5 - delW;
-                    if (hovered(delX - 1, rowY + 3, delW + 2, ROW_HEIGHT - 6, mouseX, mouseY)) {
+                    int delW = 14;
+                    int delH = 14;
+                    int delX = dropX + dropW - 8 - delW;
+                    int delY = rowY + (ROW_HEIGHT - 2 - delH) / 2;
+                    if (hovered(delX, delY, delW, delH, mouseX, mouseY)) {
                         this.dropdownOpen = false;
                         client.gui.setScreen(new ConfirmDeleteAccountScreen(parentScreen, acc));
                         return true;
@@ -215,7 +231,7 @@ public final class AccountSwitcherOverlay {
 
         int btnX = dropX + 6;
         int btnW = dropW - 12;
-        int offlineBtnY = rowY + 6;
+        int offlineBtnY = rowY + 5;
         int msBtnY = offlineBtnY + BTN_HEIGHT + 4;
 
         if (hovered(btnX, offlineBtnY, btnW, BTN_HEIGHT, mouseX, mouseY)) {
@@ -243,11 +259,13 @@ public final class AccountSwitcherOverlay {
             int h,
             int baseColor,
             int hoverColor,
+            int borderColor,
             int mouseX,
             int mouseY
     ) {
         boolean hover = hovered(x, y, w, h, mouseX, mouseY);
-        graphics.fill(x, y, x + w, y + h, hover ? hoverColor : baseColor);
+        GuiRenderUtils.fillRoundedRect(graphics, x, y, w, h, 5, hover ? hoverColor : baseColor);
+        GuiRenderUtils.drawRoundedOutline(graphics, x, y, w, h, 5, borderColor);
         int textX = x + (w - client.font.width(label)) / 2;
         int textY = y + (h - client.font.lineHeight) / 2 + 1;
         graphics.text(client.font, label, textX, textY, 0xFFFFFFFF);

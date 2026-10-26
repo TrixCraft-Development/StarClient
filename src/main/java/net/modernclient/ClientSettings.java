@@ -56,12 +56,12 @@ public final class ClientSettings {
         this.menuBackgroundColor = new ColorModeSetting("Client Menu Background",
                 "Background colour of the client's menu panels", "Slate", MENU_BACKGROUND_COLORS);
 
+        settings.add(menuAccentColor);
+        settings.add(menuBackgroundColor);
         settings.add(hudTextShadow);
         settings.add(tabIcon);
         settings.add(removeSplash);
         settings.add(hypixelApiKey);
-        settings.add(menuAccentColor);
-        settings.add(menuBackgroundColor);
     }
 
     public List<Setting<?>> getSettings() {
@@ -114,6 +114,30 @@ public final class ClientSettings {
         int r = (int) ((base >> 16 & 0xFF) * 0.72);
         int g = (int) ((base >> 8 & 0xFF) * 0.72);
         int b = (int) ((base & 0xFF) * 0.72);
+        return 0xFF000000 | (r << 16) | (g << 8) | b;
+    }
+
+    public int getMenuSurfaceColor() {
+        int base = getMenuBackgroundColor();
+        int r = (base >> 16 & 0xFF) + (int) ((255 - (base >> 16 & 0xFF)) * 0.05);
+        int g = (base >> 8 & 0xFF) + (int) ((255 - (base >> 8 & 0xFF)) * 0.05);
+        int b = (base & 0xFF) + (int) ((255 - (base & 0xFF)) * 0.05);
+        return 0xFF000000 | (r << 16) | (g << 8) | b;
+    }
+
+    public int getMenuSurfaceHoverColor() {
+        int base = getMenuBackgroundColor();
+        int r = (base >> 16 & 0xFF) + (int) ((255 - (base >> 16 & 0xFF)) * 0.11);
+        int g = (base >> 8 & 0xFF) + (int) ((255 - (base >> 8 & 0xFF)) * 0.11);
+        int b = (base & 0xFF) + (int) ((255 - (base & 0xFF)) * 0.11);
+        return 0xFF000000 | (r << 16) | (g << 8) | b;
+    }
+
+    public int getMenuBorderColor() {
+        int base = getMenuBackgroundColor();
+        int r = (base >> 16 & 0xFF) + (int) ((255 - (base >> 16 & 0xFF)) * 0.16);
+        int g = (base >> 8 & 0xFF) + (int) ((255 - (base >> 8 & 0xFF)) * 0.16);
+        int b = (base & 0xFF) + (int) ((255 - (base & 0xFF)) * 0.16);
         return 0xFF000000 | (r << 16) | (g << 8) | b;
     }
 }
