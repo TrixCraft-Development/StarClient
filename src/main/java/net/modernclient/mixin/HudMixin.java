@@ -20,7 +20,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class HudMixin {
 
     @Inject(method = "extractEffects", at = @At("HEAD"), cancellable = true)
-    private void hideVanillaEffects(GuiGraphicsExtractor extractor, DeltaTracker deltaTracker, CallbackInfo ci) {
+    private void hideVanillaEffects(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker, CallbackInfo ci) {
         ModernClient mod = ModernClient.getInstance();
         if (mod == null || mod.getModuleManager() == null) return;
         Module potions = mod.getModuleManager().getModuleByName("Potion Effects");
@@ -33,7 +33,7 @@ public abstract class HudMixin {
     }
 
     @Inject(method = "extractCrosshair", at = @At("HEAD"), cancellable = true)
-    private void renderCustomCrosshair(GuiGraphicsExtractor extractor, DeltaTracker deltaTracker, CallbackInfo ci) {
+    private void renderCustomCrosshair(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker, CallbackInfo ci) {
         if (!CustomCrosshairState.isActive()) return;
         Minecraft client = Minecraft.getInstance();
         if (client.player == null || !client.options.getCameraType().isFirstPerson()) {
@@ -68,32 +68,32 @@ public abstract class HudMixin {
         color |= 0xFF000000;
         int outlineColor = 0xCC000000;
 
-        int cx = extractor.guiWidth() / 2;
-        int cy = extractor.guiHeight() / 2;
+        int cx = graphics.guiWidth() / 2;
+        int cy = graphics.guiHeight() / 2;
         int halfT = thickness / 2;
 
         if ("Dot".equals(shape) || "Cross + Dot".equals(shape) || centerDot) {
             if (outline) {
-                extractor.fill(cx - halfT - 1, cy - halfT - 1, cx - halfT + thickness + 1, cy - halfT + thickness + 1, outlineColor);
+                graphics.fill(cx - halfT - 1, cy - halfT - 1, cx - halfT + thickness + 1, cy - halfT + thickness + 1, outlineColor);
             }
-            extractor.fill(cx - halfT, cy - halfT, cx - halfT + thickness, cy - halfT + thickness, color);
+            graphics.fill(cx - halfT, cy - halfT, cx - halfT + thickness, cy - halfT + thickness, color);
         }
 
         if ("Cross".equals(shape) || "Cross + Dot".equals(shape)) {
             // Top
-            drawRectWithOutline(extractor, cx - halfT, cy - gap - size, cx - halfT + thickness, cy - gap, color, outline, outlineColor);
+            drawRectWithOutline(graphics, cx - halfT, cy - gap - size, cx - halfT + thickness, cy - gap, color, outline, outlineColor);
             // Bottom
-            drawRectWithOutline(extractor, cx - halfT, cy + gap + (thickness % 2), cx - halfT + thickness, cy + gap + (thickness % 2) + size, color, outline, outlineColor);
+            drawRectWithOutline(graphics, cx - halfT, cy + gap + (thickness % 2), cx - halfT + thickness, cy + gap + (thickness % 2) + size, color, outline, outlineColor);
             // Left
-            drawRectWithOutline(extractor, cx - gap - size, cy - halfT, cx - gap, cy - halfT + thickness, color, outline, outlineColor);
+            drawRectWithOutline(graphics, cx - gap - size, cy - halfT, cx - gap, cy - halfT + thickness, color, outline, outlineColor);
             // Right
-            drawRectWithOutline(extractor, cx + gap + (thickness % 2), cy - halfT, cx + gap + (thickness % 2) + size, cy - halfT + thickness, color, outline, outlineColor);
+            drawRectWithOutline(graphics, cx + gap + (thickness % 2), cy - halfT, cx + gap + (thickness % 2) + size, cy - halfT + thickness, color, outline, outlineColor);
         } else if ("Circle".equals(shape)) {
             int r = Math.max(2, gap + size);
-            drawRectWithOutline(extractor, cx - r + 1, cy - r, cx + r, cy - r + thickness, color, outline, outlineColor);
-            drawRectWithOutline(extractor, cx - r + 1, cy + r - thickness + 1, cx + r, cy + r + 1, color, outline, outlineColor);
-            drawRectWithOutline(extractor, cx - r, cy - r + 1, cx - r + thickness, cy + r, color, outline, outlineColor);
-            drawRectWithOutline(extractor, cx + r - thickness + 1, cy - r + 1, cx + r + 1, cy + r, color, outline, outlineColor);
+            drawRectWithOutline(graphics, cx - r + 1, cy - r, cx + r, cy - r + thickness, color, outline, outlineColor);
+            drawRectWithOutline(graphics, cx - r + 1, cy + r - thickness + 1, cx + r, cy + r + 1, color, outline, outlineColor);
+            drawRectWithOutline(graphics, cx - r, cy - r + 1, cx - r + thickness, cy + r, color, outline, outlineColor);
+            drawRectWithOutline(graphics, cx + r - thickness + 1, cy - r + 1, cx + r + 1, cy + r, color, outline, outlineColor);
         }
     }
 

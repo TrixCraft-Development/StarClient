@@ -31,11 +31,11 @@ public abstract class ItemEntityRendererMixin extends EntityRenderer<ItemEntity,
     @Shadow
     public static void submitMultipleFromCount(
             PoseStack poseStack,
-            SubmitNodeCollector collector,
+            SubmitNodeCollector submitNodeCollector,
             int lightCoords,
             ItemClusterRenderState state,
             RandomSource random,
-            AABB aabb
+            AABB modelBoundingBox
     ) {
     }
 
@@ -59,8 +59,8 @@ public abstract class ItemEntityRendererMixin extends EntityRenderer<ItemEntity,
     private void starclient$renderItemPhysics(
             ItemEntityRenderState state,
             PoseStack poseStack,
-            SubmitNodeCollector collector,
-            CameraRenderState cameraState,
+            SubmitNodeCollector submitNodeCollector,
+            CameraRenderState camera,
             CallbackInfo ci
     ) {
         if (!ItemPhysicsState.isActive()) {
@@ -89,9 +89,9 @@ public abstract class ItemEntityRendererMixin extends EntityRenderer<ItemEntity,
             poseStack.mulPose(Axis.XP.rotationDegrees(tumble * 1.3F));
         }
 
-        submitMultipleFromCount(poseStack, collector, state.lightCoords, state, this.random, aabb);
+        submitMultipleFromCount(poseStack, submitNodeCollector, state.lightCoords, state, this.random, aabb);
         poseStack.popPose();
-        super.submit(state, poseStack, collector, cameraState);
+        super.submit(state, poseStack, submitNodeCollector, camera);
         ci.cancel();
     }
 }

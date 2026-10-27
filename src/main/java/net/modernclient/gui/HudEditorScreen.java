@@ -148,7 +148,7 @@ public class HudEditorScreen extends Screen {
     }
 
     @Override
-    public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
+    public boolean mouseDragged(@NonNull MouseButtonEvent event, double dragX, double dragY) {
         if (this.draggingHudId != null) {
             int newX = (int) event.x() - this.dragOffsetX;
             int newY = (int) event.y() - this.dragOffsetY;
@@ -184,7 +184,7 @@ public class HudEditorScreen extends Screen {
     }
 
     @Override
-    public boolean mouseReleased(MouseButtonEvent event) {
+    public boolean mouseReleased(@NonNull MouseButtonEvent event) {
         if (this.draggingHudId != null) {
             this.draggingHudId = null;
             this.snappedCenterX = false;

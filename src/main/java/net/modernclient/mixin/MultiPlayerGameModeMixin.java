@@ -70,8 +70,8 @@ public abstract class MultiPlayerGameModeMixin {
     }
 
     @Inject(method = "attack(Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/entity/Entity;)V", at = @At("HEAD"))
-    private void recordAttackStats(Player player, Entity target, CallbackInfo ci) {
-        CombatStatsTracker.onAttack(player, target);
+    private void recordAttackStats(Player player, Entity entity, CallbackInfo ci) {
+        CombatStatsTracker.onAttack(player, entity);
     }
 
     @Unique

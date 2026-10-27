@@ -398,8 +398,7 @@ public final class HypixelApi {
         }
 
         if (rateLimited) {
-            long until = System.currentTimeMillis() + RATE_LIMIT_BACKOFF_MILLIS;
-            rateLimitedUntil = until;
+            rateLimitedUntil = System.currentTimeMillis() + RATE_LIMIT_BACKOFF_MILLIS;
             ModernClient.LOGGER.warn("Hypixel API rate limited, pausing lookups for {} seconds", RATE_LIMIT_BACKOFF_MILLIS / 1000);
         }
         FAILED_UNTIL.put(uuid, rateLimited ? rateLimitedUntil : System.currentTimeMillis() + FAILURE_BACKOFF_MILLIS);

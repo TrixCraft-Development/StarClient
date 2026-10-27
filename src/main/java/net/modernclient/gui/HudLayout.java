@@ -96,8 +96,7 @@ public class HudLayout {
             case REACH -> isAuto(id) ? screenHeight - 122 : getY(id);
             case SPEED -> isAuto(id) ? screenHeight - 146 : getY(id);
             case COMBO -> isAuto(id) ? screenHeight - 170 : getY(id);
-            case POTIONS -> isAuto(id) ? 8 : getY(id);
-            case ARRAYLIST -> isAuto(id) ? 8 : getY(id);
+            case POTIONS, ARRAYLIST -> isAuto(id) ? 8 : getY(id);
             case KEYSTROKES -> isAuto(id) ? screenHeight - 85 : getY(id);
             case ARMOR -> isAuto(id) ? screenHeight - armorHeight() - 8 : getY(id);
             case TARGET_HUD -> isAuto(id) ? screenHeight / 2 + 12 : getY(id);

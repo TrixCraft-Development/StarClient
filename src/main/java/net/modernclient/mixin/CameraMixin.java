@@ -36,8 +36,8 @@ public abstract class CameraMixin {
                 FreeCamState.setInitialized(true);
             }
 
-            invoker.modernclient$setPosition(FreeCamState.getX(), FreeCamState.getY(), FreeCamState.getZ());
-            invoker.modernclient$setRotation(FreeCamState.getYaw(), FreeCamState.getPitch());
+            invoker.starclient$setPosition(FreeCamState.getX(), FreeCamState.getY(), FreeCamState.getZ());
+            invoker.starclient$setRotation(FreeCamState.getYaw(), FreeCamState.getPitch());
         } else if (FreeLookState.isActive()) {
             if (player == null) return;
             if (!FreeLookState.isInitialized()) {
@@ -63,12 +63,12 @@ public abstract class CameraMixin {
             double camY = eye.y + offY * distance;
             double camZ = eye.z + offZ * distance;
 
-            invoker.modernclient$setPosition(camX, camY, camZ);
+            invoker.starclient$setPosition(camX, camY, camZ);
 
             Vec3 toPlayer = eye.subtract(camX, camY, camZ).normalize();
             float lookYaw = (float) Math.toDegrees(Math.atan2(-toPlayer.x, toPlayer.z));
             float lookPitch = (float) Math.toDegrees(Math.asin(-toPlayer.y));
-            invoker.modernclient$setRotation(lookYaw, lookPitch);
+            invoker.starclient$setRotation(lookYaw, lookPitch);
 
             detached = true;
         }

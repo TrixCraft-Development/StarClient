@@ -8,8 +8,8 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 public interface CameraInvoker {
 
     @Invoker("setPosition")
-    void modernclient$setPosition(double x, double y, double z);
+    void starclient$setPosition(double x, double y, double z);
 
     @Invoker("setRotation")
-    void modernclient$setRotation(float yaw, float pitch);
+    void starclient$setRotation(float yaw, float pitch);
 }

@@ -120,15 +120,16 @@ public final class MicrosoftAuthService {
             }
 
             String error = json.has("error") ? json.get("error").getAsString() : "";
-            if ("authorization_pending".equals(error)) {
-                continue;
-            } else if ("slow_down".equals(error)) {
-                sleepMs += 2000L;
-            } else if ("expired_token".equals(error)) {
-                throw new IOException("Code expired. Please click Retry to generate a new code.");
-            } else {
-                String desc = json.has("error_description") ? json.get("error_description").getAsString() : error;
-                throw new IOException("Microsoft login error: " + desc);
+            switch (error) {
+                case "authorization_pending" -> {
+                }
+                case "slow_down" -> sleepMs += 2000L;
+                case "expired_token" ->
+                        throw new IOException("Code expired. Please click Retry to generate a new code.");
+                case null, default -> {
+                    String desc = json.has("error_description") ? json.get("error_description").getAsString() : error;
+                    throw new IOException("Microsoft login error: " + desc);
+                }
             }
         }
         throw new IOException("Login timed out.");
@@ -246,7 +247,7 @@ public final class MicrosoftAuthService {
 
         JsonObject body = new JsonObject();
         body.add("Properties", props);
-        body.addProperty("RelyingParty", "http://auth.xboxlive.com");
+        body.addProperty("RelyingParty", "https://auth.xboxlive.com");
         body.addProperty("TokenType", "JWT");
 
         HttpRequest request = HttpRequest.newBuilder(URI.create(XBL_AUTH_URL))

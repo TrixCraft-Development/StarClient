@@ -26,6 +26,7 @@ public class EntityEsp {
     private static boolean isTarget(Minecraft client, Entity entity, boolean playersOnly, double maxRange) {
         if (entity == client.player || !(entity instanceof LivingEntity) || !entity.isAlive()) return false;
         if (playersOnly && !(entity instanceof Player)) return false;
+        assert client.player != null;
         return entity.distanceTo(client.player) <= maxRange;
     }
 
@@ -34,11 +35,7 @@ public class EntityEsp {
         for (Entity entity : client.level.entitiesForRendering()) {
             if (entity == client.player || !(entity instanceof LivingEntity)) continue;
             boolean target = (!playersOnly || entity instanceof Player) && entity.distanceTo(client.player) <= maxRange;
-            if (glowing && target && entity.isAlive()) {
-                entity.setGlowingTag(true);
-            } else {
-                entity.setGlowingTag(false);
-            }
+            entity.setGlowingTag(glowing && target && entity.isAlive());
         }
     }
 

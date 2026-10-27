@@ -14,11 +14,11 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 @Mixin(LevelRenderer.class)
 public abstract class LevelRendererMixin {
 
-    @ModifyVariable(method = "submitHitOutline", at = @At("HEAD"), argsOnly = true, ordinal = 0)
-    private int customOutlineColor(int originalColor) {
-        if (!BlockOutlineState.isActive()) return originalColor;
+    @ModifyVariable(method = "submitHitOutline", at = @At("HEAD"), argsOnly = true, name = "color")
+    private int customOutlineColor(int color) {
+        if (!BlockOutlineState.isActive()) return color;
         Module mod = BlockOutlineState.getModule();
-        if (mod == null) return originalColor;
+        if (mod == null) return color;
 
         Setting<?> useClient = mod.getSetting("Use Client Color");
         boolean clientColor = useClient == null || (boolean) useClient.getValue();
@@ -34,13 +34,13 @@ public abstract class LevelRendererMixin {
         return (alpha << 24) | (rgb & 0x00FFFFFF);
     }
 
-    @ModifyVariable(method = "submitHitOutline", at = @At("HEAD"), argsOnly = true, ordinal = 0)
-    private float customOutlineThickness(float originalLineWidth) {
-        if (!BlockOutlineState.isActive()) return originalLineWidth;
+    @ModifyVariable(method = "submitHitOutline", at = @At("HEAD"), argsOnly = true, name = "width")
+    private float customOutlineThickness(float width) {
+        if (!BlockOutlineState.isActive()) return width;
         Module mod = BlockOutlineState.getModule();
-        if (mod == null) return originalLineWidth;
+        if (mod == null) return width;
 
         double mult = mod.getSetting("Thickness") instanceof NumberSetting ns ? ns.getValue() : 2.0;
-        return originalLineWidth * (float) mult;
+        return width * (float) mult;
     }
 }

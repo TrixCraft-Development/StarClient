@@ -28,7 +28,7 @@ public abstract class JoinMultiplayerScreenMixin extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent event, boolean action) {
+    public boolean mouseClicked(@NonNull MouseButtonEvent event, boolean action) {
         if (this.starclient$accountSwitcher.mouseClicked(this, event)) {
             return true;
         }

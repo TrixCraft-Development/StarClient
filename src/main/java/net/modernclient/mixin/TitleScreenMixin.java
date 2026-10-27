@@ -71,7 +71,7 @@ public abstract class TitleScreenMixin {
     }
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
-    private void starclient$onMouseClicked(MouseButtonEvent event, boolean action, CallbackInfoReturnable<Boolean> cir) {
+    private void starclient$onMouseClicked(MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
         if (this.starclient$accountSwitcher.mouseClicked((Screen) (Object) this, event)) {
             cir.setReturnValue(true);
         }

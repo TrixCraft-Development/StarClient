@@ -45,7 +45,7 @@ public final class ToggleSneakState {
     public static void releaseSneak(Minecraft client) {
         active = false;
         sneaking = false;
-        if (client != null && client.options != null) {
+        if (client != null) {
             client.options.keyShift.setDown(false);
         }
     }

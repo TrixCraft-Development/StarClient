@@ -63,7 +63,7 @@ public abstract class Module {
     private final BooleanSetting transparentBackground;
     private final ColorModeSetting backgroundColor;
     private final ColorModeSetting textColor;
-    private Rank requiredRank = Rank.USER;
+    private Rank requiredRank;
     private boolean enabled;
     private boolean favorite;
     private final int defaultKeyBind;

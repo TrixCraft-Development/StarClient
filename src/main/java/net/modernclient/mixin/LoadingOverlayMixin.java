@@ -61,16 +61,16 @@ public abstract class LoadingOverlayMixin {
     )
     private void replaceMojangLogo(
             GuiGraphicsExtractor graphics,
-            RenderPipeline pipeline,
-            Identifier location,
+            RenderPipeline renderPipeline,
+            Identifier texture,
             int x,
             int y,
             float u,
             float v,
             int width,
             int height,
-            int uWidth,
-            int vHeight,
+            int srcWidth,
+            int srcHeight,
             int textureWidth,
             int textureHeight,
             int color

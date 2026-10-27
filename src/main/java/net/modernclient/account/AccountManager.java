@@ -26,7 +26,6 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -89,7 +88,7 @@ public final class AccountManager {
 
     public synchronized List<MinecraftAccount> getAccounts() {
         ensureInitialAccountCaptured();
-        return Collections.unmodifiableList(new ArrayList<>(accounts));
+        return List.copyOf(accounts);
     }
 
     public String getStatusMessage() {

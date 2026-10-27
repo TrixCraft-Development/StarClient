@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class ClientClockManagerMixin {
 
     @Inject(method = "getTotalTicks", at = @At("RETURN"), cancellable = true)
-    private void modernclient$timeChanger(Holder<WorldClock> clock, CallbackInfoReturnable<Long> cir) {
-        TimeChangerState.modify(clock, cir);
+    private void starclient$timeChanger(Holder<WorldClock> definition, CallbackInfoReturnable<Long> cir) {
+        TimeChangerState.modify(definition, cir);
     }
 }

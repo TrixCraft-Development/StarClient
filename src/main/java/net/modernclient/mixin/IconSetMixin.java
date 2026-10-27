@@ -22,7 +22,7 @@ import java.util.Optional;
 public abstract class IconSetMixin {
 
     @Inject(method = "getStandardIcons", at = @At("HEAD"), cancellable = true)
-    private void customStandardIcons(PackResources packResources, CallbackInfoReturnable<List<IoSupplier<InputStream>>> cir) {
+    private void customStandardIcons(PackResources resources, CallbackInfoReturnable<List<IoSupplier<InputStream>>> cir) {
         cir.setReturnValue(List.of(
                 getStarIcon("icon_16x16.png"),
                 getStarIcon("icon_32x32.png"),

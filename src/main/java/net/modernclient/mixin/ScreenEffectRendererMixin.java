@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class ScreenEffectRendererMixin {
 
     @Inject(method = "submitFire", at = @At("HEAD"))
-    private static void lowerFireHead(PoseStack poseStack, SubmitNodeCollector collector, TextureAtlasSprite sprite, CallbackInfo ci) {
+    private static void lowerFireHead(PoseStack poseStack, SubmitNodeCollector submitNodeCollector, TextureAtlasSprite sprite, CallbackInfo ci) {
         if (LowFireState.isActive()) {
             poseStack.pushPose();
             poseStack.translate(0.0F, LowFireState.getOffset(), 0.0F);
@@ -22,7 +22,7 @@ public abstract class ScreenEffectRendererMixin {
     }
 
     @Inject(method = "submitFire", at = @At("RETURN"))
-    private static void lowerFireTail(PoseStack poseStack, SubmitNodeCollector collector, TextureAtlasSprite sprite, CallbackInfo ci) {
+    private static void lowerFireTail(PoseStack poseStack, SubmitNodeCollector submitNodeCollector, TextureAtlasSprite sprite, CallbackInfo ci) {
         if (LowFireState.isActive()) {
             poseStack.popPose();
         }

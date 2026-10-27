@@ -154,6 +154,7 @@ public final class HypixelLevelHead {
 
     private static List<Player> playersInRange(Minecraft client, double range, boolean includeSelf) {
         List<Player> result = new ArrayList<>();
+        assert client.level != null;
         for (Entity entity : client.level.entitiesForRendering()) {
             if (!(entity instanceof Player player) || !player.isAlive()) {
                 continue;
@@ -164,6 +165,7 @@ public final class HypixelLevelHead {
                 }
                 continue;
             }
+            assert client.player != null;
             if (player.distanceTo(client.player) <= range) {
                 result.add(player);
             }
