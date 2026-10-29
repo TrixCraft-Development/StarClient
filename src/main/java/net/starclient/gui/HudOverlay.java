@@ -407,14 +407,17 @@ public class HudOverlay {
         if (anyLowArmor || anyLowHeld) {
             String warnText = anyLowArmor ? "⚠ Low Armor!" : "⚠ Low Durability!";
             int warnColor = pulseRed ? 0xFFEF4444 : 0xFFF59E0B;
-            int pillW = client.font.width(warnText) + 12;
+            int textW = client.font.width(warnText);
+            int pillW = textW + 12;
             int pillH = 14;
-            int pillX = aX + (layout.armorWidth() - pillW) / 2;
-            int pillY = Math.max(2, aY - 16);
+            int pillX = Math.clamp(aX + (layout.armorWidth() - pillW) / 2, 4, Math.max(4, screenWidth - pillW - 4));
+            int pillY = (aY >= pillH + 4) ? (aY - pillH - 2) : (aY + layout.armorHeight() + 3);
+            pillY = Math.clamp(pillY, 2, Math.max(2, screenHeight - pillH - 2));
+
             GuiRenderUtils.drawDropShadow(extractor, pillX, pillY, pillW, pillH, 4, 2, 70);
             GuiRenderUtils.fillRoundedRect(extractor, pillX, pillY, pillW, pillH, 4, 0xDD7F1D1D);
             GuiRenderUtils.drawRoundedOutline(extractor, pillX, pillY, pillW, pillH, 4, warnColor);
-            hudText(extractor, client, warnText, pillX + 6, pillY + 3, 0xFFFFFFFF);
+            hudText(extractor, client, warnText, pillX + (pillW - textW) / 2, pillY + 3, 0xFFFFFFFF);
         }
     }
 

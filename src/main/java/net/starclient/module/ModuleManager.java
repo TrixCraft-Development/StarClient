@@ -1828,6 +1828,33 @@ public class ModuleManager {
             }
         });
 
+        register(new Module("Tab", "Modern glassmorphic player tab overlay with custom ping and heads.", Category.UI) {
+            {
+                setEnabled(true);
+                addSetting(new BooleanSetting("Use Client Theme", "Match card accents and borders to Client Menu Theme", true));
+                addSetting(new BooleanSetting("Show Ping Numbers", "Display numeric latency (ms) with latency color coding", true));
+                addSetting(new BooleanSetting("Show Player Heads", "Render player face avatars with 3D skin layer", true));
+                addSetting(new BooleanSetting("Show Header & Footer", "Display server header and footer announcements", true));
+                addSetting(new BooleanSetting("Highlight Self", "Subtly highlight your own name row with client accent", true));
+                addSetting(new NumberSetting("Background Opacity", "Glass background opacity percentage", 75.0, 10.0, 100.0, 5.0));
+                addSetting(new BooleanSetting("Rounded Corners", "Smooth rounded card corners instead of sharp boxes", true));
+                addSetting(new BooleanSetting("Text Shadow", "Render player names and text with drop shadow", true));
+            }
+        });
+
+        register(new Module("Scoreboard", "Modern glassmorphic scoreboard with customizable red numbers.", Category.UI) {
+            {
+                setEnabled(true);
+                addSetting(new BooleanSetting("Hide Red Numbers", "Hide red index numbers on the right side", true));
+                addSetting(new BooleanSetting("Use Client Theme", "Match card header and accents to Client Menu Theme", true));
+                addSetting(new BooleanSetting("Show Border", "Display subtle glass outline and accent header line", true));
+                addSetting(new NumberSetting("Background Opacity", "Glass background opacity percentage", 70.0, 10.0, 100.0, 5.0));
+                addSetting(new BooleanSetting("Rounded Corners", "Smooth rounded card corners instead of sharp boxes", true));
+                addSetting(new BooleanSetting("Text Shadow", "Render scoreboard text with drop shadow", true));
+                addSetting(new NumberSetting("Offset Y", "Vertical offset on the screen", 0.0, -150.0, 150.0, 5.0));
+            }
+        });
+
         register(new Module("Hit Color", "Customizes the damage flash color and opacity on hit entities.", Category.RENDER) {
             {
                 addSetting(new BooleanSetting("Use Client Color", "Match hit tint to Client Menu Color", false));

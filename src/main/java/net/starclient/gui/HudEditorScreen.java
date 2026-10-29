@@ -6,6 +6,8 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.scores.DisplaySlot;
+import net.minecraft.world.scores.Objective;
 import net.starclient.ClientSettings;
 import net.starclient.StarClient;
 import net.starclient.module.Module;
@@ -66,6 +68,19 @@ public class HudEditorScreen extends Screen {
         Minecraft client = Minecraft.getInstance();
         boolean inWorld = client.player != null && client.level != null;
 
+        // Render Scoreboard in HUD Editor (live or preview)
+        Module scoreboardMod = mod.getModuleManager().getModuleByName("Scoreboard");
+        if (scoreboardMod != null && scoreboardMod.isEnabled()) {
+            Objective obj = (inWorld && client.level.getScoreboard() != null)
+                    ? client.level.getScoreboard().getDisplayObjective(DisplaySlot.SIDEBAR)
+                    : null;
+            if (obj != null) {
+                ScoreboardRenderer.render(extractor, obj, scoreboardMod);
+            } else {
+                ScoreboardRenderer.renderPreview(extractor, scoreboardMod);
+            }
+        }
+
         // Render rounded bounding outlines, preview cards, and pill badges for all active elements
         HudLayout layout = mod.getHudLayout();
         List<Module> activeMods = getActiveModules();
@@ -78,7 +93,7 @@ public class HudEditorScreen extends Screen {
             int rh = r.y2() - r.y1();
 
             // Preview card when editing HUD from the main menu (outside a world)
-            if (!inWorld) {
+            if (!inWorld && !r.id().equals(HudLayout.SCOREBOARD)) {
                 GuiRenderUtils.drawDropShadow(extractor, r.x1(), r.y1(), rw, rh, 4, 3, 80);
                 GuiRenderUtils.fillRoundedRect(extractor, r.x1(), r.y1(), rw, rh, 4, 0xCC0F172A);
                 GuiRenderUtils.drawRoundedOutline(extractor, r.x1(), r.y1(), rw, rh, 4, 0x4438BDF8);
@@ -104,13 +119,9 @@ public class HudEditorScreen extends Screen {
             String badgeText = "✥ " + displayName + (dragging ? " (moving)" : "");
             int badgeW = this.font.width(badgeText) + 10;
             int badgeH = 13;
-            int badgeX = r.x1();
-            int badgeY = Math.max(2, r.y1() - badgeH - 3);
-
-            // Keep badge within screen horizontally
-            if (badgeX + badgeW > this.width - 4) {
-                badgeX = this.width - badgeW - 4;
-            }
+            int badgeX = Math.clamp(r.x1(), 4, Math.max(4, this.width - badgeW - 4));
+            int badgeY = (r.y1() >= badgeH + 4) ? (r.y1() - badgeH - 3) : (r.y2() + 3);
+            badgeY = Math.clamp(badgeY, 2, Math.max(2, this.height - badgeH - 2));
 
             int badgeBg = (dragging || hovered) ? accentDark : bg;
             int badgeBorder = (dragging || hovered) ? accent : border;
@@ -320,6 +331,7 @@ public class HudEditorScreen extends Screen {
             case HudLayout.COMBO -> "Combo Counter";
             case HudLayout.POTIONS -> "Potion Effects";
             case HudLayout.TARGET_HUD -> "Target HUD";
+            case HudLayout.SCOREBOARD -> "Scoreboard";
             default -> "";
         };
     }
@@ -343,6 +355,7 @@ public class HudEditorScreen extends Screen {
             case HudLayout.COMBO -> "Combo: 4 hits";
             case HudLayout.POTIONS -> "Speed II (01:30)";
             case HudLayout.TARGET_HUD -> "Target HUD";
+            case HudLayout.SCOREBOARD -> "Scoreboard";
             default -> id;
         };
     }

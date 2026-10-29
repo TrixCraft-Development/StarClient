@@ -91,6 +91,10 @@ public final class GuiRenderUtils {
         return lines;
     }
 
+    public static void fillGradient(GuiGraphicsExtractor extractor, int x1, int y1, int x2, int y2, int colorFrom, int colorTo) {
+        extractor.fillGradient(x1, y1, x2, y2, colorFrom, colorTo);
+    }
+
     /**
      * Fills a rounded rectangle without overlapping scanlines so semi-transparent colors
      * blend uniformly with no seams.

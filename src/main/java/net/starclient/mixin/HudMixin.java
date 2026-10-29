@@ -5,6 +5,7 @@ import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.Hud;
+import net.minecraft.client.gui.components.PlayerTabOverlay;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.Identifier;
@@ -13,13 +14,20 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.AttackRange;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.scores.DisplaySlot;
+import net.minecraft.world.scores.Objective;
+import net.minecraft.world.scores.Scoreboard;
 import net.starclient.StarClient;
+import net.starclient.gui.ScoreboardRenderer;
+import net.starclient.gui.TabListRenderer;
 import net.starclient.module.CustomCrosshairState;
 import net.starclient.module.Module;
 import net.starclient.setting.ColorModeSetting;
 import net.starclient.setting.NumberSetting;
 import net.starclient.setting.Setting;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -27,6 +35,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Hud.class)
 public abstract class HudMixin {
+
+    @Shadow
+    @Final
+    private PlayerTabOverlay tabList;
 
     @Unique
     private static final Identifier CROSSHAIR_ATTACK_INDICATOR_FULL_SPRITE =
@@ -48,6 +60,38 @@ public abstract class HudMixin {
             if (hideVanilla == null || (boolean) hideVanilla.getValue()) {
                 ci.cancel();
             }
+        }
+    }
+
+    @Inject(method = "displayScoreboardSidebar", at = @At("HEAD"), cancellable = true)
+    private void displayCustomScoreboard(GuiGraphicsExtractor graphics, Objective objective, CallbackInfo ci) {
+        StarClient mod = StarClient.getInstance();
+        if (mod == null || mod.getModuleManager() == null) return;
+        Module scoreboardMod = mod.getModuleManager().getModuleByName("Scoreboard");
+        if (scoreboardMod != null && scoreboardMod.isEnabled()) {
+            ScoreboardRenderer.render(graphics, objective, scoreboardMod);
+            ci.cancel();
+        }
+    }
+
+    @Inject(method = "extractTabList", at = @At("HEAD"), cancellable = true)
+    private void extractCustomTabList(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker, CallbackInfo ci) {
+        StarClient mod = StarClient.getInstance();
+        if (mod == null || mod.getModuleManager() == null) return;
+        Module tabMod = mod.getModuleManager().getModuleByName("Tab");
+        if (tabMod != null && tabMod.isEnabled()) {
+            Minecraft client = Minecraft.getInstance();
+            if (client.player == null) return;
+            if (client.options.keyPlayerList.isDown()) {
+                this.tabList.setVisible(true);
+                graphics.nextStratum();
+                Scoreboard scoreboard = client.level != null ? client.level.getScoreboard() : null;
+                Objective objective = scoreboard != null ? scoreboard.getDisplayObjective(DisplaySlot.LIST) : null;
+                TabListRenderer.render(graphics, this.tabList, scoreboard, objective, tabMod);
+            } else {
+                this.tabList.setVisible(false);
+            }
+            ci.cancel();
         }
     }
 

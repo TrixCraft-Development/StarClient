@@ -24,6 +24,7 @@ public class HudLayout {
     public static final String COMBO = "combo";
     public static final String POTIONS = "potions";
     public static final String TARGET_HUD = "target_hud";
+    public static final String SCOREBOARD = "scoreboard";
     public static final int AUTO = Integer.MIN_VALUE;
 
     public static final int FPS_WIDTH = 130;
@@ -36,6 +37,8 @@ public class HudLayout {
     public static final int ELEMENT_HEIGHT = 18;
 
     private final Map<String, int[]> positions = new HashMap<>();
+    private int scoreboardWidth = 140;
+    private int scoreboardHeight = 110;
 
     public HudLayout() {
         reset();
@@ -55,6 +58,20 @@ public class HudLayout {
         positions.put(COMBO, new int[]{AUTO, AUTO});
         positions.put(POTIONS, new int[]{AUTO, AUTO});
         positions.put(TARGET_HUD, new int[]{AUTO, AUTO});
+        positions.put(SCOREBOARD, new int[]{AUTO, AUTO});
+    }
+
+    public void setScoreboardSize(int width, int height) {
+        if (width > 0) this.scoreboardWidth = width;
+        if (height > 0) this.scoreboardHeight = height;
+    }
+
+    public int scoreboardWidth() {
+        return scoreboardWidth;
+    }
+
+    public int scoreboardHeight() {
+        return scoreboardHeight;
     }
 
     public boolean isAuto(String id) {
@@ -83,6 +100,7 @@ public class HudLayout {
             case KEYSTROKES -> isAuto(id) ? screenWidth - keystrokesWidth() - 8 : getX(id);
             case ARMOR -> isAuto(id) ? (screenWidth - armorWidth()) / 2 : getX(id);
             case TARGET_HUD -> isAuto(id) ? screenWidth / 2 + 20 : getX(id);
+            case SCOREBOARD -> isAuto(id) ? screenWidth - scoreboardWidth() - 6 : getX(id);
             default -> getX(id);
         };
     }
@@ -100,6 +118,7 @@ public class HudLayout {
             case KEYSTROKES -> isAuto(id) ? screenHeight - keystrokesHeight() - 8 : getY(id);
             case ARMOR -> isAuto(id) ? screenHeight - armorHeight() - 8 : getY(id);
             case TARGET_HUD -> isAuto(id) ? screenHeight / 2 + 12 : getY(id);
+            case SCOREBOARD -> isAuto(id) ? (screenHeight - scoreboardHeight()) / 2 : getY(id);
             default -> getY(id);
         };
     }
@@ -193,7 +212,7 @@ public class HudLayout {
 
     public void fromJson(JsonObject obj) {
         reset();
-        for (String id : new String[]{FPS, PING, COORDINATES, ARRAYLIST, KEYSTROKES, ARMOR, CPS, REACH, SPEED, COMBO, POTIONS, TARGET_HUD}) {
+        for (String id : new String[]{FPS, PING, COORDINATES, ARRAYLIST, KEYSTROKES, ARMOR, CPS, REACH, SPEED, COMBO, POTIONS, TARGET_HUD, SCOREBOARD}) {
             if (obj.has(id)) {
                 JsonObject o = obj.getAsJsonObject(id);
                 setPosition(id, o.get("x").getAsInt(), o.get("y").getAsInt());
@@ -258,6 +277,12 @@ public class HudLayout {
         int armorX = layout.effectiveX(ARMOR, screenWidth, 0);
         int armorY = layout.effectiveY(ARMOR, screenHeight);
         rects.add(new Rect(ARMOR, armorX, armorY, armorX + layout.armorWidth(), armorY + layout.armorHeight()));
+
+        int sbWidth = layout.scoreboardWidth();
+        int sbHeight = layout.scoreboardHeight();
+        int sbX = layout.effectiveX(SCOREBOARD, screenWidth, sbWidth);
+        int sbY = layout.effectiveY(SCOREBOARD, screenHeight);
+        rects.add(new Rect(SCOREBOARD, sbX, sbY, sbX + sbWidth, sbY + sbHeight));
 
         return rects;
     }

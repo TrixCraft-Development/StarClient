@@ -110,6 +110,7 @@ public class ClickGuiScreen extends Screen {
     private String searchQuery = "";
     private String pendingTooltipTitle;
     private String pendingTooltipDesc;
+    private final StatsViewRenderer statsViewRenderer = new StatsViewRenderer();
 
     private final Screen parent;
 
@@ -194,39 +195,47 @@ public class ClickGuiScreen extends Screen {
         int panelTop = startY + PANEL_TOP_OFFSET;
         int panelBottom = startY + guiHeight - 10;
 
-        clampMainScroll(contentWidth, panelBottom - panelTop);
+        int statsHeaderH = isStatsView() ? 38 : 0;
+        int viewportH = panelBottom - panelTop - statsHeaderH;
+
+        clampMainScroll(contentWidth, viewportH);
         savedMainScroll = targetModuleScroll;
 
-        extractor.enableScissor(contentLeft - 2, panelTop, contentRight + 2, panelBottom);
-        if (isCosmeticsView()) {
-            for (CosmeticRow row : buildCosmeticRows(contentLeft, contentWidth, panelTop, moduleScroll)) {
-                drawCosmeticRow(extractor, row, mouseX, mouseY);
-            }
-        } else if (isSettingsView()) {
-            drawGeneralSettingsView(extractor, contentLeft, contentWidth, panelTop, panelBottom, mouseX, mouseY);
+        if (isStatsView()) {
+            this.statsViewRenderer.draw(extractor, this.font, contentLeft, contentWidth, panelTop, panelBottom, mouseX, mouseY, moduleScroll);
         } else {
-            List<ModuleTile> tiles = buildModuleTiles(contentLeft, contentWidth, panelTop, moduleScroll);
-            if (tiles.isEmpty()) {
-                String emptyMsg = isSearching()
-                        ? "No modules or settings match \"" + searchQuery.trim() + "\""
-                        : activeSidebarSection == SidebarSection.FAVORITES
-                                ? "No favorite modules yet — click ☆ on any module tile to pin it here!"
-                                : activeSidebarSection == SidebarSection.ACTIVE
-                                        ? "No modules are currently enabled."
-                                        : "No modules match the selected filter.";
-                GuiRenderUtils.drawCenteredText(extractor, this.font, emptyMsg,
-                        contentLeft + contentWidth / 2, panelTop + (panelBottom - panelTop) / 2 - 6, 0xFF64748B);
+            extractor.enableScissor(contentLeft - 2, panelTop, contentRight + 2, panelBottom);
+            if (isCosmeticsView()) {
+                for (CosmeticRow row : buildCosmeticRows(contentLeft, contentWidth, panelTop, moduleScroll)) {
+                    drawCosmeticRow(extractor, row, mouseX, mouseY);
+                }
+            } else if (isSettingsView()) {
+                drawGeneralSettingsView(extractor, contentLeft, contentWidth, panelTop, panelBottom, mouseX, mouseY);
             } else {
-                for (ModuleTile tile : tiles) {
-                    if (tile.y + TILE_HEIGHT < panelTop || tile.y > panelBottom) continue;
-                    drawModuleTile(extractor, tile, mouseX, mouseY);
+                List<ModuleTile> tiles = buildModuleTiles(contentLeft, contentWidth, panelTop, moduleScroll);
+                if (tiles.isEmpty()) {
+                    String emptyMsg = isSearching()
+                            ? "No modules or settings match \"" + searchQuery.trim() + "\""
+                            : activeSidebarSection == SidebarSection.FAVORITES
+                                    ? "No favorite modules yet — click ☆ on any module tile to pin it here!"
+                                    : activeSidebarSection == SidebarSection.ACTIVE
+                                            ? "No modules are currently enabled."
+                                            : "No modules match the selected filter.";
+                    GuiRenderUtils.drawCenteredText(extractor, this.font, emptyMsg,
+                            contentLeft + contentWidth / 2, panelTop + (panelBottom - panelTop) / 2 - 6, 0xFF64748B);
+                } else {
+                    for (ModuleTile tile : tiles) {
+                        if (tile.y + TILE_HEIGHT < panelTop || tile.y > panelBottom) continue;
+                        drawModuleTile(extractor, tile, mouseX, mouseY);
+                    }
                 }
             }
+            extractor.disableScissor();
         }
-        extractor.disableScissor();
 
-        drawScrollbar(extractor, contentRight + 4, panelTop, panelBottom, moduleScroll,
-                computeMaxMainScroll(contentWidth, panelBottom - panelTop), draggingMainScrollbar, mouseX, mouseY);
+        int sbTop = panelTop + statsHeaderH;
+        drawScrollbar(extractor, contentRight + 4, sbTop, panelBottom, moduleScroll,
+                computeMaxMainScroll(contentWidth, panelBottom - sbTop), draggingMainScrollbar, mouseX, mouseY);
 
         // Slide-in Settings Drawer on the right
         if (drawerModule != null || drawerProgress > 0.01F) {
@@ -246,7 +255,7 @@ public class ClickGuiScreen extends Screen {
         float openSpeed = 14.0F * dt;
         openProgress = openProgress + (1.0F - openProgress) * Math.min(1.0F, openSpeed);
 
-        float targetDrawer = (drawerModule != null && ! isCosmeticsView() && !isSettingsView()) ? 1.0F : 0.0F;
+        float targetDrawer = (drawerModule != null && !isCosmeticsView() && !isSettingsView() && !isStatsView()) ? 1.0F : 0.0F;
         drawerProgress = drawerProgress + (targetDrawer - drawerProgress) * Math.min(1.0F, 16.0F * dt);
         if (targetDrawer == 0.0F && drawerProgress < 0.01F) {
             drawerProgress = 0.0F;
@@ -375,7 +384,7 @@ public class ClickGuiScreen extends Screen {
                     && activeSidebarSection == SidebarSection.CATEGORY
                     && selectedCategory == category;
             String badge = null;
-            if (category != Category.COSMETICS && category != Category.SETTINGS) {
+            if (category != Category.COSMETICS && category != Category.SETTINGS && category != Category.STATS) {
                 List<Module> catMods = StarClient.getInstance().getModuleManager().getModulesByCategory(category);
                 long enabledInCat = catMods.stream().filter(Module::isEnabled).count();
                 if (enabledInCat > 0) {
@@ -441,6 +450,9 @@ public class ClickGuiScreen extends Screen {
         } else if (isSettingsView()) {
             title = Category.SETTINGS.getIcon() + " Client Settings";
             subtitle = "Global appearance, font style & integrations";
+        } else if (isStatsView()) {
+            title = Category.STATS.getIcon() + " Player Statistics";
+            subtitle = "Lifetime gameplay tracking & client achievements";
         } else {
             List<Module> visible = getVisibleModules();
             long enabledCount = visible.stream().filter(Module::isEnabled).count();
@@ -1050,7 +1062,7 @@ public class ClickGuiScreen extends Screen {
     }
 
     private int drawerVisibleWidth() {
-        if (isCosmeticsView() || isSettingsView()) return 0;
+        if (isCosmeticsView() || isSettingsView() || isStatsView()) return 0;
         if (drawerModule == null && drawerProgress <= 0.01F) return 0;
         return Math.round(DRAWER_WIDTH * drawerProgress);
     }
@@ -1110,6 +1122,9 @@ public class ClickGuiScreen extends Screen {
             DrawerItem last = items.getLast();
             int contentHeight = last.y + last.height + 8;
             return Math.max(0, contentHeight - viewportHeight);
+        }
+        if (isStatsView()) {
+            return this.statsViewRenderer.computeMaxScroll(contentWidth, viewportHeight);
         }
         List<Module> visible = getVisibleModules();
         int cols = computeGridColumns(contentWidth);
@@ -1346,7 +1361,7 @@ public class ClickGuiScreen extends Screen {
         }
 
         // 5. Check Settings Drawer interactions if open
-        if (drawerModule != null && !isCosmeticsView() && !isSettingsView() && drawerProgress > 0.5F) {
+        if (drawerModule != null && !isCosmeticsView() && !isSettingsView() && !isStatsView() && drawerProgress > 0.5F) {
             int drawerX = startX + guiWidth - DRAWER_WIDTH;
             int drawerY = startY + HEADER_HEIGHT;
             int drawerH = guiHeight - HEADER_HEIGHT;
@@ -1362,9 +1377,10 @@ public class ClickGuiScreen extends Screen {
         int panelTop = startY + PANEL_TOP_OFFSET;
         int panelBottom = startY + guiHeight - 10;
         int sbX = contentRight + 4;
-        double maxMainScroll = computeMaxMainScroll(contentWidth, panelBottom - panelTop);
-        if (maxMainScroll > 0 && isHovered(mouseX, mouseY, sbX - 4, panelTop, 12, panelBottom - panelTop)) {
-            startScrollbarDrag(mouseY, panelTop, panelBottom, moduleScroll, maxMainScroll, false);
+        int sbTop = panelTop + (isStatsView() ? 38 : 0);
+        double maxMainScroll = computeMaxMainScroll(contentWidth, panelBottom - sbTop);
+        if (maxMainScroll > 0 && isHovered(mouseX, mouseY, sbX - 4, sbTop, 12, panelBottom - sbTop)) {
+            startScrollbarDrag(mouseY, sbTop, panelBottom, moduleScroll, maxMainScroll, false);
             return true;
         }
 
@@ -1386,6 +1402,12 @@ public class ClickGuiScreen extends Screen {
                         StarClient.getInstance().getConfigManager().saveConfig();
                         return true;
                     }
+                }
+            } else if (isStatsView()) {
+                if (this.statsViewRenderer.mouseClicked(contentLeft, contentWidth, panelTop, mouseX, mouseY)) {
+                    this.targetModuleScroll = 0;
+                    this.moduleScroll = 0;
+                    return true;
                 }
             } else {
                 List<ModuleTile> tiles = buildModuleTiles(contentLeft, contentWidth, panelTop, moduleScroll);
@@ -1728,7 +1750,7 @@ public class ClickGuiScreen extends Screen {
         int startY = (this.height - guiHeight) / 2;
 
         // Check if scrolling inside the Settings Drawer
-        if (drawerModule != null && !isCosmeticsView() && !isSettingsView() && drawerProgress > 0.5F) {
+        if (drawerModule != null && !isCosmeticsView() && !isSettingsView() && !isStatsView() && drawerProgress > 0.5F) {
             int drawerX = startX + guiWidth - DRAWER_WIDTH;
             int drawerY = startY + HEADER_HEIGHT;
             int drawerH = guiHeight - HEADER_HEIGHT;
@@ -1759,7 +1781,7 @@ public class ClickGuiScreen extends Screen {
             int panelTop = startY + PANEL_TOP_OFFSET;
             int panelBottom = startY + guiHeight - 10;
             targetModuleScroll -= verticalAmount * 26;
-            clampMainScroll(contentWidth, panelBottom - panelTop);
+            clampMainScroll(contentWidth, panelBottom - panelTop - (isStatsView() ? 38 : 0));
             return true;
         }
 
@@ -1868,6 +1890,12 @@ public class ClickGuiScreen extends Screen {
         return !isSearching()
                 && activeSidebarSection == SidebarSection.CATEGORY
                 && selectedCategory == Category.SETTINGS;
+    }
+
+    private boolean isStatsView() {
+        return !isSearching()
+                && activeSidebarSection == SidebarSection.CATEGORY
+                && selectedCategory == Category.STATS;
     }
 
     private int menuAccent() {

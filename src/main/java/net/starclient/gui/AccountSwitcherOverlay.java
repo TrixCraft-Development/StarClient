@@ -32,6 +32,14 @@ public final class AccountSwitcherOverlay {
     private boolean dropdownOpen;
     private int lastHeaderWidth = MIN_BOX_WIDTH;
 
+    public boolean isDropdownOpen() {
+        return dropdownOpen;
+    }
+
+    public void closeDropdown() {
+        this.dropdownOpen = false;
+    }
+
     public void render(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         Minecraft client = Minecraft.getInstance();
         if (client == null || client.font == null) return;

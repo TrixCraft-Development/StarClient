@@ -7,6 +7,7 @@ import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.starclient.StarClient;
 import net.starclient.gui.AccountSwitcherOverlay;
+import net.starclient.gui.TitleBackgroundOverlay;
 import org.joml.Matrix3x2fStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -21,6 +22,8 @@ public abstract class TitleScreenMixin {
 
     @Unique
     private final AccountSwitcherOverlay starclient$accountSwitcher = new AccountSwitcherOverlay();
+    @Unique
+    private final TitleBackgroundOverlay starclient$backgroundOverlay = new TitleBackgroundOverlay();
 
     @ModifyArg(
             method = "extractRenderState",
@@ -68,11 +71,22 @@ public abstract class TitleScreenMixin {
         graphics.text(client.font, version, screenWidth / 2 - client.font.width(version) / 2, y + (int) (client.font.lineHeight * scale) + 4, 0xFF94A3B8);
 
         this.starclient$accountSwitcher.render(graphics, mouseX, mouseY);
+        this.starclient$backgroundOverlay.render(graphics, mouseX, mouseY);
     }
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
     private void starclient$onMouseClicked(MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
+        if (this.starclient$backgroundOverlay.mouseClicked((Screen) (Object) this, event)) {
+            if (this.starclient$backgroundOverlay.isDropdownOpen()) {
+                this.starclient$accountSwitcher.closeDropdown();
+            }
+            cir.setReturnValue(true);
+            return;
+        }
         if (this.starclient$accountSwitcher.mouseClicked((Screen) (Object) this, event)) {
+            if (this.starclient$accountSwitcher.isDropdownOpen()) {
+                this.starclient$backgroundOverlay.closeDropdown();
+            }
             cir.setReturnValue(true);
         }
     }

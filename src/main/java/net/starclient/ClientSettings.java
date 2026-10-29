@@ -2,6 +2,7 @@ package net.starclient;
 
 import net.starclient.setting.BooleanSetting;
 import net.starclient.setting.ColorModeSetting;
+import net.starclient.setting.ModeSetting;
 import net.starclient.setting.Setting;
 import net.starclient.setting.TextSetting;
 
@@ -34,6 +35,10 @@ public final class ClientSettings {
             "Lead", "FF1C2432",
             "Slate Light", "FF1E293B");
 
+    public static final String BG_CUSTOM = "Custom Wallpaper";
+    public static final String BG_MODERN = "Modern Dark";
+    public static final String BG_VANILLA = "Vanilla Panorama";
+
     private final List<Setting<?>> settings = new ArrayList<>();
     private final BooleanSetting hudTextShadow;
     private final BooleanSetting tabIcon;
@@ -41,6 +46,8 @@ public final class ClientSettings {
     private final TextSetting hypixelApiKey;
     private final ColorModeSetting menuAccentColor;
     private final ColorModeSetting menuBackgroundColor;
+    private final ModeSetting titleBackground;
+    private final BooleanSetting modernButtons;
 
     public ClientSettings() {
         this.hudTextShadow = new BooleanSetting("HUD Text Shadow",
@@ -55,9 +62,16 @@ public final class ClientSettings {
                 "Accent colour used across the client's menu", "Sky Blue", MENU_ACCENT_COLORS);
         this.menuBackgroundColor = new ColorModeSetting("Client Menu Background",
                 "Background colour of the client's menu panels", "Slate", MENU_BACKGROUND_COLORS);
+        this.titleBackground = new ModeSetting("Main Menu Background",
+                "Background style displayed on the main menu screen", BG_MODERN,
+                List.of(BG_MODERN, BG_CUSTOM, BG_VANILLA));
+        this.modernButtons = new BooleanSetting("Modern Buttons",
+                "Apply StarClient's modern rounded UI styling to standard Minecraft buttons", true);
 
         settings.add(menuAccentColor);
         settings.add(menuBackgroundColor);
+        settings.add(titleBackground);
+        settings.add(modernButtons);
         settings.add(hudTextShadow);
         settings.add(tabIcon);
         settings.add(removeSplash);
@@ -78,6 +92,26 @@ public final class ClientSettings {
 
     public boolean isRemoveSplash() {
         return removeSplash.getValue();
+    }
+
+    public String getTitleBackground() {
+        return titleBackground.getValue();
+    }
+
+    public void setTitleBackground(String mode) {
+        titleBackground.setValue(mode);
+    }
+
+    public ModeSetting getTitleBackgroundSetting() {
+        return titleBackground;
+    }
+
+    public boolean isModernButtons() {
+        return modernButtons.getValue();
+    }
+
+    public void setModernButtons(boolean enabled) {
+        modernButtons.setValue(enabled);
     }
 
     public String getHypixelApiKey() {

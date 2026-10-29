@@ -10,6 +10,7 @@ public enum Category {
     WORLD("World", "🌍"),
     SERVER("Server", "🖥"),
     UI("UI & Visuals", "🎨"),
+    STATS("Stats", "📊"),
     SETTINGS("Settings", "⚙");
 
     private final String name;

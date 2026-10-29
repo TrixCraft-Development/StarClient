@@ -13,6 +13,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.starclient.module.AutoToolState;
 import net.starclient.module.CombatStatsTracker;
 import net.starclient.module.FastBreakState;
+import net.starclient.stats.ClientStatsManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -72,6 +73,13 @@ public abstract class MultiPlayerGameModeMixin {
     @Inject(method = "attack(Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/entity/Entity;)V", at = @At("HEAD"))
     private void recordAttackStats(Player player, Entity entity, CallbackInfo ci) {
         CombatStatsTracker.onAttack(player, entity);
+    }
+
+    @Inject(method = "destroyBlock", at = @At("RETURN"))
+    private void onBlockDestroyed(BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
+        if (cir.getReturnValue() != null && cir.getReturnValue()) {
+            ClientStatsManager.getInstance().onBlockMined();
+        }
     }
 
     @Unique

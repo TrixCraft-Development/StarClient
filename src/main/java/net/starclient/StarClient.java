@@ -19,6 +19,7 @@ import net.starclient.gui.HudOverlay;
 import net.starclient.mod.FabricModManager;
 import net.starclient.module.ModuleManager;
 import net.starclient.rank.RankManager;
+import net.starclient.stats.ClientStatsManager;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +60,7 @@ public class StarClient implements ClientModInitializer {
         this.modManager = new FabricModManager();
         this.hudLayout = new HudLayout();
         this.clientSettings = new ClientSettings();
+        ClientStatsManager.getInstance().init();
 
         // Register ClickGUI Keybind (Default: RSHIFT)
         this.clickGuiKeyBind = KeyMappingHelper.registerKeyMapping(new KeyMapping(
@@ -77,6 +79,7 @@ public class StarClient implements ClientModInitializer {
         // Register Client Tick Callback (config loaded on first tick when Minecraft is fully ready)
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             ensureConfigLoaded();
+            ClientStatsManager.getInstance().onTick(client);
             boolean inGame = client.player != null && client.level != null;
             if (inGame) {
                 if (client.gui.screen() == null) {
