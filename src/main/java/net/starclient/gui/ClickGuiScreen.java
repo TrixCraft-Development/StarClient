@@ -137,7 +137,7 @@ public class ClickGuiScreen extends Screen {
         int searchY = startY + (HEADER_HEIGHT - SEARCH_HEIGHT) / 2;
 
         String prevQuery = this.searchQuery;
-        this.searchBox = new EditBox(this.font, searchX + 20, searchY + 6, searchW - 36, 14, Component.literal(""));
+        this.searchBox = new EditBox(this.font, searchX + 20, searchY, searchW - 36, SEARCH_HEIGHT, Component.literal(""));
         this.searchBox.setValue(prevQuery);
         this.searchBox.setResponder(value -> {
             this.searchQuery = value;
@@ -274,13 +274,14 @@ public class ClickGuiScreen extends Screen {
         // Brand logo + version badge in left header section
         String brandTitle = "⭐ " + StarClient.CLIENT_NAME;
         GuiRenderUtils.drawText(extractor, this.font, brandTitle, startX + 12, startY + 11, menuAccent(), true);
-        String verText = StarClient.CLIENT_VERSION + StarClient.MC_VERSION;
+        String verText = StarClient.CLIENT_VERSION + " ● " + "MC-" + StarClient.MC_VERSION;
         GuiRenderUtils.drawText(extractor, this.font, verText, startX + 14, startY + 24, 0xFF64748B);
 
         // Search Box
         int searchX = startX + SIDEBAR_WIDTH + 12;
         int searchW = 190;
         int searchY = startY + (HEADER_HEIGHT - SEARCH_HEIGHT) / 2;
+        int searchIconY = searchY + (SEARCH_HEIGHT - 8) / 2;
         boolean searchHovered = isHovered(mouseX, mouseY, searchX, searchY, searchW, SEARCH_HEIGHT);
         boolean searchFocused = this.searchBox != null && this.searchBox.isFocused();
 
@@ -288,21 +289,22 @@ public class ClickGuiScreen extends Screen {
                 searchFocused || searchHovered ? menuBgLight() : menuBgDark());
         GuiRenderUtils.drawRoundedOutline(extractor, searchX, searchY, searchW, SEARCH_HEIGHT, 6,
                 searchFocused ? menuAccent() : menuBorder());
-        GuiRenderUtils.drawText(extractor, this.font, "🔍", searchX + 6, searchY + 7,
+        GuiRenderUtils.drawText(extractor, this.font, "🔍", searchX + 6, searchIconY,
                 searchFocused ? menuAccent() : 0xFF64748B);
 
         if (this.searchBox != null) {
             this.searchBox.setX(searchX + 20);
-            this.searchBox.setY(searchY + 7);
+            this.searchBox.setY(searchY);
+            this.searchBox.setHeight(SEARCH_HEIGHT);
             this.searchBox.setWidth(searchW - (isSearching() ? 36 : 24));
             this.searchBox.extractRenderState(extractor, mouseX, mouseY, delta);
         }
 
         if (isSearching()) {
             int clearX = searchX + searchW - 16;
-            int clearY = searchY + 5;
-            boolean clearHover = isHovered(mouseX, mouseY, clearX - 2, clearY - 2, 14, 14);
-            GuiRenderUtils.drawText(extractor, this.font, "✕", clearX, clearY + 2,
+            int clearY = searchIconY;
+            boolean clearHover = isHovered(mouseX, mouseY, clearX - 3, clearY - 2, 14, 14);
+            GuiRenderUtils.drawText(extractor, this.font, "✕", clearX, clearY,
                     clearHover ? 0xFFF87171 : 0xFF94A3B8);
         }
 
@@ -893,7 +895,7 @@ public class ClickGuiScreen extends Screen {
         for (String line : lines) {
             boxW = Math.max(boxW, GuiRenderUtils.textWidth(this.font, line) + 16);
         }
-        boxW = Math.min(maxW, Math.max(90, boxW));
+        boxW = Math.clamp(boxW, 90, maxW);
         int boxH = 18 + lines.size() * 11;
 
         int tx = mouseX + 10;
@@ -1276,8 +1278,8 @@ public class ClickGuiScreen extends Screen {
         int searchW = 190;
         if (isSearching()) {
             int clearX = searchX + searchW - 16;
-            int clearY = searchY + 5;
-            if (isHovered(mouseX, mouseY, clearX - 2, clearY - 2, 14, 14)) {
+            int clearY = searchY + (SEARCH_HEIGHT - 8) / 2;
+            if (isHovered(mouseX, mouseY, clearX - 3, clearY - 2, 14, 14)) {
                 this.searchBox.setValue("");
                 this.searchQuery = "";
                 return true;
@@ -1457,13 +1459,12 @@ public class ClickGuiScreen extends Screen {
     private void openDrawerFor(Module module) {
         if (drawerModule == module) {
             drawerModule = null;
-            expandedDropdown = null;
         } else {
             drawerModule = module;
             drawerScroll = 0;
             targetDrawerScroll = 0;
-            expandedDropdown = null;
         }
+        expandedDropdown = null;
     }
 
     private boolean handleDrawerClick(double mouseX, double mouseY, int button, int drawerX, int drawerY, int drawerH) {
@@ -1786,7 +1787,7 @@ public class ClickGuiScreen extends Screen {
             return true;
         }
 
-        // Escape closes expanded dropdown first, then open Settings Drawer, then search query, then screen
+        // Escape closes expanded dropdown first, then open Settings Drawer, then focused search / search query, then screen
         if (key == GLFW.GLFW_KEY_ESCAPE) {
             if (expandedDropdown != null) {
                 expandedDropdown = null;
@@ -1796,16 +1797,17 @@ public class ClickGuiScreen extends Screen {
                 drawerModule = null;
                 return true;
             }
-            if (isSearching()) {
+            if (this.searchBox != null && (this.searchBox.isFocused() || isSearching())) {
                 this.searchBox.setValue("");
                 this.searchQuery = "";
                 this.searchBox.setFocused(false);
+                this.setFocused(null);
                 return true;
             }
         }
 
-        // Ctrl+F focuses the search bar
-        if (key == GLFW.GLFW_KEY_F && (event.modifiers() & GLFW.GLFW_MOD_CONTROL) != 0 && this.searchBox != null) {
+        // Ctrl+F (or Strg+F) focuses the search bar
+        if (key == GLFW.GLFW_KEY_F && (event.hasControlDown() || (event.modifiers() & GLFW.GLFW_MOD_CONTROL) != 0) && this.searchBox != null) {
             this.searchBox.setFocused(true);
             this.setFocused(this.searchBox);
             return true;
@@ -1816,9 +1818,7 @@ public class ClickGuiScreen extends Screen {
 
     @Override
     public boolean charTyped(@NonNull CharacterEvent event) {
-        if (bindingModule == null && this.searchBox != null && !this.searchBox.isFocused()) {
-            this.searchBox.setFocused(true);
-            this.setFocused(this.searchBox);
+        if (this.searchBox != null && this.searchBox.isFocused()) {
             return this.searchBox.charTyped(event);
         }
         return super.charTyped(event);
@@ -1840,7 +1840,6 @@ public class ClickGuiScreen extends Screen {
         } else if (SKIN_NONE_ROW.equals(row.key)) {
             cosmetics.setEquippedSkin(null);
         } else if (row.key().startsWith(HEADER_PREFIX)) {
-            return;
         } else if (cosmetics.getAvailableCapes().stream().anyMatch(c -> c.id().equals(row.key))) {
             cosmetics.setEquippedCape(row.key.equals(cosmetics.getEquippedCape()) ? null : row.key);
         } else {

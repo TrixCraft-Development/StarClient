@@ -1820,6 +1820,8 @@ public class ModuleManager {
                 addSetting(new BooleanSetting("Center Dot", "Draw a center dot", true));
                 addSetting(new BooleanSetting("Outline", "Draw a dark outline around the crosshair", true));
                 addSetting(new BooleanSetting("Dynamic", "Expand gap when moving or attacking", true));
+                addSetting(new BooleanSetting("Cooldown Indicator", "Show 1.9+ PVP weapon cooldown attack indicator", true));
+                addSetting(new BooleanSetting("Always Show Cooldown", "Show cooldown bar even if Minecraft setting is not set to Crosshair", false));
                 addSetting(new NumberSetting("Size", "Arm length or radius in pixels", 4.0, 1.0, 12.0, 1.0));
                 addSetting(new NumberSetting("Gap", "Distance from center in pixels", 2.0, 0.0, 10.0, 1.0));
                 addSetting(new NumberSetting("Thickness", "Line thickness in pixels", 1.0, 1.0, 4.0, 1.0));

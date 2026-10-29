@@ -80,7 +80,7 @@ public class HudLayout {
         return switch (id) {
             case FPS, PING, COORDINATES, CPS, REACH, SPEED, COMBO, POTIONS -> isAuto(id) ? 8 : getX(id);
             case ARRAYLIST -> isAuto(id) ? screenWidth - maxModWidth - 8 : getX(id);
-            case KEYSTROKES -> isAuto(id) ? screenWidth - 80 : getX(id);
+            case KEYSTROKES -> isAuto(id) ? screenWidth - keystrokesWidth() - 8 : getX(id);
             case ARMOR -> isAuto(id) ? (screenWidth - armorWidth()) / 2 : getX(id);
             case TARGET_HUD -> isAuto(id) ? screenWidth / 2 + 20 : getX(id);
             default -> getX(id);
@@ -97,11 +97,28 @@ public class HudLayout {
             case SPEED -> isAuto(id) ? screenHeight - 146 : getY(id);
             case COMBO -> isAuto(id) ? screenHeight - 170 : getY(id);
             case POTIONS, ARRAYLIST -> isAuto(id) ? 8 : getY(id);
-            case KEYSTROKES -> isAuto(id) ? screenHeight - 85 : getY(id);
+            case KEYSTROKES -> isAuto(id) ? screenHeight - keystrokesHeight() - 8 : getY(id);
             case ARMOR -> isAuto(id) ? screenHeight - armorHeight() - 8 : getY(id);
             case TARGET_HUD -> isAuto(id) ? screenHeight / 2 + 12 : getY(id);
             default -> getY(id);
         };
+    }
+
+    public boolean isKeystrokesShowMouse() {
+        Module module = StarClient.getInstance().getModuleManager().getModuleByName("Keystrokes");
+        if (module != null) {
+            Setting<?> showMouse = module.getSetting("Show Mouse");
+            return showMouse == null || (boolean) showMouse.getValue();
+        }
+        return true;
+    }
+
+    public int keystrokesWidth() {
+        return 64;
+    }
+
+    public int keystrokesHeight() {
+        return isKeystrokesShowMouse() ? 66 : 42;
     }
 
     public boolean isArmorVertical() {
@@ -236,7 +253,7 @@ public class HudLayout {
 
         int keyX = layout.effectiveX(KEYSTROKES, screenWidth, 0);
         int keyY = layout.effectiveY(KEYSTROKES, screenHeight);
-        rects.add(new Rect(KEYSTROKES, keyX, keyY, keyX + 80, keyY + 85));
+        rects.add(new Rect(KEYSTROKES, keyX, keyY, keyX + layout.keystrokesWidth(), keyY + layout.keystrokesHeight()));
 
         int armorX = layout.effectiveX(ARMOR, screenWidth, 0);
         int armorY = layout.effectiveY(ARMOR, screenHeight);

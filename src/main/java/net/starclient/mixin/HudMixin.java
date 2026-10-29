@@ -1,9 +1,18 @@
 package net.starclient.mixin;
 
+import net.minecraft.client.AttackIndicatorStatus;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.Hud;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.AttackRange;
+import net.minecraft.world.level.GameType;
+import net.minecraft.world.phys.HitResult;
 import net.starclient.StarClient;
 import net.starclient.module.CustomCrosshairState;
 import net.starclient.module.Module;
@@ -18,6 +27,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Hud.class)
 public abstract class HudMixin {
+
+    @Unique
+    private static final Identifier CROSSHAIR_ATTACK_INDICATOR_FULL_SPRITE =
+            Identifier.withDefaultNamespace("hud/crosshair_attack_indicator_full");
+    @Unique
+    private static final Identifier CROSSHAIR_ATTACK_INDICATOR_BACKGROUND_SPRITE =
+            Identifier.withDefaultNamespace("hud/crosshair_attack_indicator_background");
+    @Unique
+    private static final Identifier CROSSHAIR_ATTACK_INDICATOR_PROGRESS_SPRITE =
+            Identifier.withDefaultNamespace("hud/crosshair_attack_indicator_progress");
 
     @Inject(method = "extractEffects", at = @At("HEAD"), cancellable = true)
     private void hideVanillaEffects(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker, CallbackInfo ci) {
@@ -38,6 +57,11 @@ public abstract class HudMixin {
         Minecraft client = Minecraft.getInstance();
         if (client.player == null || !client.options.getCameraType().isFirstPerson()) {
             return;
+        }
+        if (client.gameMode != null && client.gameMode.getPlayerMode() == GameType.SPECTATOR) {
+            if (client.hitResult == null || client.hitResult.getType() != HitResult.Type.ENTITY) {
+                return;
+            }
         }
         ci.cancel();
 
@@ -71,8 +95,10 @@ public abstract class HudMixin {
         int cx = graphics.guiWidth() / 2;
         int cy = graphics.guiHeight() / 2;
         int halfT = thickness / 2;
+        int bottomOffset = 7;
 
         if ("Dot".equals(shape) || "Cross + Dot".equals(shape) || centerDot) {
+            bottomOffset = Math.max(bottomOffset, halfT + thickness);
             if (outline) {
                 graphics.fill(cx - halfT - 1, cy - halfT - 1, cx - halfT + thickness + 1, cy - halfT + thickness + 1, outlineColor);
             }
@@ -80,6 +106,7 @@ public abstract class HudMixin {
         }
 
         if ("Cross".equals(shape) || "Cross + Dot".equals(shape)) {
+            bottomOffset = Math.max(bottomOffset, gap + (thickness % 2) + size);
             // Top
             drawRectWithOutline(graphics, cx - halfT, cy - gap - size, cx - halfT + thickness, cy - gap, color, outline, outlineColor);
             // Bottom
@@ -90,10 +117,48 @@ public abstract class HudMixin {
             drawRectWithOutline(graphics, cx + gap + (thickness % 2), cy - halfT, cx + gap + (thickness % 2) + size, cy - halfT + thickness, color, outline, outlineColor);
         } else if ("Circle".equals(shape)) {
             int r = Math.max(2, gap + size);
+            bottomOffset = Math.max(bottomOffset, r);
             drawRectWithOutline(graphics, cx - r + 1, cy - r, cx + r, cy - r + thickness, color, outline, outlineColor);
             drawRectWithOutline(graphics, cx - r + 1, cy + r - thickness + 1, cx + r, cy + r + 1, color, outline, outlineColor);
             drawRectWithOutline(graphics, cx - r, cy - r + 1, cx - r + thickness, cy + r, color, outline, outlineColor);
             drawRectWithOutline(graphics, cx + r - thickness + 1, cy - r + 1, cx + r + 1, cy + r, color, outline, outlineColor);
+        }
+
+        renderAttackIndicator(graphics, client, mod, bottomOffset);
+    }
+
+    @Unique
+    private static void renderAttackIndicator(GuiGraphicsExtractor graphics, Minecraft client, Module mod, int bottomOffset) {
+        if (client.player == null) return;
+        boolean enabled = getBool(mod, "Cooldown Indicator", true);
+        if (!enabled) return;
+
+        boolean syncSetting = client.options.attackIndicator().get() == AttackIndicatorStatus.CROSSHAIR;
+        boolean forceShow = getBool(mod, "Always Show Cooldown", false);
+        if (!syncSetting && !forceShow) return;
+
+        float strength = client.player.getAttackStrengthScale(0.0F);
+        boolean showFull = false;
+        if (client.crosshairPickEntity instanceof LivingEntity && strength >= 1.0F) {
+            showFull = client.player.getCurrentItemAttackStrengthDelay() > 5.0F && client.crosshairPickEntity.isAlive();
+            ItemStack activeItem = client.player.getActiveItem();
+            if (activeItem != null) {
+                AttackRange attackRange = activeItem.get(DataComponents.ATTACK_RANGE);
+                if (attackRange != null && client.hitResult != null) {
+                    showFull = showFull && attackRange.isInRange(client.player, client.hitResult.getLocation());
+                }
+            }
+        }
+
+        int x = graphics.guiWidth() / 2 - 8;
+        int y = graphics.guiHeight() / 2 - 7 + 16 + Math.max(0, bottomOffset - 7);
+
+        if (showFull) {
+            graphics.blitSprite(RenderPipelines.CROSSHAIR, CROSSHAIR_ATTACK_INDICATOR_FULL_SPRITE, x, y, 16, 16);
+        } else if (strength < 1.0F) {
+            int progressWidth = (int) (strength * 17.0F);
+            graphics.blitSprite(RenderPipelines.CROSSHAIR, CROSSHAIR_ATTACK_INDICATOR_BACKGROUND_SPRITE, x, y, 16, 4);
+            graphics.blitSprite(RenderPipelines.CROSSHAIR, CROSSHAIR_ATTACK_INDICATOR_PROGRESS_SPRITE, 16, 4, 0, 0, x, y, progressWidth, 4);
         }
     }
 

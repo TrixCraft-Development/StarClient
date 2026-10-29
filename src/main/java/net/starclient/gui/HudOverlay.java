@@ -26,7 +26,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class HudOverlay {
 
@@ -36,6 +35,10 @@ public class HudOverlay {
 
     private static int translucentBoxColor(Module module) {
         return (module.getBackgroundColor() & 0x00FFFFFF) | 0xCC000000;
+    }
+
+    private static int boxBorderColor() {
+        return 0x28FFFFFF;
     }
 
     public static void render(GuiGraphicsExtractor extractor) {
@@ -57,7 +60,8 @@ public class HudOverlay {
             int fX = layout.effectiveX(HudLayout.FPS, screenWidth, 0);
             int fY = layout.effectiveY(HudLayout.FPS, screenHeight);
             if (!fpsMod.isTransparentBackground()) {
-                extractor.fill(fX, fY, fX + HudLayout.FPS_WIDTH, fY + HudLayout.ELEMENT_HEIGHT, translucentBoxColor(fpsMod));
+                GuiRenderUtils.fillRoundedRect(extractor, fX, fY, HudLayout.FPS_WIDTH, HudLayout.ELEMENT_HEIGHT, 4, translucentBoxColor(fpsMod));
+                GuiRenderUtils.drawRoundedOutline(extractor, fX, fY, HudLayout.FPS_WIDTH, HudLayout.ELEMENT_HEIGHT, 4, boxBorderColor());
             }
             hudText(extractor, client, stats, fX + 6, fY + 5, fpsMod.getTextColor());
         }
@@ -74,7 +78,8 @@ public class HudOverlay {
             int pX = layout.effectiveX(HudLayout.PING, screenWidth, 0);
             int pY = layout.effectiveY(HudLayout.PING, screenHeight);
             if (!pingMod.isTransparentBackground()) {
-                extractor.fill(pX, pY, pX + HudLayout.PING_WIDTH, pY + HudLayout.ELEMENT_HEIGHT, translucentBoxColor(pingMod));
+                GuiRenderUtils.fillRoundedRect(extractor, pX, pY, HudLayout.PING_WIDTH, HudLayout.ELEMENT_HEIGHT, 4, translucentBoxColor(pingMod));
+                GuiRenderUtils.drawRoundedOutline(extractor, pX, pY, HudLayout.PING_WIDTH, HudLayout.ELEMENT_HEIGHT, 4, boxBorderColor());
             }
             hudText(extractor, client, stats, pX + 6, pY + 5, pingMod.getTextColor());
         }
@@ -90,7 +95,8 @@ public class HudOverlay {
             int cX = layout.effectiveX(HudLayout.COORDINATES, screenWidth, 0);
             int cY = layout.effectiveY(HudLayout.COORDINATES, screenHeight);
             if (!coordsMod.isTransparentBackground()) {
-                extractor.fill(cX, cY, cX + HudLayout.COORDS_WIDTH, cY + HudLayout.ELEMENT_HEIGHT, translucentBoxColor(coordsMod));
+                GuiRenderUtils.fillRoundedRect(extractor, cX, cY, HudLayout.COORDS_WIDTH, HudLayout.ELEMENT_HEIGHT, 4, translucentBoxColor(coordsMod));
+                GuiRenderUtils.drawRoundedOutline(extractor, cX, cY, HudLayout.COORDS_WIDTH, HudLayout.ELEMENT_HEIGHT, 4, boxBorderColor());
             }
             hudText(extractor, client, stats, cX + 6, cY + 5, coordsMod.getTextColor());
         }
@@ -107,7 +113,8 @@ public class HudOverlay {
             int cpsX = layout.effectiveX(HudLayout.CPS, screenWidth, 0);
             int cpsY = layout.effectiveY(HudLayout.CPS, screenHeight);
             if (!cpsMod.isTransparentBackground()) {
-                extractor.fill(cpsX, cpsY, cpsX + HudLayout.STAT_WIDTH, cpsY + HudLayout.ELEMENT_HEIGHT, translucentBoxColor(cpsMod));
+                GuiRenderUtils.fillRoundedRect(extractor, cpsX, cpsY, HudLayout.STAT_WIDTH, HudLayout.ELEMENT_HEIGHT, 4, translucentBoxColor(cpsMod));
+                GuiRenderUtils.drawRoundedOutline(extractor, cpsX, cpsY, HudLayout.STAT_WIDTH, HudLayout.ELEMENT_HEIGHT, 4, boxBorderColor());
             }
             hudText(extractor, client, stats, cpsX + 6, cpsY + 5, cpsMod.getTextColor());
         }
@@ -123,7 +130,8 @@ public class HudOverlay {
             int rX = layout.effectiveX(HudLayout.REACH, screenWidth, 0);
             int rY = layout.effectiveY(HudLayout.REACH, screenHeight);
             if (!reachMod.isTransparentBackground()) {
-                extractor.fill(rX, rY, rX + HudLayout.STAT_WIDTH, rY + HudLayout.ELEMENT_HEIGHT, translucentBoxColor(reachMod));
+                GuiRenderUtils.fillRoundedRect(extractor, rX, rY, HudLayout.STAT_WIDTH, HudLayout.ELEMENT_HEIGHT, 4, translucentBoxColor(reachMod));
+                GuiRenderUtils.drawRoundedOutline(extractor, rX, rY, HudLayout.STAT_WIDTH, HudLayout.ELEMENT_HEIGHT, 4, boxBorderColor());
             }
             hudText(extractor, client, stats, rX + 6, rY + 5, reachMod.getTextColor());
         }
@@ -142,7 +150,8 @@ public class HudOverlay {
             int sX = layout.effectiveX(HudLayout.SPEED, screenWidth, 0);
             int sY = layout.effectiveY(HudLayout.SPEED, screenHeight);
             if (!speedMod.isTransparentBackground()) {
-                extractor.fill(sX, sY, sX + HudLayout.STAT_WIDTH, sY + HudLayout.ELEMENT_HEIGHT, translucentBoxColor(speedMod));
+                GuiRenderUtils.fillRoundedRect(extractor, sX, sY, HudLayout.STAT_WIDTH, HudLayout.ELEMENT_HEIGHT, 4, translucentBoxColor(speedMod));
+                GuiRenderUtils.drawRoundedOutline(extractor, sX, sY, HudLayout.STAT_WIDTH, HudLayout.ELEMENT_HEIGHT, 4, boxBorderColor());
             }
             hudText(extractor, client, stats, sX + 6, sY + 5, speedMod.getTextColor());
         }
@@ -158,7 +167,8 @@ public class HudOverlay {
             int cbX = layout.effectiveX(HudLayout.COMBO, screenWidth, 0);
             int cbY = layout.effectiveY(HudLayout.COMBO, screenHeight);
             if (!comboMod.isTransparentBackground()) {
-                extractor.fill(cbX, cbY, cbX + HudLayout.STAT_WIDTH, cbY + HudLayout.ELEMENT_HEIGHT, translucentBoxColor(comboMod));
+                GuiRenderUtils.fillRoundedRect(extractor, cbX, cbY, HudLayout.STAT_WIDTH, HudLayout.ELEMENT_HEIGHT, 4, translucentBoxColor(comboMod));
+                GuiRenderUtils.drawRoundedOutline(extractor, cbX, cbY, HudLayout.STAT_WIDTH, HudLayout.ELEMENT_HEIGHT, 4, boxBorderColor());
             }
             hudText(extractor, client, stats, cbX + 6, cbY + 5, comboMod.getTextColor());
         }
@@ -181,7 +191,7 @@ public class HudOverlay {
             List<Module> activeModules = StarClient.getInstance().getModuleManager().getModules().stream()
                     .filter(Module::isEnabled)
                     .sorted(Comparator.comparing(m -> m.getName().toLowerCase()))
-                    .collect(Collectors.toList());
+                    .toList();
 
             boolean transparentList = activeModsMod.isTransparentBackground();
             int listBgColor = translucentBoxColor(activeModsMod);
@@ -197,8 +207,8 @@ public class HudOverlay {
                 int modX = arrayAuto ? screenWidth - modWidth - 8 : arrayLeft;
 
                 if (!transparentList) {
-                    extractor.fill(modX, arrayY, modX + modWidth, arrayY + 14, listBgColor);
-                    extractor.fill(modX + modWidth - 2, arrayY, modX + modWidth, arrayY + 14, listTextColor);
+                    GuiRenderUtils.fillRoundedRect(extractor, modX, arrayY, modWidth, 14, 3, listBgColor);
+                    GuiRenderUtils.drawRoundedOutline(extractor, modX, arrayY, modWidth, 14, 3, 0x22FFFFFF);
                 }
                 hudText(extractor, client, name, modX + 6, arrayY + 3, listTextColor);
 
@@ -365,7 +375,8 @@ public class HudOverlay {
             assert client.player != null;
             ItemStack stack = client.player.getItemBySlot(order[i]);
             if (!transparent) {
-                extractor.fill(x, y, x + 18, y + 18, slotColor);
+                GuiRenderUtils.fillRoundedRect(extractor, x, y, 18, 18, 4, slotColor);
+                GuiRenderUtils.drawRoundedOutline(extractor, x, y, 18, 18, 4, 0x28FFFFFF);
             }
             if (stack.isEmpty()) continue;
 
@@ -383,10 +394,7 @@ public class HudOverlay {
                         anyLowArmor = true;
                     }
                     int warnCol = pulseRed ? 0xFFEF4444 : 0x88EF4444;
-                    extractor.fill(x, y, x + 18, y + 1, warnCol);
-                    extractor.fill(x, y + 17, x + 18, y + 18, warnCol);
-                    extractor.fill(x, y, x + 1, y + 18, warnCol);
-                    extractor.fill(x + 17, y, x + 18, y + 18, warnCol);
+                    GuiRenderUtils.drawRoundedOutline(extractor, x, y, 18, 18, 4, warnCol);
                 }
                 if (!hidden) {
                     String durability = onlyCurrent ? String.valueOf(current) : (current + "/" + max);
@@ -399,9 +407,14 @@ public class HudOverlay {
         if (anyLowArmor || anyLowHeld) {
             String warnText = anyLowArmor ? "⚠ Low Armor!" : "⚠ Low Durability!";
             int warnColor = pulseRed ? 0xFFEF4444 : 0xFFF59E0B;
-            int warnX = aX + (layout.armorWidth() - client.font.width(warnText)) / 2;
-            int warnY = Math.max(2, aY - 11);
-            hudText(extractor, client, warnText, warnX, warnY, warnColor);
+            int pillW = client.font.width(warnText) + 12;
+            int pillH = 14;
+            int pillX = aX + (layout.armorWidth() - pillW) / 2;
+            int pillY = Math.max(2, aY - 16);
+            GuiRenderUtils.drawDropShadow(extractor, pillX, pillY, pillW, pillH, 4, 2, 70);
+            GuiRenderUtils.fillRoundedRect(extractor, pillX, pillY, pillW, pillH, 4, 0xDD7F1D1D);
+            GuiRenderUtils.drawRoundedOutline(extractor, pillX, pillY, pillW, pillH, 4, warnColor);
+            hudText(extractor, client, warnText, pillX + 6, pillY + 3, 0xFFFFFFFF);
         }
     }
 
@@ -442,8 +455,8 @@ public class HudOverlay {
         boolean showMouse = showMouseSetting == null || (boolean) showMouseSetting.getValue();
         if (showMouse) {
             int mbY = kY + 44;
-            drawMouse(extractor, client, "LMB", leftClickTimes.size(), kX, mbY, 33, 22, client.mouseHandler.isLeftPressed(), transparent, bgColor, textColor);
-            drawMouse(extractor, client, "RMB", rightClickTimes.size(), kX + 33, mbY, 33, 22, client.mouseHandler.isRightPressed(), transparent, bgColor, textColor);
+            drawMouse(extractor, client, "LMB", leftClickTimes.size(), kX, mbY, 31, 22, client.mouseHandler.isLeftPressed(), transparent, bgColor, textColor);
+            drawMouse(extractor, client, "RMB", rightClickTimes.size(), kX + 33, mbY, 31, 22, client.mouseHandler.isRightPressed(), transparent, bgColor, textColor);
         }
     }
 
@@ -498,8 +511,9 @@ public class HudOverlay {
 
         int accent = StarClient.getInstance().getClientSettings().getMenuAccentColor();
         if (!module.isTransparentBackground()) {
-            extractor.fill(tX, tY, tX + w, tY + h, translucentBoxColor(module));
-            extractor.fill(tX, tY, tX + 2, tY + h, accent);
+            GuiRenderUtils.drawDropShadow(extractor, tX, tY, w, h, 6, 3, 90);
+            GuiRenderUtils.fillRoundedRect(extractor, tX, tY, w, h, 6, translucentBoxColor(module));
+            GuiRenderUtils.drawRoundedOutline(extractor, tX, tY, w, h, 6, 0x30FFFFFF);
         }
 
         // Render face / icon
@@ -512,8 +526,10 @@ public class HudOverlay {
                     8 / 64.0F, 16 / 64.0F, 8 / 64.0F, 16 / 64.0F);
             extractor.blit(skinTex, avatarX, avatarY, avatarX + avatarSize, avatarY + avatarSize,
                     40 / 64.0F, 48 / 64.0F, 8 / 64.0F, 16 / 64.0F);
+            GuiRenderUtils.drawRoundedOutline(extractor, avatarX - 1, avatarY - 1, avatarSize + 2, avatarSize + 2, 3, 0x33FFFFFF);
         } else {
-            extractor.fill(avatarX, avatarY, avatarX + avatarSize, avatarY + avatarSize, 0xFF1E293B);
+            GuiRenderUtils.fillRoundedRect(extractor, avatarX, avatarY, avatarSize, avatarSize, 3, 0xFF1E293B);
+            GuiRenderUtils.drawRoundedOutline(extractor, avatarX, avatarY, avatarSize, avatarSize, 3, 0x33FFFFFF);
             String initial = target.getName().getString().isEmpty() ? "?" : target.getName().getString().substring(0, 1).toUpperCase(Locale.ROOT);
             hudText(extractor, client, initial, avatarX + (avatarSize - client.font.width(initial)) / 2, avatarY + 8, accent);
         }
@@ -543,8 +559,11 @@ public class HudOverlay {
         int barY = tY + h - 8;
         int barW = w - 12;
         int barH = 4;
-        extractor.fill(barX, barY, barX + barW, barY + barH, 0x881E293B);
-        extractor.fill(barX, barY, barX + Math.round(barW * ratio), barY + barH, hpColor);
+        GuiRenderUtils.fillRoundedRect(extractor, barX, barY, barW, barH, 2, 0x881E293B);
+        int filledW = Math.round(barW * ratio);
+        if (filledW > 0) {
+            GuiRenderUtils.fillRoundedRect(extractor, barX, barY, filledW, barH, 2, hpColor);
+        }
 
         if (showArmor) {
             EquipmentSlot[] slots = {EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};
@@ -572,15 +591,16 @@ public class HudOverlay {
         int pY = layout.effectiveY(HudLayout.POTIONS, screenHeight);
         boolean transparent = module.isTransparentBackground();
         int bgColor = translucentBoxColor(module);
-        int accent = StarClient.getInstance().getClientSettings().getMenuAccentColor();
+        int textColor = module.getTextColor();
 
         if (active.isEmpty()) {
             if (client.gui.screen() instanceof ClickGuiScreen || client.gui.screen() instanceof HudEditorScreen) {
                 if (!transparent) {
-                    extractor.fill(pX, pY, pX + HudLayout.POTIONS_WIDTH, pY + 22, bgColor);
+                    GuiRenderUtils.fillRoundedRect(extractor, pX, pY, HudLayout.POTIONS_WIDTH, 22, 4, bgColor);
+                    GuiRenderUtils.drawRoundedOutline(extractor, pX, pY, HudLayout.POTIONS_WIDTH, 22, 4, boxBorderColor());
                 }
-                hudText(extractor, client, "Speed II", pX + 6, pY + 3, module.getTextColor());
-                hudText(extractor, client, "01:30 (Preview)", pX + 6, pY + 12, 0xFF94A3B8);
+                hudText(extractor, client, "Speed II", pX + 6, pY + 3, textColor);
+                hudText(extractor, client, "01:30 (Preview)", pX + 6, pY + 12, textColor);
             }
             return;
         }
@@ -588,7 +608,8 @@ public class HudOverlay {
         int rowY = pY;
         for (MobEffectInstance effect : active) {
             if (!transparent) {
-                extractor.fill(pX, rowY, pX + HudLayout.POTIONS_WIDTH, rowY + 22, bgColor);
+                GuiRenderUtils.fillRoundedRect(extractor, pX, rowY, HudLayout.POTIONS_WIDTH, 22, 4, bgColor);
+                GuiRenderUtils.drawRoundedOutline(extractor, pX, rowY, HudLayout.POTIONS_WIDTH, 22, 4, boxBorderColor());
             }
             Identifier sprite = Hud.getMobEffectSprite(effect.getEffect());
             extractor.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, pX + 3, rowY + 2, 18, 18);
@@ -598,10 +619,10 @@ public class HudOverlay {
             if (amp > 0 && amp < 10) {
                 effectName += " " + romanNumeral(amp + 1);
             }
-            hudText(extractor, client, effectName, pX + 24, rowY + 3, module.getTextColor());
+            hudText(extractor, client, effectName, pX + 24, rowY + 3, textColor);
 
             String duration = formatEffectDuration(effect);
-            hudText(extractor, client, duration, pX + 24, rowY + 12, accent);
+            hudText(extractor, client, duration, pX + 24, rowY + 12, textColor);
             rowY += 24;
         }
     }
@@ -627,9 +648,12 @@ public class HudOverlay {
 
     private static void drawMouse(GuiGraphicsExtractor extractor, Minecraft client, String label, int cps, int x, int y, int w, int h, boolean pressed, boolean transparent, int bgColor, int textColor) {
         int labelCol = pressed ? 0xFFFFFFFF : textColor;
+        int accent = StarClient.getInstance().getClientSettings().getMenuAccentColor();
 
         if (!transparent) {
-            extractor.fill(x, y, x + w, y + h, pressed ? 0xFF0EA5E9 : bgColor);
+            int bg = pressed ? accent : bgColor;
+            GuiRenderUtils.fillRoundedRect(extractor, x, y, w, h, 4, bg);
+            GuiRenderUtils.drawRoundedOutline(extractor, x, y, w, h, 4, pressed ? 0x88FFFFFF : 0x28FFFFFF);
         }
         hudText(extractor, client, label, x + (w - client.font.width(label)) / 2, y + 3, labelCol);
         String cpsText = cps + " CPS";
@@ -638,9 +662,12 @@ public class HudOverlay {
 
     private static void drawKey(GuiGraphicsExtractor extractor, Minecraft client, String label, int x, int y, int w, int h, boolean pressed, boolean transparent, int bgColor, int textColor) {
         int textCol = pressed ? 0xFFFFFFFF : textColor;
+        int accent = StarClient.getInstance().getClientSettings().getMenuAccentColor();
 
         if (!transparent) {
-            extractor.fill(x, y, x + w, y + h, pressed ? 0xFF0EA5E9 : bgColor);
+            int bg = pressed ? accent : bgColor;
+            GuiRenderUtils.fillRoundedRect(extractor, x, y, w, h, 4, bg);
+            GuiRenderUtils.drawRoundedOutline(extractor, x, y, w, h, 4, pressed ? 0x88FFFFFF : 0x28FFFFFF);
         }
         hudText(extractor, client, label, x + (w - client.font.width(label)) / 2, y + (h - 8) / 2, textCol);
     }
