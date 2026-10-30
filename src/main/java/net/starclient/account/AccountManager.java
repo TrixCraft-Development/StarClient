@@ -228,6 +228,10 @@ public final class AccountManager {
 
             StarClient.LOGGER.info("Switched active Minecraft account to '{}' ({})",
                     account.getUsername(), account.getType());
+
+            if (StarClient.getInstance() != null && StarClient.getInstance().getConfigManager() != null) {
+                StarClient.getInstance().getConfigManager().saveConfig();
+            }
         });
     }
 

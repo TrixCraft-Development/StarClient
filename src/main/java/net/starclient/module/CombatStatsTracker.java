@@ -43,6 +43,8 @@ public final class CombatStatsTracker {
         }
         lastAttackTime = now;
 
+        net.starclient.gui.DamageIndicatorManager.getInstance().recordPlayerAttack(attacker, target);
+
         if (HitParticlesState.isActive()) {
             spawnHitParticles(target);
         }

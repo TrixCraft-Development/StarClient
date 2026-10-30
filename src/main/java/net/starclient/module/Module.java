@@ -27,7 +27,14 @@ public abstract class Module {
             "Speedometer",
             "Combo Counter",
             "Potion Effects",
-            "Target HUD"
+            "Target HUD",
+            "Inventory HUD"
+    );
+
+    private static final Set<String> MODULES_WITH_TRANSPARENT_BG = Set.of(
+            "Tab",
+            "Scoreboard",
+            "Boss Bar"
     );
 
     private static final Map<String, Integer> BACKGROUND_COLORS = ColorModeSetting.ofPairs(
@@ -64,6 +71,7 @@ public abstract class Module {
     private final ColorModeSetting backgroundColor;
     private final ColorModeSetting textColor;
     private Rank requiredRank;
+    private boolean experimental;
     private boolean enabled;
     private boolean favorite;
     private final int defaultKeyBind;
@@ -122,16 +130,42 @@ public abstract class Module {
         return this;
     }
 
-    /** Returns true if the local player's rank allows using this module. */
-    public boolean canUse() {
+    public boolean isExperimental() {
+        return experimental;
+    }
+
+    public Module setExperimental(boolean experimental) {
+        this.experimental = experimental;
+        return this;
+    }
+
+    /** Returns true if this module is locked because Experimental Features are disabled in settings. */
+    public boolean isExperimentalLocked() {
+        if (!experimental) return false;
+        StarClient client = StarClient.getInstance();
+        return client == null || client.getClientSettings() == null || !client.getClientSettings().isExperimentalFeatures();
+    }
+
+    /** Returns true if this module is locked because of the player's rank. */
+    public boolean isRankLocked() {
         if (requiredRank == null || requiredRank == Rank.USER) {
-            return true;
+            return false;
         }
         StarClient client = StarClient.getInstance();
         if (client == null || client.getRankManager() == null) {
             return false;
         }
-        return client.getRankManager().hasAccess(requiredRank);
+        return !client.getRankManager().hasAccess(requiredRank);
+    }
+
+    /** Returns true if the module is locked by any restriction (experimental or rank). */
+    public boolean isLocked() {
+        return isExperimentalLocked() || isRankLocked();
+    }
+
+    /** Returns true if the local player is currently allowed to use and toggle this module. */
+    public boolean canUse() {
+        return !isLocked();
     }
 
     public boolean isEnabled() {
@@ -188,6 +222,9 @@ public abstract class Module {
     }
 
     public boolean isHudAppearanceSetting(Setting<?> setting) {
+        if (setting == transparentBackground && MODULES_WITH_TRANSPARENT_BG.contains(this.name)) {
+            return false;
+        }
         return setting == transparentBackground || setting == backgroundColor || setting == textColor;
     }
 

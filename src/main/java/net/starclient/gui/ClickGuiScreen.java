@@ -11,8 +11,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.starclient.ClientSettings;
 import net.starclient.StarClient;
-import net.starclient.cosmetics.CapeCosmetic;
-import net.starclient.cosmetics.CosmeticManager;
+
 import net.starclient.module.Category;
 import net.starclient.module.Module;
 import net.starclient.module.NickToolState;
@@ -46,15 +45,8 @@ public class ClickGuiScreen extends Screen {
 
     private static final int TILE_HEIGHT = 56;
     private static final int TILE_GAP = 8;
-    private static final int COSMETIC_ROW_HEIGHT = 34;
-    private static final int COSMETIC_GAP = 6;
     private static final int SEARCH_HEIGHT = 22;
     private static final int HUD_EDITOR_BTN_WIDTH = 82;
-
-    private static final String CAPE_NONE_ROW = "#cape_none";
-    private static final String SKIN_NONE_ROW = "#skin_none";
-    private static final String RELOAD_ROW = "#reload";
-    private static final String HEADER_PREFIX = "#header:";
 
     private enum SidebarSection {
         FAVORITES,
@@ -133,6 +125,8 @@ public class ClickGuiScreen extends Screen {
         int startX = (this.width - guiWidth) / 2;
         int startY = (this.height - guiHeight) / 2;
 
+
+
         int searchX = startX + SIDEBAR_WIDTH + 12;
         int searchW = 190;
         int searchY = startY + (HEADER_HEIGHT - SEARCH_HEIGHT) / 2;
@@ -171,6 +165,8 @@ public class ClickGuiScreen extends Screen {
         int startX = (this.width - guiWidth) / 2;
         int startY = (this.height - guiHeight) / 2;
 
+
+
         // Soft outer drop shadow & main rounded window
         GuiRenderUtils.drawDropShadow(extractor, startX, startY, guiWidth, guiHeight, 8, 8, (int) (130 * openProgress));
         GuiRenderUtils.fillRoundedRect(extractor, startX, startY, guiWidth, guiHeight, 8, menuBg());
@@ -205,11 +201,7 @@ public class ClickGuiScreen extends Screen {
             this.statsViewRenderer.draw(extractor, this.font, contentLeft, contentWidth, panelTop, panelBottom, mouseX, mouseY, moduleScroll);
         } else {
             extractor.enableScissor(contentLeft - 2, panelTop, contentRight + 2, panelBottom);
-            if (isCosmeticsView()) {
-                for (CosmeticRow row : buildCosmeticRows(contentLeft, contentWidth, panelTop, moduleScroll)) {
-                    drawCosmeticRow(extractor, row, mouseX, mouseY);
-                }
-            } else if (isSettingsView()) {
+            if (isSettingsView()) {
                 drawGeneralSettingsView(extractor, contentLeft, contentWidth, panelTop, panelBottom, mouseX, mouseY);
             } else {
                 List<ModuleTile> tiles = buildModuleTiles(contentLeft, contentWidth, panelTop, moduleScroll);
@@ -245,8 +237,13 @@ public class ClickGuiScreen extends Screen {
         // Outer window rounded border
         GuiRenderUtils.drawRoundedOutline(extractor, startX, startY, guiWidth, guiHeight, 8, menuBorder());
 
-        // Floating tooltip
-        if (pendingTooltipTitle != null && !pendingTooltipTitle.isEmpty()) {
+        // Stat Card Modal overlay if active
+        if (isStatsView() && this.statsViewRenderer.isShowingCardModal()) {
+            this.statsViewRenderer.drawCardModal(extractor, this.font, this.width, this.height, mouseX, mouseY);
+        }
+
+        // Floating tooltip (hidden while modal is open)
+        if (pendingTooltipTitle != null && !pendingTooltipTitle.isEmpty() && (!isStatsView() || !this.statsViewRenderer.isShowingCardModal())) {
             drawFloatingTooltip(extractor, pendingTooltipTitle, pendingTooltipDesc, mouseX, mouseY);
         }
     }
@@ -255,7 +252,7 @@ public class ClickGuiScreen extends Screen {
         float openSpeed = 14.0F * dt;
         openProgress = openProgress + (1.0F - openProgress) * Math.min(1.0F, openSpeed);
 
-        float targetDrawer = (drawerModule != null && !isCosmeticsView() && !isSettingsView() && !isStatsView()) ? 1.0F : 0.0F;
+        float targetDrawer = (drawerModule != null && !isSettingsView() && !isStatsView()) ? 1.0F : 0.0F;
         drawerProgress = drawerProgress + (targetDrawer - drawerProgress) * Math.min(1.0F, 16.0F * dt);
         if (targetDrawer == 0.0F && drawerProgress < 0.01F) {
             drawerProgress = 0.0F;
@@ -444,9 +441,7 @@ public class ClickGuiScreen extends Screen {
             List<Module> visible = getVisibleModules();
             title = "● Currently Enabled Modules";
             subtitle = visible.size() + " active";
-        } else if (isCosmeticsView()) {
-            title = Category.COSMETICS.getIcon() + " Capes & Skins";
-            subtitle = "Client-side textures in " + CosmeticManager.CAPES_FOLDER;
+
         } else if (isSettingsView()) {
             title = Category.SETTINGS.getIcon() + " Client Settings";
             subtitle = "Global appearance, font style & integrations";
@@ -470,6 +465,9 @@ public class ClickGuiScreen extends Screen {
     private void drawModuleTile(GuiGraphicsExtractor extractor, ModuleTile tile, int mouseX, int mouseY) {
         Module module = tile.module;
         boolean locked = !module.canUse();
+        boolean experimental = module.isExperimental();
+        boolean expLocked = module.isExperimentalLocked();
+        boolean rankLocked = module.isRankLocked();
         boolean enabled = module.isEnabled();
         boolean isSelectedInDrawer = (drawerModule == module);
         boolean tileHovered = tile.contains(mouseX, mouseY);
@@ -482,12 +480,16 @@ public class ClickGuiScreen extends Screen {
         int baseBg = enabled ? GuiRenderUtils.lerpColor(menuSurface(), menuAccentDark(), 0.16F) : menuSurface();
         int cardBg = GuiRenderUtils.lerpColor(baseBg, menuSurfaceHover(), hoverAnim * 0.75F);
         int borderColor;
-        if (locked) {
+        if (rankLocked) {
             borderColor = GuiRenderUtils.withAlpha(module.getRequiredRank().getArgb(), 140);
+        } else if (expLocked) {
+            borderColor = tileHovered ? 0xFFF59E0B : 0x77F59E0B;
         } else if (isSelectedInDrawer) {
             borderColor = menuAccent();
         } else if (enabled) {
             borderColor = GuiRenderUtils.lerpColor(menuAccentDark(), menuAccent(), hoverAnim);
+        } else if (experimental) {
+            borderColor = GuiRenderUtils.lerpColor(menuBorder(), 0x88F59E0B, hoverAnim);
         } else {
             borderColor = GuiRenderUtils.lerpColor(menuBorder(), GuiRenderUtils.withAlpha(menuAccent(), 130), hoverAnim);
         }
@@ -500,12 +502,21 @@ public class ClickGuiScreen extends Screen {
         int topRowY = tile.y + 8;
 
         if (locked) {
-            Rank req = module.getRequiredRank();
-            String lockLabel = "🔒 " + req.getDisplayName();
-            int lockW = GuiRenderUtils.textWidth(this.font, lockLabel) + 10;
+            String lockLabel;
+            int lockColor;
+            if (rankLocked) {
+                Rank req = module.getRequiredRank();
+                lockLabel = "🔒 " + req.getDisplayName();
+                lockColor = req.getArgb();
+            } else {
+                lockLabel = "🔒 EXP";
+                lockColor = 0xFFF59E0B;
+            }
+            int lockW = GuiRenderUtils.textWidth(this.font, lockLabel) + 8;
             int lockX = tile.x + tile.width - lockW - 8;
-            GuiRenderUtils.fillRoundedRect(extractor, lockX, topRowY - 1, lockW, 13, 4, GuiRenderUtils.withAlpha(req.getArgb(), 40));
-            GuiRenderUtils.drawCenteredText(extractor, this.font, lockLabel, lockX + lockW / 2, topRowY + 1, req.getArgb());
+            GuiRenderUtils.fillRoundedRect(extractor, lockX, topRowY - 1, lockW, 13, 4, GuiRenderUtils.withAlpha(lockColor, 40));
+            GuiRenderUtils.drawRoundedOutline(extractor, lockX, topRowY - 1, lockW, 13, 4, GuiRenderUtils.withAlpha(lockColor, 120));
+            GuiRenderUtils.drawCenteredText(extractor, this.font, lockLabel, lockX + lockW / 2, topRowY + 1, lockColor);
 
             String title = GuiRenderUtils.truncate(this.font, module.getName(), lockX - textLeft - 6);
             GuiRenderUtils.drawText(extractor, this.font, title, textLeft, topRowY + 1, 0xFF94A3B8);
@@ -530,7 +541,20 @@ public class ClickGuiScreen extends Screen {
                         "Click to " + (module.isFavorite() ? "remove from" : "pin this module to") + " your ★ Favorites tab.");
             }
 
-            int maxTitleW = favX - textLeft - 4;
+            // Compact EXP Corner Tag to the left of the favorite star
+            int rightBoundary = favX - 4;
+            if (experimental) {
+                int expW = GuiRenderUtils.textWidth(this.font, "EXP") + 6;
+                int expH = 12;
+                int expX = favX - expW - 4;
+                int expY = topRowY;
+                GuiRenderUtils.fillRoundedRect(extractor, expX, expY, expW, expH, 3, 0x25F59E0B);
+                GuiRenderUtils.drawRoundedOutline(extractor, expX, expY, expW, expH, 3, 0x66F59E0B);
+                GuiRenderUtils.drawCenteredText(extractor, this.font, "EXP", expX + expW / 2, expY + 2, 0xFFF59E0B);
+                rightBoundary = expX - 4;
+            }
+
+            int maxTitleW = rightBoundary - textLeft;
             String title = GuiRenderUtils.truncate(this.font, module.getName(), maxTitleW);
             int titleColor = enabled ? 0xFFFFFFFF : 0xFFE2E8F0;
             GuiRenderUtils.drawText(extractor, this.font, title, textLeft, topRowY + 1, titleColor, enabled);
@@ -585,11 +609,29 @@ public class ClickGuiScreen extends Screen {
                     ? module.getCategory().getIcon() + " " + module.getCategory().getName()
                     : (module.hasHudElement() ? "✥ HUD" : (enabled ? "● Active" : "○ Off"));
             int leftColor = enabled ? menuAccent() : 0xFF64748B;
-            GuiRenderUtils.drawText(extractor, this.font, leftBadge, textLeft, botY + 2, leftColor);
+            if (textLeft + GuiRenderUtils.textWidth(this.font, leftBadge) <= keyX - 4) {
+                GuiRenderUtils.drawText(extractor, this.font, leftBadge, textLeft, botY + 2, leftColor);
+            }
+        } else {
+            // When locked:
+            if (expLocked) {
+                GuiRenderUtils.drawText(extractor, this.font, "🔒 Requires Experimental Features", textLeft, botY + 2, 0xFF64748B);
+            }
         }
 
         if (tileHovered && pendingTooltipTitle == null) {
-            setTooltip(module.getName(), module.getDescription());
+            if (expLocked) {
+                setTooltip("🔒 " + module.getName() + " (Locked)",
+                        "This is an experimental module. Enable 'Experimental Features' in Settings to unlock and use it.");
+            } else if (rankLocked) {
+                setTooltip("🔒 " + module.getName() + " (Locked)",
+                        "Requires " + module.getRequiredRank().getDisplayName() + " rank to use.");
+            } else if (experimental) {
+                setTooltip(module.getName() + " (Experimental)",
+                        module.getDescription() + " • [Experimental Feature]");
+            } else {
+                setTooltip(module.getName(), module.getDescription());
+            }
         }
     }
 
@@ -626,13 +668,23 @@ public class ClickGuiScreen extends Screen {
         GuiRenderUtils.fillRoundedRect(extractor, closeX, closeY, 16, 16, 4, closeHover ? 0x44F87171 : menuBgDark());
         GuiRenderUtils.drawCenteredText(extractor, this.font, "✕", closeX + 8, closeY + 4, closeHover ? 0xFFF87171 : 0xFF94A3B8);
 
-        // Toggle switch inside Drawer Header
+        // Toggle switch or Lock badge inside Drawer Header
         int switchW = 24;
         int switchH = 13;
         int switchX = closeX - switchW - 6;
         int switchY = drawerY + 10;
-        float toggleAnim = toggleProgressMap.getOrDefault(drawerModule, drawerModule.isEnabled() ? 1.0F : 0.0F);
-        GuiRenderUtils.drawToggleSwitch(extractor, switchX, switchY, switchW, switchH, toggleAnim, menuAccent(), 0xFF334155);
+        if (drawerModule.canUse()) {
+            float toggleAnim = toggleProgressMap.getOrDefault(drawerModule, drawerModule.isEnabled() ? 1.0F : 0.0F);
+            GuiRenderUtils.drawToggleSwitch(extractor, switchX, switchY, switchW, switchH, toggleAnim, menuAccent(), 0xFF334155);
+        } else {
+            String lockLabel = drawerModule.isExperimentalLocked() ? "🔒 Exp" : "🔒 " + drawerModule.getRequiredRank().getDisplayName();
+            int lockColor = drawerModule.isExperimentalLocked() ? 0xFFF59E0B : drawerModule.getRequiredRank().getArgb();
+            int lockW = GuiRenderUtils.textWidth(this.font, lockLabel) + 8;
+            int lockX = closeX - lockW - 6;
+            GuiRenderUtils.fillRoundedRect(extractor, lockX, drawerY + 9, lockW, 14, 4, GuiRenderUtils.withAlpha(lockColor, 40));
+            GuiRenderUtils.drawRoundedOutline(extractor, lockX, drawerY + 9, lockW, 14, 4, GuiRenderUtils.withAlpha(lockColor, 120));
+            GuiRenderUtils.drawCenteredText(extractor, this.font, lockLabel, lockX + lockW / 2, drawerY + 12, lockColor);
+        }
 
         // Module Title & Wrapped Description
         String title = GuiRenderUtils.truncate(this.font, drawerModule.getName(), switchX - (drawerX + 12) - 6);
@@ -642,8 +694,9 @@ public class ClickGuiScreen extends Screen {
         GuiRenderUtils.drawText(extractor, this.font, desc, drawerX + 12, drawerY + 24, 0xFF94A3B8);
 
         String modeInfo = (drawerModule.isHoldKey() ? "Hold Key Mode" : "Toggle Mode")
-                + (drawerModule.hasHudElement() ? " • HUD Element" : "");
-        GuiRenderUtils.drawText(extractor, this.font, modeInfo, drawerX + 12, drawerY + 36, 0xFF64748B);
+                + (drawerModule.hasHudElement() ? " • HUD Element" : "")
+                + (drawerModule.isExperimental() ? " • 🧪 Experimental" : "");
+        GuiRenderUtils.drawText(extractor, this.font, modeInfo, drawerX + 12, drawerY + 36, drawerModule.isExperimental() ? 0xFFF59E0B : 0xFF64748B);
 
         // Drawer Footer (Reset Defaults button + optional HUD Editor shortcut)
         int footerH = 30;
@@ -1028,6 +1081,10 @@ public class ClickGuiScreen extends Screen {
                 curY += 4;
                 items.add(DrawerItem.header("Integrations & API", x, curY, width, 18));
                 curY += 22;
+            } else if (setting.getName().equals("Experimental Features")) {
+                curY += 4;
+                items.add(DrawerItem.header("Advanced & Experimental", x, curY, width, 18));
+                curY += 22;
             }
             int h = computeSettingRowHeight(setting, width);
             items.add(DrawerItem.setting(setting, x, curY, width, h));
@@ -1062,7 +1119,7 @@ public class ClickGuiScreen extends Screen {
     }
 
     private int drawerVisibleWidth() {
-        if (isCosmeticsView() || isSettingsView() || isStatsView()) return 0;
+        if (isSettingsView() || isStatsView()) return 0;
         if (drawerModule == null && drawerProgress <= 0.01F) return 0;
         return Math.round(DRAWER_WIDTH * drawerProgress);
     }
@@ -1100,6 +1157,7 @@ public class ClickGuiScreen extends Screen {
     private boolean matchesSearch(Module module, String query) {
         if (module.getName().toLowerCase(Locale.ROOT).contains(query)) return true;
         if (module.getDescription().toLowerCase(Locale.ROOT).contains(query)) return true;
+        if (module.isExperimental() && ("experimental".contains(query) || "exp".contains(query))) return true;
         for (Setting<?> s : module.getGeneralSettings()) {
             if (s.getName().toLowerCase(Locale.ROOT).contains(query)
                     || s.getDescription().toLowerCase(Locale.ROOT).contains(query)) {
@@ -1110,12 +1168,6 @@ public class ClickGuiScreen extends Screen {
     }
 
     private double computeMaxMainScroll(int contentWidth, int viewportHeight) {
-        if (isCosmeticsView()) {
-            CosmeticManager cosmetics = StarClient.getInstance().getCosmeticManager();
-            int rowCount = cosmetics.getAvailableCapes().size() + cosmetics.getAvailableSkins().size() + 5;
-            int contentHeight = rowCount * (COSMETIC_ROW_HEIGHT + COSMETIC_GAP);
-            return Math.max(0, contentHeight - viewportHeight);
-        }
         if (isSettingsView()) {
             List<DrawerItem> items = buildClientSettingsItems(0, contentWidth, 0, 0);
             if (items.isEmpty()) return 0;
@@ -1171,105 +1223,7 @@ public class ClickGuiScreen extends Screen {
         GuiRenderUtils.fillRoundedRect(extractor, sbX, thumbY, sbWidth, thumbHeight, 2, thumbColor);
     }
 
-    private List<CosmeticRow> buildCosmeticRows(int x, int width, int topY, double scroll) {
-        List<CosmeticRow> rows = new ArrayList<>();
-        int y = (int) Math.round(topY - scroll);
-        CosmeticManager cosmetics = StarClient.getInstance().getCosmeticManager();
-        cosmetics.ensureLoaded();
 
-        rows.add(new CosmeticRow(RELOAD_ROW, null, x, y, width));
-        y += COSMETIC_ROW_HEIGHT + COSMETIC_GAP;
-
-        rows.add(new CosmeticRow(HEADER_PREFIX + "Capes", null, x, y, width));
-        y += 22;
-        rows.add(new CosmeticRow(CAPE_NONE_ROW, null, x, y, width));
-        y += COSMETIC_ROW_HEIGHT + COSMETIC_GAP;
-        for (CapeCosmetic cape : cosmetics.getAvailableCapes()) {
-            rows.add(new CosmeticRow(cape.id(), cape, x, y, width));
-            y += COSMETIC_ROW_HEIGHT + COSMETIC_GAP;
-        }
-
-        rows.add(new CosmeticRow(HEADER_PREFIX + "Skins", null, x, y, width));
-        y += 22;
-        rows.add(new CosmeticRow(SKIN_NONE_ROW, null, x, y, width));
-        y += COSMETIC_ROW_HEIGHT + COSMETIC_GAP;
-        for (CapeCosmetic skin : cosmetics.getAvailableSkins()) {
-            rows.add(new CosmeticRow(skin.id(), skin, x, y, width));
-            y += COSMETIC_ROW_HEIGHT + COSMETIC_GAP;
-        }
-        return rows;
-    }
-
-    private void drawCosmeticRow(GuiGraphicsExtractor extractor, CosmeticRow row, int mouseX, int mouseY) {
-        if (row.key().startsWith(HEADER_PREFIX)) {
-            GuiRenderUtils.drawText(extractor, this.font,
-                    row.key().substring(HEADER_PREFIX.length()).toUpperCase(Locale.ROOT),
-                    row.x + 2, row.y + 6, menuAccent(), true);
-            return;
-        }
-
-        CosmeticManager cosmetics = StarClient.getInstance().getCosmeticManager();
-        boolean capeGroup = CAPE_NONE_ROW.equals(row.key)
-                || (row.cape != null && cosmetics.getAvailableCapes().contains(row.cape));
-        boolean isNoneRow = CAPE_NONE_ROW.equals(row.key) || SKIN_NONE_ROW.equals(row.key);
-        boolean isReloadRow = RELOAD_ROW.equals(row.key);
-        String equippedId = capeGroup ? cosmetics.getEquippedCape() : cosmetics.getEquippedSkin();
-        boolean isEquipped = isNoneRow ? equippedId == null : row.cape != null && row.cape.id().equals(equippedId);
-
-        boolean hovered = row.contains(mouseX, mouseY);
-        int border = isEquipped ? 0xFF34D399 : (isReloadRow ? 0xFFFBBF24 : (hovered ? menuAccent() : menuBorder()));
-
-        GuiRenderUtils.fillRoundedRect(extractor, row.x, row.y, row.width, COSMETIC_ROW_HEIGHT, 6,
-                hovered ? menuSurfaceHover() : menuSurface());
-        GuiRenderUtils.drawRoundedOutline(extractor, row.x, row.y, row.width, COSMETIC_ROW_HEIGHT, 6, border);
-
-        if (isReloadRow) {
-            GuiRenderUtils.drawText(extractor, this.font, "↻ Reload Cosmetics Folder", row.x + 12, row.y + 7, 0xFFFBBF24, true);
-            GuiRenderUtils.drawText(extractor, this.font, "Rescan " + CosmeticManager.CAPES_FOLDER + " and " + CosmeticManager.SKINS_FOLDER,
-                    row.x + 12, row.y + 19, 0xFF64748B);
-            return;
-        }
-
-        if (isNoneRow) {
-            GuiRenderUtils.drawText(extractor, this.font, "None (Default)", row.x + 12, row.y + 7, 0xFFE2E8F0);
-            String desc = capeGroup ? "Show your vanilla Minecraft cape" : "Show the skin your account provides";
-            GuiRenderUtils.drawText(extractor, this.font, desc, row.x + 12, row.y + 19, 0xFF64748B);
-        } else {
-            CapeCosmetic cosmetic = row.cape;
-            if (capeGroup) {
-                int[] data = cosmetics.getPreviewData(cosmetic.textureId());
-                float texW = data != null ? data[0] : 64.0F;
-                float texH = data != null ? data[1] : 64.0F;
-                int srcX = data != null ? data[2] : 0;
-                int srcY = data != null ? data[3] : 0;
-                int srcW = data != null ? data[4] : (int) texW;
-                int srcH = data != null ? data[5] : (int) texH;
-                double scale = Math.min(26.0 / srcW, 26.0 / srcH);
-                int drawW = Math.max(1, (int) (srcW * scale));
-                int drawH = Math.max(1, (int) (srcH * scale));
-                int drawX = row.x + 12 + (26 - drawW) / 2;
-                int drawY = row.y + (COSMETIC_ROW_HEIGHT - drawH) / 2;
-                blitRegion(extractor, cosmetic.textureId(), drawX, drawY, drawW, drawH,
-                        srcX / texW, (srcX + srcW) / texW, srcY / texH, (srcY + srcH) / texH);
-            } else {
-                blitRegion(extractor, cosmetic.textureId(), row.x + 12, row.y + 7, 20, 20, 8 / 64.0F, 16 / 64.0F, 8 / 64.0F, 16 / 64.0F);
-                blitRegion(extractor, cosmetic.textureId(), row.x + 11, row.y + 6, 22, 22, 40 / 64.0F, 48 / 64.0F, 8 / 64.0F, 16 / 64.0F);
-            }
-            GuiRenderUtils.drawText(extractor, this.font, cosmetic.displayName(), row.x + 48, row.y + 7,
-                    isEquipped ? 0xFF34D399 : 0xFFE2E8F0, isEquipped);
-            GuiRenderUtils.drawText(extractor, this.font, "Click to " + (isEquipped ? "unequip" : "equip"),
-                    row.x + 48, row.y + 19, 0xFF64748B);
-        }
-
-        String status = isEquipped ? "● Equipped" : "Select";
-        int statusW = GuiRenderUtils.textWidth(this.font, status) + 12;
-        int statusX = row.x + row.width - statusW - 8;
-        int statusY = row.y + (COSMETIC_ROW_HEIGHT - 16) / 2;
-        GuiRenderUtils.fillRoundedRect(extractor, statusX, statusY, statusW, 16, 4,
-                isEquipped ? 0x3334D399 : menuBgDark());
-        GuiRenderUtils.drawCenteredText(extractor, this.font, status, statusX + statusW / 2, statusY + 4,
-                isEquipped ? 0xFF34D399 : 0xFF94A3B8);
-    }
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean action) {
@@ -1277,8 +1231,14 @@ public class ClickGuiScreen extends Screen {
         double mouseY = event.y();
         int button = event.button();
 
+        if (isStatsView() && this.statsViewRenderer.isShowingCardModal()) {
+            return this.statsViewRenderer.handleCardModalClick(this.width, this.height, mouseX, mouseY);
+        }
+
         int startX = (this.width - guiWidth) / 2;
         int startY = (this.height - guiHeight) / 2;
+
+
         int searchY = startY + (HEADER_HEIGHT - SEARCH_HEIGHT) / 2;
 
         // 1. Check Edit HUD Button
@@ -1347,11 +1307,15 @@ public class ClickGuiScreen extends Screen {
 
         for (Category category : Category.values()) {
             if (isHovered(mouseX, mouseY, itemX, curY, itemW, itemH)) {
+                if (category == Category.COSMETICS) {
+                    Minecraft.getInstance().gui.setScreen(new CosmeticsScreen(this));
+                    return true;
+                }
                 activeSidebarSection = SidebarSection.CATEGORY;
                 selectedCategory = category;
                 clearSearchIfActive();
                 targetModuleScroll = 0;
-                if (category == Category.COSMETICS || category == Category.SETTINGS) {
+                if (category == Category.SETTINGS) {
                     drawerModule = null;
                     expandedDropdown = null;
                 }
@@ -1361,7 +1325,7 @@ public class ClickGuiScreen extends Screen {
         }
 
         // 5. Check Settings Drawer interactions if open
-        if (drawerModule != null && !isCosmeticsView() && !isSettingsView() && !isStatsView() && drawerProgress > 0.5F) {
+        if (drawerModule != null && !isSettingsView() && !isStatsView() && drawerProgress > 0.5F) {
             int drawerX = startX + guiWidth - DRAWER_WIDTH;
             int drawerY = startY + HEADER_HEIGHT;
             int drawerH = guiHeight - HEADER_HEIGHT;
@@ -1386,15 +1350,7 @@ public class ClickGuiScreen extends Screen {
 
         // 7. Check Main Content Area clicks
         if (isHovered(mouseX, mouseY, contentLeft, panelTop, contentWidth, panelBottom - panelTop)) {
-            if (isCosmeticsView()) {
-                for (CosmeticRow row : buildCosmeticRows(contentLeft, contentWidth, panelTop, moduleScroll)) {
-                    if (row.contains(mouseX, mouseY)) {
-                        handleCosmeticClick(row);
-                        StarClient.getInstance().getConfigManager().saveConfig();
-                        return true;
-                    }
-                }
-            } else if (isSettingsView()) {
+            if (isSettingsView()) {
                 List<DrawerItem> items = buildClientSettingsItems(contentLeft, contentWidth, panelTop, moduleScroll);
                 for (DrawerItem item : items) {
                     if (item.setting != null && item.contains(mouseX, mouseY)) {
@@ -1566,6 +1522,13 @@ public class ClickGuiScreen extends Screen {
         Setting<?> setting = item.setting;
         if (setting instanceof BooleanSetting booleanSetting) {
             booleanSetting.toggle();
+            if ("Experimental Features".equals(booleanSetting.getName()) && !booleanSetting.getValue()) {
+                for (Module mod : StarClient.getInstance().getModuleManager().getModules()) {
+                    if (mod.isExperimental() && mod.isEnabled()) {
+                        mod.setEnabled(false);
+                    }
+                }
+            }
         } else if (setting instanceof ColorModeSetting colorSetting) {
             List<String> modes = colorSetting.getModes();
             int swatchSize = 14;
@@ -1657,6 +1620,10 @@ public class ClickGuiScreen extends Screen {
 
     @Override
     public boolean mouseDragged(@NonNull MouseButtonEvent event, double deltaX, double deltaY) {
+        if (isStatsView() && this.statsViewRenderer.isShowingCardModal()) {
+            return true;
+        }
+
         int startX = (this.width - guiWidth) / 2;
         int startY = (this.height - guiHeight) / 2;
 
@@ -1746,11 +1713,15 @@ public class ClickGuiScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        if (isStatsView() && this.statsViewRenderer.isShowingCardModal()) {
+            return true;
+        }
+
         int startX = (this.width - guiWidth) / 2;
         int startY = (this.height - guiHeight) / 2;
 
         // Check if scrolling inside the Settings Drawer
-        if (drawerModule != null && !isCosmeticsView() && !isSettingsView() && !isStatsView() && drawerProgress > 0.5F) {
+        if (drawerModule != null && !isSettingsView() && !isStatsView() && drawerProgress > 0.5F) {
             int drawerX = startX + guiWidth - DRAWER_WIDTH;
             int drawerY = startY + HEADER_HEIGHT;
             int drawerH = guiHeight - HEADER_HEIGHT;
@@ -1809,8 +1780,12 @@ public class ClickGuiScreen extends Screen {
             return true;
         }
 
-        // Escape closes expanded dropdown first, then open Settings Drawer, then focused search / search query, then screen
+        // Escape closes card modal first, then expanded dropdown, then open Settings Drawer, then focused search / search query, then screen
         if (key == GLFW.GLFW_KEY_ESCAPE) {
+            if (isStatsView() && this.statsViewRenderer.isShowingCardModal()) {
+                this.statsViewRenderer.closeCardModal();
+                return true;
+            }
             if (expandedDropdown != null) {
                 expandedDropdown = null;
                 return true;
@@ -1853,21 +1828,7 @@ public class ClickGuiScreen extends Screen {
         numberSetting.setValue(numberSetting.getMin() + t * (numberSetting.getMax() - numberSetting.getMin()));
     }
 
-    private void handleCosmeticClick(CosmeticRow row) {
-        CosmeticManager cosmetics = StarClient.getInstance().getCosmeticManager();
-        if (RELOAD_ROW.equals(row.key)) {
-            cosmetics.reload();
-        } else if (CAPE_NONE_ROW.equals(row.key)) {
-            cosmetics.setEquippedCape(null);
-        } else if (SKIN_NONE_ROW.equals(row.key)) {
-            cosmetics.setEquippedSkin(null);
-        } else if (row.key().startsWith(HEADER_PREFIX)) {
-        } else if (cosmetics.getAvailableCapes().stream().anyMatch(c -> c.id().equals(row.key))) {
-            cosmetics.setEquippedCape(row.key.equals(cosmetics.getEquippedCape()) ? null : row.key);
-        } else {
-            cosmetics.setEquippedSkin(row.key.equals(cosmetics.getEquippedSkin()) ? null : row.key);
-        }
-    }
+
 
     private void clearSearchIfActive() {
         if (isSearching() && this.searchBox != null) {
@@ -1880,11 +1841,7 @@ public class ClickGuiScreen extends Screen {
         return !searchQuery.trim().isEmpty();
     }
 
-    private boolean isCosmeticsView() {
-        return !isSearching()
-                && activeSidebarSection == SidebarSection.CATEGORY
-                && selectedCategory == Category.COSMETICS;
-    }
+
 
     private boolean isSettingsView() {
         return !isSearching()
@@ -2025,12 +1982,6 @@ public class ClickGuiScreen extends Screen {
 
         boolean contains(double mouseX, double mouseY) {
             return mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height;
-        }
-    }
-
-    private record CosmeticRow(String key, CapeCosmetic cape, int x, int y, int width) {
-        boolean contains(double mouseX, double mouseY) {
-            return mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + COSMETIC_ROW_HEIGHT;
         }
     }
 }

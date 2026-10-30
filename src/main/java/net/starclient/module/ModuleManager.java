@@ -130,6 +130,21 @@ public class ModuleManager {
             }
         });
 
+        register(new Module("Inventory HUD", "Displays a compact real-time preview of your inventory on your HUD.", Category.PLAYER) {
+            {
+                setEnabled(false);
+                addSetting(new BooleanSetting("Show HUD Widget", "Render the floating inventory preview widget on your HUD", true));
+                addSetting(new BooleanSetting("Include Hotbar", "Include hotbar slots below inventory", false));
+                addSetting(new BooleanSetting("Show Offhand", "Display offhand slot on the side", true));
+                addSetting(new BooleanSetting("Show Armor", "Display equipped armor column", false));
+                addSetting(new BooleanSetting("Show Title", "Show 'Inventory' header title", false));
+                addSetting(new BooleanSetting("Highlight Selected", "Highlight active hotbar slot with accent color", true));
+                addSetting(new BooleanSetting("Show Slot Backgrounds", "Draw individual slot backdrops", true));
+                addSetting(new BooleanSetting("Hide in Inventory", "Hide HUD widget while viewing your inventory or containers", true));
+                addSetting(new BooleanSetting("Inventory Search", "Show an item search bar below your inventory to search items and lores", true));
+            }
+        });
+
         register(new Module("FPS Display", "Displays real-time FPS.", Category.UI) {
             {
                 setEnabled(true);
@@ -1520,6 +1535,7 @@ public class ModuleManager {
             private long pendingSince;
 
             {
+                setExperimental(true);
                 addSetting(new ModeSetting("Target", "Who to look up: the player on your crosshair, the one closest to it, or yourself",
                         "Crosshair", List.of("Crosshair", "Nearest", "Self")));
                 addSetting(new BooleanSetting("Bedwars", "Include Bedwars stats", true));
@@ -1855,6 +1871,35 @@ public class ModuleManager {
             }
         });
 
+        register(new Module("Boss Bar", "Modern sleek boss health bar with percentage readout & custom styling.", Category.UI) {
+            {
+                setEnabled(true);
+                addSetting(new BooleanSetting("Show Percentage", "Display health percentage readout", true));
+                addSetting(new BooleanSetting("Show Boss Name", "Display the boss title above the bar", true));
+                addSetting(new BooleanSetting("Use Client Theme", "Tint the boss bar using client accent color", true));
+                addSetting(new ColorModeSetting("Color", "Custom color for the boss bar", "Neon Cyan", HitColorState.HIT_COLORS));
+                addSetting(new BooleanSetting("Rounded Corners", "Use sleek modern rounded health bars", true));
+                addSetting(new BooleanSetting("Show Border", "Display subtle glass outline", true));
+                addSetting(new NumberSetting("Bar Width", "Width of the boss health bar", 150.0, 80.0, 300.0, 2.0));
+                addSetting(new NumberSetting("Bar Height", "Height of the boss health bar", 5.0, 3.0, 14.0, 1.0));
+                addSetting(new NumberSetting("Background Opacity", "Glass background opacity percentage", 70.0, 10.0, 100.0, 5.0));
+                addSetting(new BooleanSetting("Text Shadow", "Render boss name and text with drop shadow", true));
+            }
+        });
+
+        register(new Module("Damage Indicators", "Displays RPG-style bouncing damage numbers above hurt entities.", Category.RENDER) {
+            {
+                setEnabled(true);
+                addSetting(new ModeSetting("Format", "Display format", "Damage & Heart", List.of("Damage & Heart", "Hearts Only", "Number Only")));
+                addSetting(new BooleanSetting("Show Crits", "Highlight critical hits in gold", true));
+                addSetting(new BooleanSetting("Show Self", "Show damage numbers when you take damage", true));
+                addSetting(new BooleanSetting("Show Heart Icon", "Display heart symbol alongside damage", true));
+                addSetting(new NumberSetting("Scale", "Text scale of floating numbers", 1.0, 0.5, 2.0, 0.1));
+                addSetting(new NumberSetting("Duration", "How long indicators remain on screen (seconds)", 1.2, 0.5, 3.0, 0.1));
+                addSetting(new ModeSetting("Movement", "Animation movement style", "Bounce Up", List.of("Bounce Up", "Float Up", "Static")));
+            }
+        });
+
         register(new Module("Hit Color", "Customizes the damage flash color and opacity on hit entities.", Category.RENDER) {
             {
                 addSetting(new BooleanSetting("Use Client Color", "Match hit tint to Client Menu Color", false));
@@ -1956,6 +2001,43 @@ public class ModuleManager {
             private void sync() {
                 double offset = getSetting("Height Offset") instanceof NumberSetting ns ? ns.getValue() : -0.25;
                 LowFireState.setOffset(offset);
+            }
+        });
+
+        register(new Module("Low Shield", "Lowers the first-person shield model so it does not block your view.", Category.RENDER) {
+            {
+                addSetting(new NumberSetting("Height Offset", "How far to lower the shield (Y offset)", -0.25, -0.6, 0.0, 0.05));
+                addSetting(new NumberSetting("Side Offset", "Horizontal shift (X offset)", 0.0, -0.3, 0.3, 0.05));
+                addSetting(new NumberSetting("Scale", "Size scale of the first-person shield", 1.0, 0.5, 1.2, 0.05));
+                addSetting(new BooleanSetting("Lower When Blocking", "Also lower the shield while actively blocking", true));
+            }
+
+            @Override
+            public void onEnable() {
+                LowShieldState.setActive(true);
+                sync();
+            }
+
+            @Override
+            public void onTick(Minecraft client) {
+                LowShieldState.setActive(true);
+                sync();
+            }
+
+            @Override
+            public void onDisable() {
+                LowShieldState.setActive(false);
+            }
+
+            private void sync() {
+                double height = getSetting("Height Offset") instanceof NumberSetting ns ? ns.getValue() : -0.25;
+                double side = getSetting("Side Offset") instanceof NumberSetting ns ? ns.getValue() : 0.0;
+                double scale = getSetting("Scale") instanceof NumberSetting ns ? ns.getValue() : 1.0;
+                boolean block = getSetting("Lower When Blocking") instanceof BooleanSetting bs ? bs.getValue() : true;
+                LowShieldState.setHeightOffset(height);
+                LowShieldState.setSideOffset(side);
+                LowShieldState.setScale(scale);
+                LowShieldState.setLowerWhenBlocking(block);
             }
         });
 

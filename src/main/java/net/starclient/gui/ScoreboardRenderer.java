@@ -104,9 +104,11 @@ public final class ScoreboardRenderer {
         cardX = Math.clamp(cardX, 0, Math.max(0, screenW - cardWidth));
         cardY = Math.clamp(cardY, 0, Math.max(0, screenH - cardHeight));
 
+        boolean transparent = mod.isTransparentBackground();
+
         renderCard(graphics, font, cardX, cardY, cardWidth, cardHeight, padX, padY, headerH, lineH,
                 titleComp, titleWidth, rows, hideRedNumbers, useClientTheme, showBorder,
-                opacity, rounded, textShadow);
+                opacity, rounded, textShadow, transparent);
     }
 
     public static void renderPreview(GuiGraphicsExtractor graphics, Module mod) {
@@ -120,6 +122,7 @@ public final class ScoreboardRenderer {
         double opacity = getNum(mod, "Background Opacity", 70.0);
         boolean rounded = getBool(mod, "Rounded Corners", true);
         boolean textShadow = getBool(mod, "Text Shadow", true);
+        boolean transparent = mod.isTransparentBackground();
         int offsetY = (int) Math.round(getNum(mod, "Offset Y", 0.0));
 
         Component titleComp = Component.literal("§6§lSTAR CLIENT");
@@ -168,7 +171,7 @@ public final class ScoreboardRenderer {
 
         renderCard(graphics, font, cardX, cardY, cardWidth, cardHeight, padX, padY, headerH, lineH,
                 titleComp, titleWidth, rows, hideRedNumbers, useClientTheme, showBorder,
-                opacity, rounded, textShadow);
+                opacity, rounded, textShadow, transparent);
     }
 
     private static void renderCard(GuiGraphicsExtractor graphics, Font font,
@@ -176,31 +179,33 @@ public final class ScoreboardRenderer {
                                    int padX, int padY, int headerH, int lineH,
                                    Component titleComp, int titleWidth, List<DisplayRow> rows,
                                    boolean hideRedNumbers, boolean useClientTheme, boolean showBorder,
-                                   double opacity, boolean rounded, boolean textShadow) {
+                                   double opacity, boolean rounded, boolean textShadow, boolean transparent) {
         int radius = rounded ? 5 : 0;
         int accent = 0xFF38BDF8;
         if (StarClient.getInstance() != null) {
             accent = (StarClient.getInstance().getClientSettings().getMenuAccentColor() & 0x00FFFFFF) | 0xFF000000;
         }
 
-        // Drop shadow
-        GuiRenderUtils.drawDropShadow(graphics, cardX, cardY, cardWidth, cardHeight, radius, 3, 40);
+        if (!transparent) {
+            // Drop shadow
+            GuiRenderUtils.drawDropShadow(graphics, cardX, cardY, cardWidth, cardHeight, radius, 3, 40);
 
-        // Glass background
-        int alpha = Math.clamp((int) Math.round(opacity * 255.0 / 100.0), 15, 255);
-        int bgColor = (alpha << 24) | 0x0A0F1D;
-        GuiRenderUtils.fillRoundedRect(graphics, cardX, cardY, cardWidth, cardHeight, radius, bgColor);
+            // Glass background
+            int alpha = Math.clamp((int) Math.round(opacity * 255.0 / 100.0), 15, 255);
+            int bgColor = (alpha << 24) | 0x0A0F1D;
+            GuiRenderUtils.fillRoundedRect(graphics, cardX, cardY, cardWidth, cardHeight, radius, bgColor);
 
-        // Border
-        if (showBorder) {
-            int borderColor = useClientTheme ? ((0x55 << 24) | (accent & 0x00FFFFFF)) : 0x22FFFFFF;
-            GuiRenderUtils.drawRoundedOutline(graphics, cardX, cardY, cardWidth, cardHeight, radius, borderColor);
-        }
+            // Border
+            if (showBorder) {
+                int borderColor = useClientTheme ? ((0x55 << 24) | (accent & 0x00FFFFFF)) : 0x22FFFFFF;
+                GuiRenderUtils.drawRoundedOutline(graphics, cardX, cardY, cardWidth, cardHeight, radius, borderColor);
+            }
 
-        // Header divider
-        if (showBorder || useClientTheme) {
-            int dividerColor = useClientTheme ? ((0x60 << 24) | (accent & 0x00FFFFFF)) : 0x1AFFFFFF;
-            graphics.fill(cardX + 4, cardY + padY + headerH, cardX + cardWidth - 4, cardY + padY + headerH + 1, dividerColor);
+            // Header divider
+            if (showBorder || useClientTheme) {
+                int dividerColor = useClientTheme ? ((0x60 << 24) | (accent & 0x00FFFFFF)) : 0x1AFFFFFF;
+                graphics.fill(cardX + 4, cardY + padY + headerH, cardX + cardWidth - 4, cardY + padY + headerH + 1, dividerColor);
+            }
         }
 
         // Title text centered

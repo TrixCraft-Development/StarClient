@@ -12,8 +12,6 @@ import net.minecraft.world.item.component.ResolvableProfile;
 import net.starclient.StarClient;
 import net.starclient.account.AccountManager;
 import net.starclient.account.MinecraftAccount;
-import net.starclient.cosmetics.CapeCosmetic;
-import net.starclient.cosmetics.CosmeticManager;
 import net.starclient.rank.Rank;
 import net.starclient.rank.RankManager;
 
@@ -291,14 +289,6 @@ public final class AccountSwitcherOverlay {
     }
 
     private Identifier resolveAccountSkin(Minecraft client, StarClient starClient) {
-        if (starClient != null && starClient.getCosmeticManager() != null) {
-            CosmeticManager cosmetics = starClient.getCosmeticManager();
-            CapeCosmetic skinOverride = cosmetics.getEquippedSkinCosmetic();
-            if (skinOverride != null) {
-                return skinOverride.textureId();
-            }
-        }
-
         GameProfile profile = client.getGameProfile();
         if (profile != null) {
             PlayerSkinRenderCache cache = client.playerSkinRenderCache();

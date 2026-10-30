@@ -25,6 +25,8 @@ public class HudLayout {
     public static final String POTIONS = "potions";
     public static final String TARGET_HUD = "target_hud";
     public static final String SCOREBOARD = "scoreboard";
+    public static final String BOSS_BAR = "boss_bar";
+    public static final String INVENTORY = "inventory_hud";
     public static final int AUTO = Integer.MIN_VALUE;
 
     public static final int FPS_WIDTH = 130;
@@ -36,9 +38,14 @@ public class HudLayout {
     public static final int TARGET_HUD_HEIGHT = 48;
     public static final int ELEMENT_HEIGHT = 18;
 
+    public static final int BASE_BOSS_BAR_WIDTH = 162;
+    public static final int BASE_BOSS_BAR_HEIGHT = 20;
+
     private final Map<String, int[]> positions = new HashMap<>();
     private int scoreboardWidth = 140;
     private int scoreboardHeight = 110;
+    private int bossBarWidth = BASE_BOSS_BAR_WIDTH;
+    private int bossBarHeight = BASE_BOSS_BAR_HEIGHT;
 
     public HudLayout() {
         reset();
@@ -59,6 +66,21 @@ public class HudLayout {
         positions.put(POTIONS, new int[]{AUTO, AUTO});
         positions.put(TARGET_HUD, new int[]{AUTO, AUTO});
         positions.put(SCOREBOARD, new int[]{AUTO, AUTO});
+        positions.put(BOSS_BAR, new int[]{AUTO, AUTO});
+        positions.put(INVENTORY, new int[]{AUTO, AUTO});
+    }
+
+    public void setBossBarSize(int width, int height) {
+        if (width > 0) this.bossBarWidth = width;
+        if (height > 0) this.bossBarHeight = height;
+    }
+
+    public int bossBarWidth() {
+        return bossBarWidth;
+    }
+
+    public int bossBarHeight() {
+        return bossBarHeight;
     }
 
     public void setScoreboardSize(int width, int height) {
@@ -101,6 +123,19 @@ public class HudLayout {
             case ARMOR -> isAuto(id) ? (screenWidth - armorWidth()) / 2 : getX(id);
             case TARGET_HUD -> isAuto(id) ? screenWidth / 2 + 20 : getX(id);
             case SCOREBOARD -> isAuto(id) ? screenWidth - scoreboardWidth() - 6 : getX(id);
+            case BOSS_BAR -> {
+                int w = maxModWidth > 0 ? maxModWidth : bossBarWidth();
+                if (isAuto(id)) {
+                    yield (screenWidth - w) / 2;
+                }
+                int savedX = getX(id);
+                int anchorCenterX = savedX + BASE_BOSS_BAR_WIDTH / 2;
+                if (Math.abs(anchorCenterX - screenWidth / 2) <= 16) {
+                    anchorCenterX = screenWidth / 2;
+                }
+                yield anchorCenterX - w / 2;
+            }
+            case INVENTORY -> isAuto(id) ? screenWidth - inventoryWidth() - 8 : getX(id);
             default -> getX(id);
         };
     }
@@ -119,6 +154,8 @@ public class HudLayout {
             case ARMOR -> isAuto(id) ? screenHeight - armorHeight() - 8 : getY(id);
             case TARGET_HUD -> isAuto(id) ? screenHeight / 2 + 12 : getY(id);
             case SCOREBOARD -> isAuto(id) ? (screenHeight - scoreboardHeight()) / 2 : getY(id);
+            case BOSS_BAR -> isAuto(id) ? 12 : getY(id);
+            case INVENTORY -> isAuto(id) ? screenHeight - inventoryHeight() - 28 : getY(id);
             default -> getY(id);
         };
     }
@@ -197,6 +234,55 @@ public class HudLayout {
         return hidden ? 18 : 30;
     }
 
+    public boolean isInventoryIncludeHotbar() {
+        Module module = StarClient.getInstance().getModuleManager().getModuleByName("Inventory HUD");
+        if (module != null) {
+            Setting<?> s = module.getSetting("Include Hotbar");
+            return s != null && Boolean.TRUE.equals(s.getValue());
+        }
+        return false;
+    }
+
+    public boolean isInventoryShowOffhand() {
+        Module module = StarClient.getInstance().getModuleManager().getModuleByName("Inventory HUD");
+        if (module != null) {
+            Setting<?> s = module.getSetting("Show Offhand");
+            return s == null || Boolean.TRUE.equals(s.getValue());
+        }
+        return true;
+    }
+
+    public boolean isInventoryShowArmor() {
+        Module module = StarClient.getInstance().getModuleManager().getModuleByName("Inventory HUD");
+        if (module != null) {
+            Setting<?> s = module.getSetting("Show Armor");
+            return s != null && Boolean.TRUE.equals(s.getValue());
+        }
+        return false;
+    }
+
+    public boolean isInventoryShowTitle() {
+        Module module = StarClient.getInstance().getModuleManager().getModuleByName("Inventory HUD");
+        if (module != null) {
+            Setting<?> s = module.getSetting("Show Title");
+            return s != null && Boolean.TRUE.equals(s.getValue());
+        }
+        return false;
+    }
+
+    public int inventoryWidth() {
+        int baseW = 188;
+        if (isInventoryShowArmor()) baseW += 21;
+        if (isInventoryShowOffhand()) baseW += 21;
+        return baseW;
+    }
+
+    public int inventoryHeight() {
+        int h = (isInventoryIncludeHotbar() || isInventoryShowArmor()) ? 90 : 68;
+        if (isInventoryShowTitle()) h += 12;
+        return h;
+    }
+
     public JsonObject toJson() {
         JsonObject obj = new JsonObject();
         for (Map.Entry<String, int[]> entry : positions.entrySet()) {
@@ -212,7 +298,7 @@ public class HudLayout {
 
     public void fromJson(JsonObject obj) {
         reset();
-        for (String id : new String[]{FPS, PING, COORDINATES, ARRAYLIST, KEYSTROKES, ARMOR, CPS, REACH, SPEED, COMBO, POTIONS, TARGET_HUD, SCOREBOARD}) {
+        for (String id : new String[]{FPS, PING, COORDINATES, ARRAYLIST, KEYSTROKES, ARMOR, CPS, REACH, SPEED, COMBO, POTIONS, TARGET_HUD, SCOREBOARD, BOSS_BAR, INVENTORY}) {
             if (obj.has(id)) {
                 JsonObject o = obj.getAsJsonObject(id);
                 setPosition(id, o.get("x").getAsInt(), o.get("y").getAsInt());
@@ -283,6 +369,18 @@ public class HudLayout {
         int sbX = layout.effectiveX(SCOREBOARD, screenWidth, sbWidth);
         int sbY = layout.effectiveY(SCOREBOARD, screenHeight);
         rects.add(new Rect(SCOREBOARD, sbX, sbY, sbX + sbWidth, sbY + sbHeight));
+
+        int bbWidth = layout.bossBarWidth();
+        int bbHeight = layout.bossBarHeight();
+        int bbX = layout.effectiveX(BOSS_BAR, screenWidth, bbWidth);
+        int bbY = layout.effectiveY(BOSS_BAR, screenHeight);
+        rects.add(new Rect(BOSS_BAR, bbX, bbY, bbX + bbWidth, bbY + bbHeight));
+
+        int invWidth = layout.inventoryWidth();
+        int invHeight = layout.inventoryHeight();
+        int invX = layout.effectiveX(INVENTORY, screenWidth, invWidth);
+        int invY = layout.effectiveY(INVENTORY, screenHeight);
+        rects.add(new Rect(INVENTORY, invX, invY, invX + invWidth, invY + invHeight));
 
         return rects;
     }

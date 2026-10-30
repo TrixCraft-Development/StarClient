@@ -48,6 +48,8 @@ public final class ClientSettings {
     private final ColorModeSetting menuBackgroundColor;
     private final ModeSetting titleBackground;
     private final BooleanSetting modernButtons;
+    private final BooleanSetting experimentalFeatures;
+    private final BooleanSetting paletteCrashSafeguard;
 
     public ClientSettings() {
         this.hudTextShadow = new BooleanSetting("HUD Text Shadow",
@@ -67,6 +69,10 @@ public final class ClientSettings {
                 List.of(BG_MODERN, BG_CUSTOM, BG_VANILLA));
         this.modernButtons = new BooleanSetting("Modern Buttons",
                 "Apply StarClient's modern rounded UI styling to standard Minecraft buttons", true);
+        this.experimentalFeatures = new BooleanSetting("Experimental Features",
+                "Unlock experimental modules and features currently under development", false);
+        this.paletteCrashSafeguard = new BooleanSetting("Palette Crash Safeguard",
+                "Prevents game crashes from invalid chunk palette IDs sent by servers", true);
 
         settings.add(menuAccentColor);
         settings.add(menuBackgroundColor);
@@ -76,6 +82,8 @@ public final class ClientSettings {
         settings.add(tabIcon);
         settings.add(removeSplash);
         settings.add(hypixelApiKey);
+        settings.add(experimentalFeatures);
+        settings.add(paletteCrashSafeguard);
     }
 
     public List<Setting<?>> getSettings() {
@@ -108,6 +116,22 @@ public final class ClientSettings {
 
     public boolean isModernButtons() {
         return modernButtons.getValue();
+    }
+
+    public boolean isExperimentalFeatures() {
+        return experimentalFeatures != null && experimentalFeatures.getValue();
+    }
+
+    public BooleanSetting getExperimentalFeaturesSetting() {
+        return experimentalFeatures;
+    }
+
+    public boolean isPaletteCrashSafeguard() {
+        return paletteCrashSafeguard == null || paletteCrashSafeguard.getValue();
+    }
+
+    public BooleanSetting getPaletteCrashSafeguardSetting() {
+        return paletteCrashSafeguard;
     }
 
     public void setModernButtons(boolean enabled) {

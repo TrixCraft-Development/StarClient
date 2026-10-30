@@ -5,6 +5,7 @@ import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.Hud;
+import net.minecraft.client.gui.components.BossHealthOverlay;
 import net.minecraft.client.gui.components.PlayerTabOverlay;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.core.component.DataComponents;
@@ -18,6 +19,7 @@ import net.minecraft.world.scores.DisplaySlot;
 import net.minecraft.world.scores.Objective;
 import net.minecraft.world.scores.Scoreboard;
 import net.starclient.StarClient;
+import net.starclient.gui.BossBarRenderer;
 import net.starclient.gui.ScoreboardRenderer;
 import net.starclient.gui.TabListRenderer;
 import net.starclient.module.CustomCrosshairState;
@@ -39,6 +41,10 @@ public abstract class HudMixin {
     @Shadow
     @Final
     private PlayerTabOverlay tabList;
+
+    @Shadow
+    @Final
+    private BossHealthOverlay bossOverlay;
 
     @Unique
     private static final Identifier CROSSHAIR_ATTACK_INDICATOR_FULL_SPRITE =
@@ -70,6 +76,17 @@ public abstract class HudMixin {
         Module scoreboardMod = mod.getModuleManager().getModuleByName("Scoreboard");
         if (scoreboardMod != null && scoreboardMod.isEnabled()) {
             ScoreboardRenderer.render(graphics, objective, scoreboardMod);
+            ci.cancel();
+        }
+    }
+
+    @Inject(method = "extractBossOverlay", at = @At("HEAD"), cancellable = true)
+    private void extractCustomBossOverlay(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker, CallbackInfo ci) {
+        StarClient mod = StarClient.getInstance();
+        if (mod == null || mod.getModuleManager() == null) return;
+        Module bossBarMod = mod.getModuleManager().getModuleByName("Boss Bar");
+        if (bossBarMod != null && bossBarMod.isEnabled()) {
+            BossBarRenderer.render(graphics, this.bossOverlay, bossBarMod);
             ci.cancel();
         }
     }

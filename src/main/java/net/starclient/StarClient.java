@@ -12,6 +12,8 @@ import net.minecraft.resources.Identifier;
 import net.starclient.account.AccountManager;
 import net.starclient.config.ConfigManager;
 import net.starclient.cosmetics.CosmeticManager;
+import net.starclient.cosmetics.CosmeticTrailManager;
+import net.starclient.cosmetics.PresetCosmetics;
 import net.starclient.gui.ClickGuiScreen;
 import net.starclient.gui.HudEditorScreen;
 import net.starclient.gui.HudLayout;
@@ -57,10 +59,24 @@ public class StarClient implements ClientModInitializer {
         this.moduleManager = new ModuleManager();
         this.configManager = new ConfigManager();
         this.cosmeticManager = new CosmeticManager();
+        net.starclient.cosmetics.PresetCosmetics.exportDefaultTexturesIfMissing();
         this.modManager = new FabricModManager();
         this.hudLayout = new HudLayout();
         this.clientSettings = new ClientSettings();
         ClientStatsManager.getInstance().init();
+
+        // Eagerly preload GUI and Stats classes into memory
+        try {
+            Class.forName(net.starclient.gui.StatsViewRenderer.class.getName());
+            Class.forName(net.starclient.gui.StatsViewRenderer.StatSection.class.getName());
+            Class.forName(net.starclient.gui.StatsViewRenderer.StatCard.class.getName());
+            Class.forName(net.starclient.gui.StatsViewRenderer.ModalStat.class.getName());
+            Class.forName(net.starclient.gui.StatsViewRenderer.StatsTab.class.getName());
+            Class.forName(net.starclient.gui.CosmeticsScreen.class.getName());
+            Class.forName(net.starclient.gui.ClickGuiScreen.class.getName());
+        } catch (Throwable t) {
+            LOGGER.warn("Failed to eagerly preload GUI classes", t);
+        }
 
         // Register ClickGUI Keybind (Default: RSHIFT)
         this.clickGuiKeyBind = KeyMappingHelper.registerKeyMapping(new KeyMapping(
@@ -86,7 +102,9 @@ public class StarClient implements ClientModInitializer {
                     this.moduleManager.handleKeybinds(client);
                 }
                 this.moduleManager.onTick(client);
+                CosmeticTrailManager.tick(client);
             }
+            PresetCosmetics.tickAnimations(System.currentTimeMillis() / 50);
 
             boolean clickGuiKeyDown = clickGuiKeyBind.isDown()
                     || InputConstants.isKeyDown(client.getWindow(), GLFW.GLFW_KEY_RIGHT_SHIFT);

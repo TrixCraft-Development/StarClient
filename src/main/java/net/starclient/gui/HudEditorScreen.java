@@ -81,6 +81,18 @@ public class HudEditorScreen extends Screen {
             }
         }
 
+        // Render Boss Bar in HUD Editor preview
+        Module bossBarMod = mod.getModuleManager().getModuleByName("Boss Bar");
+        if (bossBarMod != null && bossBarMod.isEnabled()) {
+            BossBarRenderer.renderPreview(extractor, bossBarMod);
+        }
+
+        // Render Inventory HUD in HUD Editor preview when player is null
+        Module invMod = mod.getModuleManager().getModuleByName("Inventory HUD");
+        if (invMod != null && invMod.isEnabled() && isHudElementVisible(HudLayout.INVENTORY) && Minecraft.getInstance().player == null) {
+            InventoryHudRenderer.renderPreview(extractor, invMod);
+        }
+
         // Render rounded bounding outlines, preview cards, and pill badges for all active elements
         HudLayout layout = mod.getHudLayout();
         List<Module> activeMods = getActiveModules();
@@ -93,7 +105,7 @@ public class HudEditorScreen extends Screen {
             int rh = r.y2() - r.y1();
 
             // Preview card when editing HUD from the main menu (outside a world)
-            if (!inWorld && !r.id().equals(HudLayout.SCOREBOARD)) {
+            if (!inWorld && !r.id().equals(HudLayout.SCOREBOARD) && !r.id().equals(HudLayout.BOSS_BAR) && !r.id().equals(HudLayout.INVENTORY)) {
                 GuiRenderUtils.drawDropShadow(extractor, r.x1(), r.y1(), rw, rh, 4, 3, 80);
                 GuiRenderUtils.fillRoundedRect(extractor, r.x1(), r.y1(), rw, rh, 4, 0xCC0F172A);
                 GuiRenderUtils.drawRoundedOutline(extractor, r.x1(), r.y1(), rw, rh, 4, 0x4438BDF8);
@@ -314,7 +326,14 @@ public class HudEditorScreen extends Screen {
     private static boolean isHudElementVisible(String id) {
         ModuleManager moduleManager = StarClient.getInstance().getModuleManager();
         Module module = moduleManager.getModuleByName(moduleNameForHudElement(id));
-        return module != null && module.isEnabled();
+        if (module == null || !module.isEnabled()) return false;
+        if (id.equals(HudLayout.INVENTORY)) {
+            net.starclient.setting.Setting<?> s = module.getSetting("Show HUD Widget");
+            if (s != null && Boolean.FALSE.equals(s.getValue())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public static String moduleNameForHudElement(String id) {
@@ -332,6 +351,8 @@ public class HudEditorScreen extends Screen {
             case HudLayout.POTIONS -> "Potion Effects";
             case HudLayout.TARGET_HUD -> "Target HUD";
             case HudLayout.SCOREBOARD -> "Scoreboard";
+            case HudLayout.BOSS_BAR -> "Boss Bar";
+            case HudLayout.INVENTORY -> "Inventory HUD";
             default -> "";
         };
     }
@@ -356,6 +377,8 @@ public class HudEditorScreen extends Screen {
             case HudLayout.POTIONS -> "Speed II (01:30)";
             case HudLayout.TARGET_HUD -> "Target HUD";
             case HudLayout.SCOREBOARD -> "Scoreboard";
+            case HudLayout.BOSS_BAR -> "Boss Bar";
+            case HudLayout.INVENTORY -> "Inventory HUD";
             default -> id;
         };
     }

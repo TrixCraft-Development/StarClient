@@ -230,6 +230,12 @@ public class HudOverlay {
             renderArmor(extractor, client, armorMod);
         }
 
+        // 6b. Inventory HUD (toggled by "Inventory HUD" module)
+        Module invMod = StarClient.getInstance().getModuleManager().getModuleByName("Inventory HUD");
+        if (invMod != null && invMod.isEnabled()) {
+            InventoryHudRenderer.render(extractor, client, invMod);
+        }
+
         // 7. Entity ESP (Tracer lines & highlights)
         Module espMod = StarClient.getInstance().getModuleManager().getModuleByName("Entity ESP");
         if (espMod != null && espMod.isEnabled()) {
@@ -318,6 +324,9 @@ public class HudOverlay {
                         0xFFFBBF24, true);
             }
         }
+
+        // 11. Floating Damage Numbers (RPG / Hypixel style)
+        DamageIndicatorManager.getInstance().render(extractor, client);
     }
 
     private static void renderArmor(GuiGraphicsExtractor extractor, Minecraft client, Module module) {

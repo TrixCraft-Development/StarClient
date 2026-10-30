@@ -53,6 +53,7 @@ public final class TabListRenderer {
         double opacity = getNum(mod, "Background Opacity", 75.0);
         boolean rounded = getBool(mod, "Rounded Corners", true);
         boolean textShadow = getBool(mod, "Text Shadow", true);
+        boolean transparent = mod != null && mod.isTransparentBackground();
 
         Font font = client.font;
         int screenW = graphics.guiWidth();
@@ -141,20 +142,22 @@ public final class TabListRenderer {
             }
         }
 
-        // Card Drop shadow
-        GuiRenderUtils.drawDropShadow(graphics, cardX, cardY, cardWidth, cardHeight, radius, 3, 45);
+        if (!transparent) {
+            // Card Drop shadow
+            GuiRenderUtils.drawDropShadow(graphics, cardX, cardY, cardWidth, cardHeight, radius, 3, 45);
 
-        // Glass background
-        int alpha = Math.clamp((int) Math.round(opacity * 255.0 / 100.0), 15, 255);
-        int bgColor = (alpha << 24) | 0x080D1A;
-        GuiRenderUtils.fillRoundedRect(graphics, cardX, cardY, cardWidth, cardHeight, radius, bgColor);
+            // Glass background
+            int alpha = Math.clamp((int) Math.round(opacity * 255.0 / 100.0), 15, 255);
+            int bgColor = (alpha << 24) | 0x080D1A;
+            GuiRenderUtils.fillRoundedRect(graphics, cardX, cardY, cardWidth, cardHeight, radius, bgColor);
 
-        // Card Outline
-        if (useClientTheme) {
-            int borderColor = (0x50 << 24) | (accent & 0x00FFFFFF);
-            GuiRenderUtils.drawRoundedOutline(graphics, cardX, cardY, cardWidth, cardHeight, radius, borderColor);
-        } else {
-            GuiRenderUtils.drawRoundedOutline(graphics, cardX, cardY, cardWidth, cardHeight, radius, 0x22FFFFFF);
+            // Card Outline
+            if (useClientTheme) {
+                int borderColor = (0x50 << 24) | (accent & 0x00FFFFFF);
+                GuiRenderUtils.drawRoundedOutline(graphics, cardX, cardY, cardWidth, cardHeight, radius, borderColor);
+            } else {
+                GuiRenderUtils.drawRoundedOutline(graphics, cardX, cardY, cardWidth, cardHeight, radius, 0x22FFFFFF);
+            }
         }
 
         // Render player rows
@@ -175,7 +178,7 @@ public final class TabListRenderer {
                 GuiRenderUtils.fillRoundedRect(graphics, px, py, pw, ph, 3, selfFill);
                 int selfBorder = useClientTheme ? ((0x55 << 24) | (accent & 0x00FFFFFF)) : 0x4438BDF8;
                 GuiRenderUtils.drawRoundedOutline(graphics, px, py, pw, ph, 3, selfBorder);
-            } else {
+            } else if (!transparent) {
                 GuiRenderUtils.fillRoundedRect(graphics, px, py, pw, ph, 3, 0x0AFFFFFF);
             }
 

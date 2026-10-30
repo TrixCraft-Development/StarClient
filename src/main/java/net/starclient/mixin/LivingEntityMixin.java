@@ -1,19 +1,35 @@
 package net.starclient.mixin;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemUseAnimation;
+import net.starclient.gui.DamageIndicatorManager;
 import net.starclient.stats.ClientStatsManager;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityMixin {
+
+    @Shadow
+    private static EntityDataAccessor<Float> DATA_HEALTH_ID;
+
+    @Inject(method = "onSyncedDataUpdated", at = @At("HEAD"))
+    private void onHealthDataUpdated(EntityDataAccessor<?> key, CallbackInfo ci) {
+        if (key.equals(DATA_HEALTH_ID)) {
+            try {
+                DamageIndicatorManager.getInstance().onEntityHealthUpdate((LivingEntity) (Object) this);
+            } catch (Throwable ignored) {
+            }
+        }
+    }
 
     @Inject(method = "completeUsingItem", at = @At("HEAD"))
     private void onCompleteUsingItem(CallbackInfo ci) {
@@ -40,8 +56,13 @@ public abstract class LivingEntityMixin {
 
     @Inject(method = "handleEntityEvent", at = @At("HEAD"))
     private void onHandleEntityEvent(byte b, CallbackInfo ci) {
-        if (b == 3) {
-            ClientStatsManager.getInstance().onEntityDied((LivingEntity) (Object) this);
+        try {
+            if (b == 3) {
+                ClientStatsManager.getInstance().onEntityDied((LivingEntity) (Object) this);
+            } else if (b == 2) {
+                DamageIndicatorManager.getInstance().onEntityHurt((LivingEntity) (Object) this);
+            }
+        } catch (Throwable ignored) {
         }
     }
 }
