@@ -3,7 +3,6 @@ package net.starclient.changelog;
 import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.network.chat.Style;
 import net.minecraft.util.FormattedCharSequence;
 
 import java.util.ArrayList;
@@ -13,7 +12,7 @@ import java.util.regex.Pattern;
 
 public final class MarkdownParser {
     private static final Pattern INLINE_PATTERN = Pattern.compile(
-            "(\\*\\*(.+?)\\*\\*)|(__([^_]+)__)|(\\*([^*]+)\\*)|(_([^_]+)_)|(~~(.+?)~~)|(`([^`]+)`)|(\\[([^\\]]+)\\]\\(([^)]+)\\))"
+            "(\\*\\*(.+?)\\*\\*)|(__([^_]+)__)|(\\*([^*]+)\\*)|(_([^_]+)_)|(~~(.+?)~~)|(`([^`]+)`)|(\\[([^]]+)]\\(([^)]+)\\))"
     );
 
     private MarkdownParser() {

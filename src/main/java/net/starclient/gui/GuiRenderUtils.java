@@ -64,6 +64,10 @@ public final class GuiRenderUtils {
         return sb.append(ellipsis).toString();
     }
 
+    public static String truncateWithEllipsis(Font font, String text, int maxWidth) {
+        return truncate(font, text, maxWidth);
+    }
+
     public static List<String> wrapLines(Font font, String text, int maxWidth) {
         List<String> lines = new ArrayList<>();
         if (text == null || text.isEmpty()) {

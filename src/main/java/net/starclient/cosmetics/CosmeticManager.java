@@ -228,17 +228,8 @@ public class CosmeticManager {
 
     public static String getActiveAccountKey() {
         net.minecraft.client.Minecraft client = net.minecraft.client.Minecraft.getInstance();
-        if (client != null && client.getUser() != null) {
-            java.util.UUID uuid = client.getUser().getProfileId();
-            if (uuid != null) {
-                return uuid.toString();
-            }
-            String name = client.getUser().getName();
-            if (name != null && !name.isBlank()) {
-                return name.toLowerCase(java.util.Locale.ROOT);
-            }
-        }
-        return "default";
+        java.util.UUID uuid = client.getUser().getProfileId();
+        return uuid.toString();
     }
 
     public synchronized AccountCosmetics getActiveCosmetics() {
@@ -259,6 +250,10 @@ public class CosmeticManager {
         if (key != null && cosmetics != null) {
             accountCosmetics.put(key, cosmetics);
         }
+    }
+
+    public synchronized void clearAllAccountCosmetics() {
+        accountCosmetics.clear();
     }
 
     public synchronized CapeCosmetic getEquippedCapeCosmetic() {

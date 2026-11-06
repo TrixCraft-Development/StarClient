@@ -6,7 +6,6 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.PlayerSkinRenderCache;
-import net.minecraft.client.resources.DefaultPlayerSkin;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.component.ResolvableProfile;
 import net.starclient.StarClient;
@@ -40,12 +39,9 @@ public final class AccountSwitcherOverlay {
 
     public void render(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         Minecraft client = Minecraft.getInstance();
-        if (client == null || client.font == null) return;
         StarClient starClient = StarClient.getInstance();
 
-        String playerName = client.getUser() != null && client.getUser().getName() != null
-                ? client.getUser().getName()
-                : "Player";
+        String playerName = client.getUser().getName();
         RankManager rankManager = starClient != null ? starClient.getRankManager() : null;
         Rank rank = rankManager != null ? rankManager.getSelfRank() : Rank.USER;
         int rankColor = rank.getArgb();
@@ -169,9 +165,9 @@ public final class AccountSwitcherOverlay {
         int offlineBtnY = rowY + 5;
         int msBtnY = offlineBtnY + BTN_HEIGHT + 4;
 
-        drawDropdownButton(graphics, client, "+ Offline Username", btnX, offlineBtnY, btnW, BTN_HEIGHT,
+        drawDropdownButton(graphics, client, "+ Offline Username", btnX, offlineBtnY, btnW,
                 menuSurface, menuSurfaceHover, menuBorder, mouseX, mouseY);
-        drawDropdownButton(graphics, client, "+ Microsoft Account", btnX, msBtnY, btnW, BTN_HEIGHT,
+        drawDropdownButton(graphics, client, "+ Microsoft Account", btnX, msBtnY, btnW,
                 menuAccentDark, menuAccent, menuAccent, mouseX, mouseY);
     }
 
@@ -217,7 +213,7 @@ public final class AccountSwitcherOverlay {
         for (MinecraftAccount acc : accounts) {
             if (hovered(dropX + 4, rowY, dropW - 8, ROW_HEIGHT - 2, mouseX, mouseY)) {
                 boolean active = accountManager.isActive(acc);
-                if (!acc.isInitialSession() && !active && client.font != null) {
+                if (!acc.isInitialSession() && !active) {
                     int delW = 14;
                     int delH = 14;
                     int delX = dropX + dropW - 8 - delW;
@@ -262,18 +258,17 @@ public final class AccountSwitcherOverlay {
             int x,
             int y,
             int w,
-            int h,
             int baseColor,
             int hoverColor,
             int borderColor,
             int mouseX,
             int mouseY
     ) {
-        boolean hover = hovered(x, y, w, h, mouseX, mouseY);
-        GuiRenderUtils.fillRoundedRect(graphics, x, y, w, h, 5, hover ? hoverColor : baseColor);
-        GuiRenderUtils.drawRoundedOutline(graphics, x, y, w, h, 5, borderColor);
+        boolean hover = hovered(x, y, w, AccountSwitcherOverlay.BTN_HEIGHT, mouseX, mouseY);
+        GuiRenderUtils.fillRoundedRect(graphics, x, y, w, AccountSwitcherOverlay.BTN_HEIGHT, 5, hover ? hoverColor : baseColor);
+        GuiRenderUtils.drawRoundedOutline(graphics, x, y, w, AccountSwitcherOverlay.BTN_HEIGHT, 5, borderColor);
         int textX = x + (w - client.font.width(label)) / 2;
-        int textY = y + (h - client.font.lineHeight) / 2 + 1;
+        int textY = y + (AccountSwitcherOverlay.BTN_HEIGHT - client.font.lineHeight) / 2 + 1;
         graphics.text(client.font, label, textX, textY, 0xFFFFFFFF);
     }
 
@@ -290,25 +285,17 @@ public final class AccountSwitcherOverlay {
 
     private Identifier resolveAccountSkin(Minecraft client, StarClient starClient) {
         GameProfile profile = client.getGameProfile();
-        if (profile != null) {
-            PlayerSkinRenderCache cache = client.playerSkinRenderCache();
-            if (cache != null) {
-                String profileName = profile.name() != null ? profile.name() : "";
-                if (this.cachedResolvableProfile == null || !profileName.equals(this.cachedProfileName)) {
-                    this.cachedProfileName = profileName;
-                    boolean hasTextures = profile.properties() != null && profile.properties().containsKey("textures");
-                    this.cachedResolvableProfile = (hasTextures || profileName.isBlank())
-                            ? ResolvableProfile.createResolved(profile)
-                            : ResolvableProfile.createUnresolved(profileName);
-                }
-                PlayerSkinRenderCache.RenderInfo info = cache.getOrDefault(this.cachedResolvableProfile);
-                if (info != null && info.playerSkin() != null && info.playerSkin().body() != null) {
-                    return info.playerSkin().body().texturePath();
-                }
-            }
-            return DefaultPlayerSkin.get(profile).body().texturePath();
+        PlayerSkinRenderCache cache = client.playerSkinRenderCache();
+        String profileName = profile.name() != null ? profile.name() : "";
+        if (this.cachedResolvableProfile == null || !profileName.equals(this.cachedProfileName)) {
+            this.cachedProfileName = profileName;
+            boolean hasTextures = profile.properties() != null && profile.properties().containsKey("textures");
+            this.cachedResolvableProfile = (hasTextures || profileName.isBlank())
+                    ? ResolvableProfile.createResolved(profile)
+                    : ResolvableProfile.createUnresolved(profileName);
         }
+        PlayerSkinRenderCache.RenderInfo info = cache.getOrDefault(this.cachedResolvableProfile);
+        return info.playerSkin().body().texturePath();
 
-        return DefaultPlayerSkin.getDefaultTexture();
     }
 }

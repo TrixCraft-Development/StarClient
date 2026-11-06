@@ -51,7 +51,7 @@ public final class ToggleSneakState {
     }
 
     public static void updateOnTick(Minecraft client) {
-        if (client == null || client.player == null || client.options == null) return;
+        if (client == null || client.player == null) return;
         active = true;
 
         if (client.gui.screen() != null) {

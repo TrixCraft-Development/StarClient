@@ -129,7 +129,7 @@ public abstract class HudMixin {
         Module mod = CustomCrosshairState.getModule();
         if (mod == null) return;
 
-        String shape = getString(mod, "Shape", "Cross");
+        String shape = getString(mod);
         boolean useClientColor = getBool(mod, "Use Client Color", true);
         boolean centerDot = getBool(mod, "Center Dot", true);
         boolean outline = getBool(mod, "Outline", true);
@@ -203,11 +203,9 @@ public abstract class HudMixin {
         if (client.crosshairPickEntity instanceof LivingEntity && strength >= 1.0F) {
             showFull = client.player.getCurrentItemAttackStrengthDelay() > 5.0F && client.crosshairPickEntity.isAlive();
             ItemStack activeItem = client.player.getActiveItem();
-            if (activeItem != null) {
-                AttackRange attackRange = activeItem.get(DataComponents.ATTACK_RANGE);
-                if (attackRange != null && client.hitResult != null) {
-                    showFull = showFull && attackRange.isInRange(client.player, client.hitResult.getLocation());
-                }
+            AttackRange attackRange = activeItem.get(DataComponents.ATTACK_RANGE);
+            if (attackRange != null && client.hitResult != null) {
+                showFull = showFull && attackRange.isInRange(client.player, client.hitResult.getLocation());
             }
         }
 
@@ -232,9 +230,9 @@ public abstract class HudMixin {
     }
 
     @Unique
-    private static String getString(Module mod, String name, String def) {
-        Setting<?> s = mod.getSetting(name);
-        return s == null ? def : (String) s.getValue();
+    private static String getString(Module mod) {
+        Setting<?> s = mod.getSetting("Shape");
+        return s == null ? "Cross" : (String) s.getValue();
     }
 
     @Unique

@@ -5,12 +5,15 @@ import net.starclient.StarClient;
 import net.starclient.rank.Rank;
 import net.starclient.setting.BooleanSetting;
 import net.starclient.setting.ColorModeSetting;
+import net.starclient.setting.MacroListSetting;
 import net.starclient.setting.NickEntryListSetting;
 import net.starclient.setting.Setting;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -28,7 +31,11 @@ public abstract class Module {
             "Combo Counter",
             "Potion Effects",
             "Target HUD",
-            "Inventory HUD"
+            "Inventory HUD",
+            "Clock Display",
+            "Compass Display",
+            "Server Info",
+            "Memory Display"
     );
 
     private static final Set<String> MODULES_WITH_TRANSPARENT_BG = Set.of(
@@ -72,12 +79,14 @@ public abstract class Module {
     private final ColorModeSetting textColor;
     private Rank requiredRank;
     private boolean experimental;
+    private boolean defaultEnabled;
     private boolean enabled;
     private boolean favorite;
     private final int defaultKeyBind;
     private int keyBind;
     private boolean keyDownLastTick;
     private final List<Setting<?>> settings = new ArrayList<>();
+    private final Map<String, Setting<?>> settingsByName = new HashMap<>();
 
     protected static final Minecraft mc = Minecraft.getInstance();
 
@@ -178,6 +187,7 @@ public abstract class Module {
         }
         if (this.enabled != enabled) {
             this.enabled = enabled;
+            ModuleManager.markActiveModulesDirty();
             if (enabled) {
                 onEnable();
             } else {
@@ -249,10 +259,31 @@ public abstract class Module {
         return getGeneralSettings().size() + getHudAppearanceSettings().size();
     }
 
+    public void markDefaultEnabled(boolean defaultEnabled) {
+        this.defaultEnabled = defaultEnabled;
+    }
+
+    public boolean isDefaultEnabled() {
+        return defaultEnabled;
+    }
+
+    public void resetToFullDefault() {
+        this.favorite = false;
+        resetSettingsToDefault();
+        for (Setting<?> setting : settings) {
+            if (setting instanceof NickEntryListSetting nl) {
+                nl.getValue().clear();
+            } else if (setting instanceof MacroListSetting ml) {
+                ml.getValue().clear();
+            }
+        }
+        setEnabled(this.defaultEnabled);
+    }
+
     public void resetSettingsToDefault() {
         this.keyBind = this.defaultKeyBind;
         for (Setting<?> setting : settings) {
-            if (!(setting instanceof NickEntryListSetting)) {
+            if (!(setting instanceof NickEntryListSetting) && !(setting instanceof MacroListSetting)) {
                 setting.reset();
             }
         }
@@ -287,6 +318,13 @@ public abstract class Module {
     }
 
     public Setting<?> getSetting(String name) {
+        if (name == null) {
+            return null;
+        }
+        Setting<?> cached = settingsByName.get(name.toLowerCase(Locale.ROOT));
+        if (cached != null) {
+            return cached;
+        }
         for (Setting<?> setting : settings) {
             if (setting.getName().equalsIgnoreCase(name)) {
                 return setting;
@@ -297,6 +335,9 @@ public abstract class Module {
 
     public void addSetting(Setting<?> setting) {
         this.settings.add(setting);
+        if (setting != null && setting.getName() != null) {
+            this.settingsByName.put(setting.getName().toLowerCase(Locale.ROOT), setting);
+        }
     }
 
     public boolean isTransparentBackground() {

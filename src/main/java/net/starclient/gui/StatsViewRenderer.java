@@ -5,12 +5,10 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.PlayerSkinRenderCache;
-import net.minecraft.client.resources.DefaultPlayerSkin;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.component.ResolvableProfile;
 import net.starclient.ClientSettings;
 import net.starclient.StarClient;
-import net.starclient.cosmetics.CosmeticManager;
 import net.starclient.stats.ClientStatsManager;
 import net.starclient.stats.GameplayStats;
 
@@ -32,9 +30,9 @@ public final class StatsViewRenderer {
         }
     }
 
-    public static final record StatCard(String icon, String label, String value, int valueColor, String detail) {}
-    public static final record StatSection(String title, List<StatCard> cards) {}
-    public static final record ModalStat(String icon, String label, String value, int color, String detail) {}
+    public record StatCard(String icon, String label, String value, int valueColor, String detail) {}
+    public record StatSection(String title, List<StatCard> cards) {}
+    public record ModalStat(String icon, String label, String value, int color, String detail) {}
 
     private StatsTab activeTab = StatsTab.GLOBAL;
     private boolean showShareCardModal = false;
@@ -69,9 +67,7 @@ public final class StatsViewRenderer {
     public void copyFormattedSummaryToClipboard() {
         Minecraft client = Minecraft.getInstance();
         String summary = generateFormattedSummary(this.activeTab);
-        if (client.keyboardHandler != null) {
-            client.keyboardHandler.setClipboard(summary);
-        }
+        client.keyboardHandler.setClipboard(summary);
         this.lastCopiedTime = System.currentTimeMillis();
     }
 
@@ -180,9 +176,7 @@ public final class StatsViewRenderer {
         int avatarSize = 36;
         GuiRenderUtils.fillRoundedRect(extractor, avatarX, avatarY, avatarSize, avatarSize, 4, 0xFF1E293B);
         Identifier skinTex = resolveSkinTexture();
-        if (skinTex != null) {
-            drawHead(extractor, skinTex, avatarX, avatarY, avatarSize);
-        }
+        drawHead(extractor, skinTex, avatarX, avatarY, avatarSize);
         GuiRenderUtils.drawRoundedOutline(extractor, avatarX - 1, avatarY - 1, avatarSize + 2, avatarSize + 2, 4, 0x44FFFFFF);
 
         // Header: Player Name & Badges
@@ -270,7 +264,7 @@ public final class StatsViewRenderer {
         int btnBg = copied ? 0x3310B981 : (copyHover ? menuAccent : menuSurfaceHover);
         int btnBorder = copied ? 0xFF10B981 : (copyHover ? 0xFFFFFFFF : menuAccent);
         int btnText = copied ? 0xFF34D399 : (copyHover ? 0xFFFFFFFF : 0xFFF1F5F9);
-        String btnLabel = copied ? "✓ Copied Summary!" : "📋 Copy Summary";
+        String btnLabel = copied ? "Copied Summary!" : "📋 Copy Summary";
 
         GuiRenderUtils.drawDropShadow(extractor, btnX, btnY, btnW, btnH, 4, 2, 40);
         GuiRenderUtils.fillRoundedRect(extractor, btnX, btnY, btnW, btnH, 5, btnBg);
@@ -300,8 +294,7 @@ public final class StatsViewRenderer {
         extractor.enableScissor(contentLeft - 2, cardsClipTop, contentLeft + contentWidth + 2, panelBottom);
 
         List<StatSection> sections = buildSections(this.activeTab);
-        int startY = cardsClipTop + 6 - (int) scroll;
-        int currentY = startY;
+        int currentY = cardsClipTop + 6 - (int) scroll;
 
         int cols = contentWidth >= 520 ? 3 : 2;
         int cardGap = 8;
@@ -386,7 +379,7 @@ public final class StatsViewRenderer {
         int shareBg = recentlyCopied ? 0x3310B981 : (shareHovered ? menuSurfaceHover : menuSurface);
         int shareBorder = recentlyCopied ? 0xFF10B981 : (shareHovered ? menuAccent : menuBorder);
         int shareText = recentlyCopied ? 0xFF34D399 : (shareHovered ? 0xFFF1F5F9 : 0xFF94A3B8);
-        String shareLabel = recentlyCopied ? "✓ Copied!" : "📋 Share Stats";
+        String shareLabel = recentlyCopied ? "Copied!" : "📋 Share Stats";
 
         GuiRenderUtils.drawDropShadow(extractor, shareBtnX, tabsY, shareBtnW, tabH, 4, 2, 50);
         GuiRenderUtils.fillRoundedRect(extractor, shareBtnX, tabsY, shareBtnW, tabH, 6, shareBg);
@@ -449,7 +442,7 @@ public final class StatsViewRenderer {
         if (client.player != null) {
             return client.player.getName().getString();
         }
-        if (client.getUser() != null && !client.getUser().getName().isEmpty()) {
+        if (!client.getUser().getName().isEmpty()) {
             return client.getUser().getName();
         }
         return "Player";
@@ -457,30 +450,24 @@ public final class StatsViewRenderer {
 
     private Identifier resolveSkinTexture() {
         Minecraft client = Minecraft.getInstance();
-        if (client.player != null && client.player.getSkin() != null && client.player.getSkin().body() != null) {
+        if (client.player != null) {
+            client.player.getSkin();
+            client.player.getSkin();
             return client.player.getSkin().body().texturePath();
         }
 
         GameProfile profile = client.getGameProfile();
-        if (profile != null) {
-            PlayerSkinRenderCache cache = client.playerSkinRenderCache();
-            if (cache != null) {
-                String profileName = profile.name() != null ? profile.name() : "";
-                if (this.cachedResolvableProfile == null || !profileName.equals(this.cachedProfileName)) {
-                    this.cachedProfileName = profileName;
-                    boolean hasTextures = profile.properties() != null && profile.properties().containsKey("textures");
-                    this.cachedResolvableProfile = (hasTextures || profileName.isBlank())
-                            ? ResolvableProfile.createResolved(profile)
-                            : ResolvableProfile.createUnresolved(profileName);
-                }
-                PlayerSkinRenderCache.RenderInfo info = cache.getOrDefault(this.cachedResolvableProfile);
-                if (info != null && info.playerSkin() != null && info.playerSkin().body() != null) {
-                    return info.playerSkin().body().texturePath();
-                }
-            }
-            return DefaultPlayerSkin.get(profile).body().texturePath();
+        PlayerSkinRenderCache cache = client.playerSkinRenderCache();
+        String profileName = profile.name() != null ? profile.name() : "";
+        if (this.cachedResolvableProfile == null || !profileName.equals(this.cachedProfileName)) {
+            this.cachedProfileName = profileName;
+            boolean hasTextures = profile.properties() != null && profile.properties().containsKey("textures");
+            this.cachedResolvableProfile = (hasTextures || profileName.isBlank())
+                    ? ResolvableProfile.createResolved(profile)
+                    : ResolvableProfile.createUnresolved(profileName);
         }
-        return DefaultPlayerSkin.getDefaultTexture();
+        PlayerSkinRenderCache.RenderInfo info = cache.getOrDefault(this.cachedResolvableProfile);
+        return info.playerSkin().body().texturePath();
     }
 
     private static void drawHead(GuiGraphicsExtractor graphics, Identifier skinTexture, int x, int y, int size) {

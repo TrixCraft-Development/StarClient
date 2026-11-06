@@ -31,7 +31,7 @@ public final class TabListRenderer {
         if (tabOverlay == null || mod == null) return;
 
         Minecraft client = Minecraft.getInstance();
-        if (client.player == null || client.player.connection == null) return;
+        if (client.player == null) return;
 
         List<PlayerInfo> players = null;
         if (tabOverlay instanceof PlayerTabOverlayAccessor accessor) {
@@ -43,24 +43,24 @@ public final class TabListRenderer {
         if (players == null || players.isEmpty()) {
             players = client.player.connection.getListedOnlinePlayers().stream().limit(80).toList();
         }
-        if (players == null || players.isEmpty()) return;
+        if (players.isEmpty()) return;
 
-        boolean useClientTheme = getBool(mod, "Use Client Theme", true);
-        boolean showPingNumbers = getBool(mod, "Show Ping Numbers", true);
-        boolean showPlayerHeads = getBool(mod, "Show Player Heads", true);
-        boolean showHeaderFooter = getBool(mod, "Show Header & Footer", true);
-        boolean highlightSelf = getBool(mod, "Highlight Self", true);
-        double opacity = getNum(mod, "Background Opacity", 75.0);
-        boolean rounded = getBool(mod, "Rounded Corners", true);
-        boolean textShadow = getBool(mod, "Text Shadow", true);
-        boolean transparent = mod != null && mod.isTransparentBackground();
+        boolean useClientTheme = getBool(mod, "Use Client Theme");
+        boolean showPingNumbers = getBool(mod, "Show Ping Numbers");
+        boolean showPlayerHeads = getBool(mod, "Show Player Heads");
+        boolean showHeaderFooter = getBool(mod, "Show Header & Footer");
+        boolean highlightSelf = getBool(mod, "Highlight Self");
+        double opacity = getNum(mod);
+        boolean rounded = getBool(mod, "Rounded Corners");
+        boolean textShadow = getBool(mod, "Text Shadow");
+        boolean transparent = mod.isTransparentBackground();
 
         Font font = client.font;
         int screenW = graphics.guiWidth();
         int screenH = graphics.guiHeight();
 
         int totalCount = players.size();
-        int rows = Math.max(1, Math.min(totalCount, 20));
+        int rows = Math.clamp(totalCount, 1, 20);
         int cols = (totalCount + rows - 1) / rows;
         cols = Math.clamp(cols, 1, 4);
         rows = (totalCount + cols - 1) / cols;
@@ -74,7 +74,7 @@ public final class TabListRenderer {
             int pingW = showPingNumbers ? 32 : 14;
 
             int scoreW = 0;
-            if (objective != null && scoreboard != null && player.getProfile() != null) {
+            if (objective != null && scoreboard != null) {
                 ScoreHolder scoreHolder = ScoreHolder.fromGameProfile(player.getProfile());
                 ReadOnlyScoreInfo scoreInfo = scoreboard.getPlayerScoreInfo(scoreHolder, objective);
                 if (scoreInfo != null) {
@@ -82,9 +82,7 @@ public final class TabListRenderer {
                         scoreW = font.width(scoreInfo.value() + " ❤") + 6;
                     } else {
                         Component scoreComp = scoreInfo.formatValue(objective.numberFormatOrDefault(StyledFormat.PLAYER_LIST_DEFAULT));
-                        if (scoreComp != null) {
-                            scoreW = font.width(scoreComp) + 6;
-                        }
+                        scoreW = font.width(scoreComp) + 6;
                     }
                 }
             }
@@ -95,7 +93,7 @@ public final class TabListRenderer {
 
         int colWidth = Math.max(125, maxRowContentWidth + 6);
         int maxAllowedColW = (screenW - 40 - (cols - 1) * 5) / cols;
-        colWidth = Math.min(colWidth, Math.max(90, maxAllowedColW));
+        colWidth = Math.clamp(maxAllowedColW, 90, colWidth);
 
         int padX = 6;
         int padY = 6;
@@ -115,11 +113,11 @@ public final class TabListRenderer {
         }
 
         List<FormattedCharSequence> headerLines = (header != null && !header.getString().isEmpty())
-                ? font.split(header, Math.min(screenW - 40, Math.max(cardWidth, 220)))
+                ? font.split(header, Math.clamp(cardWidth, 220, screenW - 40))
                 : List.of();
 
         List<FormattedCharSequence> footerLines = (footer != null && !footer.getString().isEmpty())
-                ? font.split(footer, Math.min(screenW - 40, Math.max(cardWidth, 220)))
+                ? font.split(footer, Math.clamp(cardWidth, 220, screenW - 40))
                 : List.of();
 
         int headerHeight = headerLines.isEmpty() ? 0 : (headerLines.size() * 10 + 4);
@@ -170,7 +168,7 @@ public final class TabListRenderer {
             int pw = colWidth;
             int ph = rowHeight;
 
-            boolean isSelf = client.player != null && player.getProfile() != null && player.getProfile().id().equals(client.player.getUUID());
+            boolean isSelf = client.player != null && player.getProfile().id().equals(client.player.getUUID());
 
             // Row background
             if (isSelf && highlightSelf) {
@@ -185,7 +183,8 @@ public final class TabListRenderer {
             int contentX = px + 3;
 
             // Face avatar
-            if (showPlayerHeads && player.getSkin() != null) {
+            if (showPlayerHeads) {
+                player.getSkin();
                 PlayerFaceExtractor.extractRenderState(graphics, player.getSkin(), contentX, py + 3, 8);
                 contentX += 8 + 4;
             }
@@ -193,7 +192,7 @@ public final class TabListRenderer {
             // Ping
             int latency = player.getLatency();
             int pingRight = px + pw - 4;
-            int pingLeft = pingRight;
+            int pingLeft;
             if (showPingNumbers) {
                 String pingStr = latency >= 0 ? (latency + "ms") : "?";
                 int pingColor = getPingColor(latency);
@@ -207,7 +206,7 @@ public final class TabListRenderer {
 
             // Objective score
             int rightBoundary = pingLeft - 4;
-            if (objective != null && scoreboard != null && player.getProfile() != null) {
+            if (objective != null && scoreboard != null) {
                 ScoreHolder scoreHolder = ScoreHolder.fromGameProfile(player.getProfile());
                 ReadOnlyScoreInfo scoreInfo = scoreboard.getPlayerScoreInfo(scoreHolder, objective);
                 if (scoreInfo != null) {
@@ -216,16 +215,13 @@ public final class TabListRenderer {
                         int hpW = font.width(hp);
                         rightBoundary -= hpW;
                         graphics.text(font, hp, rightBoundary, py + 3, 0xFFF43F5E, textShadow);
-                        rightBoundary -= 4;
                     } else {
                         Component scoreComp = scoreInfo.formatValue(objective.numberFormatOrDefault(StyledFormat.PLAYER_LIST_DEFAULT));
-                        if (scoreComp != null) {
-                            int scoreW = font.width(scoreComp);
-                            rightBoundary -= scoreW;
-                            graphics.text(font, scoreComp, rightBoundary, py + 3, 0xFFFFE066, textShadow);
-                            rightBoundary -= 4;
-                        }
+                        int scoreW = font.width(scoreComp);
+                        rightBoundary -= scoreW;
+                        graphics.text(font, scoreComp, rightBoundary, py + 3, 0xFFFFE066, textShadow);
                     }
+                    rightBoundary -= 4;
                 }
             }
 
@@ -283,12 +279,12 @@ public final class TabListRenderer {
         }
     }
 
-    private static boolean getBool(Module mod, String name, boolean def) {
+    private static boolean getBool(Module mod, String name) {
         Setting<?> s = mod.getSetting(name);
-        return s == null ? def : (boolean) s.getValue();
+        return s == null || (boolean) s.getValue();
     }
 
-    private static double getNum(Module mod, String name, double def) {
-        return mod.getSetting(name) instanceof NumberSetting ns ? ns.getValue() : def;
+    private static double getNum(Module mod) {
+        return mod.getSetting("Background Opacity") instanceof NumberSetting ns ? ns.getValue() : 75.0;
     }
 }

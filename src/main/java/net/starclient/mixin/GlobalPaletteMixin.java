@@ -26,16 +26,16 @@ public abstract class GlobalPaletteMixin<T> {
     private static final Set<Integer> STARCLIENT$LOGGED_BAD_IDS = ConcurrentHashMap.newKeySet();
 
     @Inject(method = "valueFor", at = @At("HEAD"), cancellable = true)
-    private void safeguardMissingPaletteEntry(int id, CallbackInfoReturnable<T> cir) {
+    private void safeguardMissingPaletteEntry(int index, CallbackInfoReturnable<T> cir) {
         ClientSettings settings = StarClient.getInstance() != null ? StarClient.getInstance().getClientSettings() : null;
         if (settings != null && !settings.isPaletteCrashSafeguard()) {
             return;
         }
 
-        T val = this.registry.byId(id);
+        T val = this.registry.byId(index);
         if (val == null) {
-            if (STARCLIENT$LOGGED_BAD_IDS.add(id)) {
-                StarClient.LOGGER.warn("Caught invalid chunk palette entry index {} (missing in registry). Defaulted to fallback palette entry (air) to prevent crash.", id);
+            if (STARCLIENT$LOGGED_BAD_IDS.add(index)) {
+                StarClient.LOGGER.warn("Caught invalid chunk palette entry index {} (missing in registry). Defaulted to fallback palette entry (air) to prevent crash.", index);
             }
             T fallback = this.registry.byId(0);
             cir.setReturnValue(fallback);

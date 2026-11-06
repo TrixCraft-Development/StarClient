@@ -39,7 +39,7 @@ public abstract class AvatarRendererMixin {
     )
     private void applyCosmeticCape(Avatar entity, AvatarRenderState state, float partialTicks, CallbackInfo ci) {
         StarClient mod = StarClient.getInstance();
-        if (mod == null || state.skin == null) return;
+        if (mod == null) return;
         if (entity != Minecraft.getInstance().player) return;
 
         CosmeticManager cosmetics = mod.getCosmeticManager();

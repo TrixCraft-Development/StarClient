@@ -34,7 +34,7 @@ public class RankManager {
         ranksByUuid.clear();
         ranksByName.clear();
 
-        try (InputStream stream = openResourceStream(RANKS_RESOURCE_PATH)) {
+        try (InputStream stream = openResourceStream()) {
             if (stream == null) {
                 StarClient.LOGGER.warn("Could not find shipped ranks config at {}", RANKS_RESOURCE_PATH);
                 return;
@@ -141,17 +141,12 @@ public class RankManager {
      */
     public Rank getSelfRank() {
         Minecraft client = Minecraft.getInstance();
-        if (client == null) {
-            return Rank.USER;
-        }
 
-        Rank best = null;
+        Rank best;
         User user = client.getUser();
-        if (user != null) {
-            best = maxRank(best, getConfiguredRank(user.getProfileId(), user.getName()));
-        }
+        best = maxRank(null, getConfiguredRank(user.getProfileId(), user.getName()));
         if (client.player != null) {
-            String profileName = client.player.getGameProfile() != null ? client.player.getGameProfile().name() : null;
+            String profileName = client.player.getGameProfile().name();
             best = maxRank(best, getConfiguredRank(client.player.getUUID(), profileName));
         }
         return best != null ? best : Rank.USER;
@@ -211,14 +206,14 @@ public class RankManager {
         return uuid.replace("-", "").toLowerCase(Locale.ROOT);
     }
 
-    private static InputStream openResourceStream(String resourcePath) throws Exception {
-        InputStream stream = StarClient.class.getResourceAsStream("/" + resourcePath);
+    private static InputStream openResourceStream() throws Exception {
+        InputStream stream = StarClient.class.getResourceAsStream("/" + RankManager.RANKS_RESOURCE_PATH);
         if (stream != null) {
             return stream;
         }
         Optional<Path> modPath = FabricLoader.getInstance()
                 .getModContainer(StarClient.MOD_ID)
-                .flatMap(container -> container.findPath(resourcePath));
+                .flatMap(container -> container.findPath(RankManager.RANKS_RESOURCE_PATH));
         if (modPath.isPresent()) {
             return Files.newInputStream(modPath.get());
         }

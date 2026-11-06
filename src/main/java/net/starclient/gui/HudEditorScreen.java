@@ -71,7 +71,7 @@ public class HudEditorScreen extends Screen {
         // Render Scoreboard in HUD Editor (live or preview)
         Module scoreboardMod = mod.getModuleManager().getModuleByName("Scoreboard");
         if (scoreboardMod != null && scoreboardMod.isEnabled()) {
-            Objective obj = (inWorld && client.level.getScoreboard() != null)
+            Objective obj = inWorld
                     ? client.level.getScoreboard().getDisplayObjective(DisplaySlot.SIDEBAR)
                     : null;
             if (obj != null) {
@@ -167,7 +167,7 @@ public class HudEditorScreen extends Screen {
         int resetX = doneX - RESET_BTN_WIDTH - 6;
 
         // Reset Button
-        boolean resetHover = hovered(resetX, btnY, RESET_BTN_WIDTH, BTN_HEIGHT, mouseX, mouseY);
+        boolean resetHover = hovered(resetX, btnY, RESET_BTN_WIDTH, mouseX, mouseY);
         int resetBg = resetHover ? 0x33F87171 : surface;
         int resetBorder = resetHover ? 0xFFF87171 : border;
         int resetTextCol = resetHover ? 0xFFF87171 : 0xFF94A3B8;
@@ -176,7 +176,7 @@ public class HudEditorScreen extends Screen {
         GuiRenderUtils.drawCenteredText(extractor, this.font, "Reset All", resetX + RESET_BTN_WIDTH / 2, btnY + 6, resetTextCol);
 
         // Done Button
-        boolean doneHover = hovered(doneX, btnY, DONE_BTN_WIDTH, BTN_HEIGHT, mouseX, mouseY);
+        boolean doneHover = hovered(doneX, btnY, DONE_BTN_WIDTH, mouseX, mouseY);
         int doneBg = doneHover ? accentDark : accent;
         int doneBorder = doneHover ? 0xFFFFFFFF : accent;
         GuiRenderUtils.fillRoundedRect(extractor, doneX, btnY, DONE_BTN_WIDTH, BTN_HEIGHT, 5, doneBg);
@@ -202,19 +202,18 @@ public class HudEditorScreen extends Screen {
         int button = event.button();
 
         int barX = (this.width - TOOLBAR_WIDTH) / 2;
-        int barY = TOOLBAR_Y;
-        int btnY = barY + (TOOLBAR_HEIGHT - BTN_HEIGHT) / 2;
+        int btnY = TOOLBAR_Y + (TOOLBAR_HEIGHT - BTN_HEIGHT) / 2;
         int doneX = barX + TOOLBAR_WIDTH - DONE_BTN_WIDTH - 7;
         int resetX = doneX - RESET_BTN_WIDTH - 6;
 
         // Toolbar Buttons
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
-            if (hovered(resetX, btnY, RESET_BTN_WIDTH, BTN_HEIGHT, mouseX, mouseY)) {
+            if (hovered(resetX, btnY, RESET_BTN_WIDTH, mouseX, mouseY)) {
                 StarClient.getInstance().getHudLayout().reset();
                 StarClient.getInstance().getConfigManager().saveConfig();
                 return true;
             }
-            if (hovered(doneX, btnY, DONE_BTN_WIDTH, BTN_HEIGHT, mouseX, mouseY)) {
+            if (hovered(doneX, btnY, DONE_BTN_WIDTH, mouseX, mouseY)) {
                 Minecraft.getInstance().gui.setScreen(parent);
                 return true;
             }
@@ -329,9 +328,7 @@ public class HudEditorScreen extends Screen {
         if (module == null || !module.isEnabled()) return false;
         if (id.equals(HudLayout.INVENTORY)) {
             net.starclient.setting.Setting<?> s = module.getSetting("Show HUD Widget");
-            if (s != null && Boolean.FALSE.equals(s.getValue())) {
-                return false;
-            }
+            return s == null || !Boolean.FALSE.equals(s.getValue());
         }
         return true;
     }
@@ -348,6 +345,10 @@ public class HudEditorScreen extends Screen {
             case HudLayout.REACH -> "Reach Display";
             case HudLayout.SPEED -> "Speedometer";
             case HudLayout.COMBO -> "Combo Counter";
+            case HudLayout.CLOCK -> "Clock Display";
+            case HudLayout.COMPASS -> "Compass Display";
+            case HudLayout.SERVER_INFO -> "Server Info";
+            case HudLayout.MEMORY -> "Memory Display";
             case HudLayout.POTIONS -> "Potion Effects";
             case HudLayout.TARGET_HUD -> "Target HUD";
             case HudLayout.SCOREBOARD -> "Scoreboard";
@@ -374,6 +375,10 @@ public class HudEditorScreen extends Screen {
             case HudLayout.REACH -> "Reach: 2.84 b";
             case HudLayout.SPEED -> "Speed: 5.61 m/s";
             case HudLayout.COMBO -> "Combo: 4 hits";
+            case HudLayout.CLOCK -> "🕒 15:45:00";
+            case HudLayout.COMPASS -> "🧭 N • 0°";
+            case HudLayout.SERVER_INFO -> "Server: mc.hypixel.net";
+            case HudLayout.MEMORY -> "RAM: 42%";
             case HudLayout.POTIONS -> "Speed II (01:30)";
             case HudLayout.TARGET_HUD -> "Target HUD";
             case HudLayout.SCOREBOARD -> "Scoreboard";
@@ -383,8 +388,8 @@ public class HudEditorScreen extends Screen {
         };
     }
 
-    private static boolean hovered(int x, int y, int w, int h, double mouseX, double mouseY) {
-        return mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + h;
+    private static boolean hovered(int x, int y, int w, double mouseX, double mouseY) {
+        return mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + HudEditorScreen.BTN_HEIGHT;
     }
 
     @Override

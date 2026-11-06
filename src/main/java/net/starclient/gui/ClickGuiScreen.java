@@ -11,13 +11,17 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.starclient.ClientSettings;
 import net.starclient.StarClient;
+import net.starclient.config.ClientProfile;
+import net.starclient.config.ProfileManager;
 
 import net.starclient.module.Category;
 import net.starclient.module.Module;
 import net.starclient.module.NickToolState;
+import net.starclient.module.QuickCommandsState;
 import net.starclient.rank.Rank;
 import net.starclient.setting.BooleanSetting;
 import net.starclient.setting.ColorModeSetting;
+import net.starclient.setting.MacroListSetting;
 import net.starclient.setting.ModeSetting;
 import net.starclient.setting.NickEntryListSetting;
 import net.starclient.setting.NumberSetting;
@@ -47,6 +51,7 @@ public class ClickGuiScreen extends Screen {
     private static final int TILE_GAP = 8;
     private static final int SEARCH_HEIGHT = 22;
     private static final int HUD_EDITOR_BTN_WIDTH = 82;
+    private static final int PROFILE_BTN_WIDTH = 96;
 
     private enum SidebarSection {
         FAVORITES,
@@ -102,7 +107,9 @@ public class ClickGuiScreen extends Screen {
     private String searchQuery = "";
     private String pendingTooltipTitle;
     private String pendingTooltipDesc;
+    private boolean profileDropdownOpen = false;
     private final StatsViewRenderer statsViewRenderer = new StatsViewRenderer();
+    private final ProfilesViewRenderer profilesViewRenderer = new ProfilesViewRenderer();
 
     private final Screen parent;
 
@@ -118,8 +125,8 @@ public class ClickGuiScreen extends Screen {
     @Override
     protected void init() {
         super.init();
-        this.guiWidth = Math.max(480, Math.min(TARGET_GUI_WIDTH, this.width - 20));
-        this.guiHeight = Math.max(310, Math.min(TARGET_GUI_HEIGHT, this.height - 20));
+        this.guiWidth = Math.clamp(this.width - 20, 480, TARGET_GUI_WIDTH);
+        this.guiHeight = Math.clamp(this.height - 20, 310, TARGET_GUI_HEIGHT);
         this.lastFrameNanos = System.nanoTime();
 
         int startX = (this.width - guiWidth) / 2;
@@ -128,18 +135,18 @@ public class ClickGuiScreen extends Screen {
 
 
         int searchX = startX + SIDEBAR_WIDTH + 12;
-        int searchW = 190;
+        int searchW = 160;
         int searchY = startY + (HEADER_HEIGHT - SEARCH_HEIGHT) / 2;
 
         String prevQuery = this.searchQuery;
-        this.searchBox = new EditBox(this.font, searchX + 20, searchY, searchW - 36, SEARCH_HEIGHT, Component.literal(""));
+        this.searchBox = new EditBox(this.font, searchX + 15, searchY, searchW - 31, SEARCH_HEIGHT, Component.literal(""));
         this.searchBox.setValue(prevQuery);
         this.searchBox.setResponder(value -> {
             this.searchQuery = value;
             this.targetModuleScroll = 0;
             this.moduleScroll = 0;
         });
-        this.searchBox.setHint(Component.literal("Search modules or settings..."));
+        this.searchBox.setHint(Component.literal("Search modules or settings.."));
         this.searchBox.setMaxLength(64);
         this.searchBox.setBordered(false);
         this.searchBox.setTextColor(0xFFF8FAFC);
@@ -203,6 +210,8 @@ public class ClickGuiScreen extends Screen {
             extractor.enableScissor(contentLeft - 2, panelTop, contentRight + 2, panelBottom);
             if (isSettingsView()) {
                 drawGeneralSettingsView(extractor, contentLeft, contentWidth, panelTop, panelBottom, mouseX, mouseY);
+            } else if (isProfilesView()) {
+                this.profilesViewRenderer.draw(extractor, this.font, contentLeft, contentWidth, panelTop, panelBottom, mouseX, mouseY, moduleScroll);
             } else {
                 List<ModuleTile> tiles = buildModuleTiles(contentLeft, contentWidth, panelTop, moduleScroll);
                 if (tiles.isEmpty()) {
@@ -237,13 +246,20 @@ public class ClickGuiScreen extends Screen {
         // Outer window rounded border
         GuiRenderUtils.drawRoundedOutline(extractor, startX, startY, guiWidth, guiHeight, 8, menuBorder());
 
+        // Header Profile Quick-Switcher Dropdown overlay if open
+        if (profileDropdownOpen) {
+            drawProfileQuickDropdown(extractor, startX, startY, mouseX, mouseY);
+        }
+
         // Stat Card Modal overlay if active
         if (isStatsView() && this.statsViewRenderer.isShowingCardModal()) {
             this.statsViewRenderer.drawCardModal(extractor, this.font, this.width, this.height, mouseX, mouseY);
         }
 
-        // Floating tooltip (hidden while modal is open)
-        if (pendingTooltipTitle != null && !pendingTooltipTitle.isEmpty() && (!isStatsView() || !this.statsViewRenderer.isShowingCardModal())) {
+        // Floating tooltip (hidden while modal or dropdown is open)
+        if (pendingTooltipTitle != null && !pendingTooltipTitle.isEmpty()
+                && !profileDropdownOpen
+                && (!isStatsView() || !this.statsViewRenderer.isShowingCardModal())) {
             drawFloatingTooltip(extractor, pendingTooltipTitle, pendingTooltipDesc, mouseX, mouseY);
         }
     }
@@ -252,7 +268,7 @@ public class ClickGuiScreen extends Screen {
         float openSpeed = 14.0F * dt;
         openProgress = openProgress + (1.0F - openProgress) * Math.min(1.0F, openSpeed);
 
-        float targetDrawer = (drawerModule != null && !isSettingsView() && !isStatsView()) ? 1.0F : 0.0F;
+        float targetDrawer = (drawerModule != null && !isSettingsView() && !isStatsView() && !isProfilesView()) ? 1.0F : 0.0F;
         drawerProgress = drawerProgress + (targetDrawer - drawerProgress) * Math.min(1.0F, 16.0F * dt);
         if (targetDrawer == 0.0F && drawerProgress < 0.01F) {
             drawerProgress = 0.0F;
@@ -285,7 +301,7 @@ public class ClickGuiScreen extends Screen {
 
         // Search Box
         int searchX = startX + SIDEBAR_WIDTH + 12;
-        int searchW = 190;
+        int searchW = 160;
         int searchY = startY + (HEADER_HEIGHT - SEARCH_HEIGHT) / 2;
         int searchIconY = searchY + (SEARCH_HEIGHT - 8) / 2;
         boolean searchHovered = isHovered(mouseX, mouseY, searchX, searchY, searchW, SEARCH_HEIGHT);
@@ -299,10 +315,10 @@ public class ClickGuiScreen extends Screen {
                 searchFocused ? menuAccent() : 0xFF64748B);
 
         if (this.searchBox != null) {
-            this.searchBox.setX(searchX + 20);
+            this.searchBox.setX(searchX + 15);
             this.searchBox.setY(searchY);
             this.searchBox.setHeight(SEARCH_HEIGHT);
-            this.searchBox.setWidth(searchW - (isSearching() ? 36 : 24));
+            this.searchBox.setWidth(searchW - (isSearching() ? 31 : 19));
             this.searchBox.extractRenderState(extractor, mouseX, mouseY, delta);
         }
 
@@ -315,11 +331,11 @@ public class ClickGuiScreen extends Screen {
         }
 
         // Filter Pills (All / Active / Favs)
-        int filterX = searchX + searchW + 10;
+        int filterX = searchX + searchW + 8;
         int filterY = searchY + 1;
         int filterH = SEARCH_HEIGHT - 2;
         for (FilterMode mode : FilterMode.values()) {
-            int pillW = GuiRenderUtils.textWidth(this.font, mode.label) + 14;
+            int pillW = GuiRenderUtils.textWidth(this.font, mode.label) + 12;
             boolean active = (selectedFilter == mode);
             boolean hover = isHovered(mouseX, mouseY, filterX, filterY, pillW, filterH);
             int bg = active ? menuAccentDark() : (hover ? menuSurfaceHover() : menuBgDark());
@@ -328,12 +344,12 @@ public class ClickGuiScreen extends Screen {
                 GuiRenderUtils.drawRoundedOutline(extractor, filterX, filterY, pillW, filterH, 5, menuAccent());
             }
             GuiRenderUtils.drawCenteredText(extractor, this.font, mode.label,
-                    filterX + pillW / 2, filterY + (filterH - 8) / 2,
-                    active ? 0xFFFFFFFF : (hover ? 0xFFE2E8F0 : 0xFF94A3B8));
+                filterX + pillW / 2, filterY + (filterH - 8) / 2,
+                active ? 0xFFFFFFFF : (hover ? 0xFFE2E8F0 : 0xFF94A3B8));
             filterX += pillW + 4;
         }
 
-        // Edit HUD Button on right
+        // Edit HUD Button on far right
         int hudBtnX = startX + guiWidth - 12 - HUD_EDITOR_BTN_WIDTH;
         boolean hudBtnHover = isHovered(mouseX, mouseY, hudBtnX, searchY, HUD_EDITOR_BTN_WIDTH, SEARCH_HEIGHT);
         GuiRenderUtils.fillRoundedRect(extractor, hudBtnX, searchY, HUD_EDITOR_BTN_WIDTH, SEARCH_HEIGHT, 6,
@@ -346,13 +362,87 @@ public class ClickGuiScreen extends Screen {
         if (hudBtnHover) {
             setTooltip("HUD Layout Editor", "Open the dedicated HUD Editor to drag, snap, and reset on-screen HUD elements.");
         }
+
+        // Profile Quick-Switcher Button to the left of Edit HUD
+        int profBtnX = hudBtnX - 6 - PROFILE_BTN_WIDTH;
+        boolean profBtnHover = isHovered(mouseX, mouseY, profBtnX, searchY, PROFILE_BTN_WIDTH, SEARCH_HEIGHT);
+        ProfileManager pm = StarClient.getInstance().getProfileManager();
+        ClientProfile activeProf = pm != null ? pm.getActiveProfile() : null;
+        String profText = activeProf != null
+                ? GuiRenderUtils.truncateWithEllipsis(this.font, activeProf.getIcon() + " " + activeProf.getName(), PROFILE_BTN_WIDTH - 22) + " ▾"
+                : "🗂 Default ▾";
+        GuiRenderUtils.fillRoundedRect(extractor, profBtnX, searchY, PROFILE_BTN_WIDTH, SEARCH_HEIGHT, 6,
+                profileDropdownOpen || profBtnHover ? menuAccentDark() : menuBgDark());
+        GuiRenderUtils.drawRoundedOutline(extractor, profBtnX, searchY, PROFILE_BTN_WIDTH, SEARCH_HEIGHT, 6,
+                profileDropdownOpen || profBtnHover ? menuAccent() : menuBorder());
+        GuiRenderUtils.drawCenteredText(extractor, this.font, profText,
+                profBtnX + PROFILE_BTN_WIDTH / 2, searchY + (SEARCH_HEIGHT - 8) / 2,
+                profileDropdownOpen || profBtnHover ? 0xFFFFFFFF : 0xFFE2E8F0);
+        if (profBtnHover && !profileDropdownOpen) {
+            setTooltip("Active Profile: " + (activeProf != null ? activeProf.getName() : "Default"),
+                    "Left-click to quick-switch profiles • Right-click to open the Profiles Manager.");
+        }
+    }
+
+    private void drawProfileQuickDropdown(GuiGraphicsExtractor extractor, int startX, int startY, int mouseX, int mouseY) {
+        ProfileManager pm = StarClient.getInstance().getProfileManager();
+        if (pm == null) return;
+        List<ClientProfile> profiles = pm.getProfiles();
+        String activeId = pm.getActiveProfileId();
+
+        int hudBtnX = startX + guiWidth - 12 - HUD_EDITOR_BTN_WIDTH;
+        int profBtnX = hudBtnX - 6 - PROFILE_BTN_WIDTH;
+        int dropW = 148;
+        int dropX = Math.min(profBtnX, startX + guiWidth - dropW - 10);
+        int dropY = startY + HEADER_HEIGHT - 4;
+        int rowH = 20;
+        int dropH = (profiles.size() + 1) * rowH + 8;
+
+        extractor.nextStratum();
+        GuiRenderUtils.drawDropShadow(extractor, dropX, dropY, dropW, dropH, 6, 4, 140);
+        GuiRenderUtils.fillRoundedRect(extractor, dropX, dropY, dropW, dropH, 6, menuSurface());
+        GuiRenderUtils.drawRoundedOutline(extractor, dropX, dropY, dropW, dropH, 6, menuAccent());
+
+        int ry = dropY + 4;
+        for (ClientProfile p : profiles) {
+            boolean isAct = p.getId().equals(activeId);
+            boolean hov = isHovered(mouseX, mouseY, dropX + 4, ry, dropW - 8, rowH);
+            if (isAct || hov) {
+                GuiRenderUtils.fillRoundedRect(extractor, dropX + 4, ry, dropW - 8, rowH, 4,
+                        isAct ? menuAccentDark() : menuSurfaceHover());
+            }
+            String label = GuiRenderUtils.truncateWithEllipsis(this.font, p.getIcon() + " " + p.getName(), dropW - 28);
+            GuiRenderUtils.drawText(extractor, this.font, label, dropX + 10, ry + 6,
+                    isAct ? 0xFFFFFFFF : 0xFFE2E8F0);
+            if (isAct) {
+                GuiRenderUtils.drawText(extractor, this.font, "", dropX + dropW - 16, ry + 6, menuAccent());
+            }
+            ry += rowH;
+        }
+
+        extractor.fill(dropX + 8, ry, dropX + dropW - 8, ry + 1, menuBorder());
+        boolean manageHov = isHovered(mouseX, mouseY, dropX + 4, ry + 1, dropW - 8, rowH - 1);
+        if (manageHov) {
+            GuiRenderUtils.fillRoundedRect(extractor, dropX + 4, ry + 1, dropW - 8, rowH - 1, 4, menuSurfaceHover());
+        }
+        GuiRenderUtils.drawCenteredText(extractor, this.font, "⚙ Manage Profiles...",
+                dropX + dropW / 2, ry + 6, manageHov ? 0xFFFFFFFF : menuAccent());
+    }
+
+    private int sidebarItemHeight() {
+        return guiHeight >= 400 ? 20 : 18;
+    }
+
+    private int sidebarItemGap() {
+        return 2;
     }
 
     private void drawSidebar(GuiGraphicsExtractor extractor, int startX, int startY, int mouseX, int mouseY) {
         int itemX = startX + 6;
         int itemW = SIDEBAR_WIDTH - 12;
-        int itemH = 22;
-        int curY = startY + HEADER_HEIGHT + 8;
+        int itemH = sidebarItemHeight();
+        int itemGap = sidebarItemGap();
+        int curY = startY + HEADER_HEIGHT + 6;
 
         // 1. Quick Views: Favorites & Active
         int favCount = (int) StarClient.getInstance().getModuleManager().getModules().stream()
@@ -361,7 +451,7 @@ public class ClickGuiScreen extends Screen {
                 favCount > 0 ? String.valueOf(favCount) : null,
                 activeSidebarSection == SidebarSection.FAVORITES && !isSearching(),
                 0xFFFACC15, mouseX, mouseY);
-        curY += itemH + 3;
+        curY += itemH + itemGap;
 
         int activeCount = (int) StarClient.getInstance().getModuleManager().getModules().stream()
                 .filter(Module::isEnabled).count();
@@ -369,11 +459,11 @@ public class ClickGuiScreen extends Screen {
                 String.valueOf(activeCount),
                 activeSidebarSection == SidebarSection.ACTIVE && !isSearching(),
                 0xFF34D399, mouseX, mouseY);
-        curY += itemH + 6;
+        curY += itemH + 4;
 
         // Divider
         extractor.fill(itemX + 4, curY, itemX + itemW - 4, curY + 1, menuBorder());
-        curY += 6;
+        curY += 5;
 
         // 2. Categories
         for (Category category : Category.values()) {
@@ -381,7 +471,12 @@ public class ClickGuiScreen extends Screen {
                     && activeSidebarSection == SidebarSection.CATEGORY
                     && selectedCategory == category;
             String badge = null;
-            if (category != Category.COSMETICS && category != Category.SETTINGS && category != Category.STATS) {
+            if (category == Category.PROFILES) {
+                ProfileManager pm = StarClient.getInstance().getProfileManager();
+                if (pm != null) {
+                    badge = String.valueOf(pm.getProfiles().size());
+                }
+            } else if (category != Category.COSMETICS && category != Category.SETTINGS && category != Category.STATS) {
                 List<Module> catMods = StarClient.getInstance().getModuleManager().getModulesByCategory(category);
                 long enabledInCat = catMods.stream().filter(Module::isEnabled).count();
                 if (enabledInCat > 0) {
@@ -390,7 +485,7 @@ public class ClickGuiScreen extends Screen {
             }
             String label = category.getIcon() + " " + category.getName();
             drawSidebarItem(extractor, itemX, curY, itemW, itemH, label, badge, selected, menuAccent(), mouseX, mouseY);
-            curY += itemH + 3;
+            curY += itemH + itemGap;
         }
     }
 
@@ -445,6 +540,12 @@ public class ClickGuiScreen extends Screen {
         } else if (isSettingsView()) {
             title = Category.SETTINGS.getIcon() + " Client Settings";
             subtitle = "Global appearance, font style & integrations";
+        } else if (isProfilesView()) {
+            ProfileManager pm = StarClient.getInstance().getProfileManager();
+            ClientProfile act = pm != null ? pm.getActiveProfile() : null;
+            title = Category.PROFILES.getIcon() + " Custom Saved Profiles";
+            subtitle = "Active: " + (act != null ? act.getIcon() + " " + act.getName() : "Default")
+                    + " • Auto-link worlds & servers per profile";
         } else if (isStatsView()) {
             title = Category.STATS.getIcon() + " Player Statistics";
             subtitle = "Lifetime gameplay tracking & client achievements";
@@ -811,145 +912,164 @@ public class ClickGuiScreen extends Screen {
             setTooltip(setting.getName(), setting.getDescription());
         }
 
-        if (setting instanceof BooleanSetting booleanSetting) {
-            GuiRenderUtils.drawText(extractor, this.font, setting.getName(), item.x + 8, item.y + 8, 0xFFE2E8F0);
-            float target = booleanSetting.getValue() ? 1.0F : 0.0F;
-            float anim = boolSettingAnimMap.getOrDefault(setting, target);
-            anim += (target - anim) * 0.25F;
-            boolSettingAnimMap.put(setting, anim);
-
-            int swW = 26;
-            int swH = 14;
-            int swX = item.x + item.width - swW - 8;
-            int swY = item.y + (item.height - swH) / 2;
-            GuiRenderUtils.drawToggleSwitch(extractor, swX, swY, swW, swH, anim, menuAccent(), 0xFF334155);
-        } else if (setting instanceof ColorModeSetting colorSetting) {
-            GuiRenderUtils.drawText(extractor, this.font, setting.getName(), item.x + 8, item.y + 7, 0xFFE2E8F0);
-            String curVal = colorSetting.getValue();
-            GuiRenderUtils.drawText(extractor, this.font, curVal,
-                    item.x + item.width - GuiRenderUtils.textWidth(this.font, curVal) - 8, item.y + 7, menuAccent());
-
-            List<String> modes = colorSetting.getModes();
-            int swatchSize = 14;
-            int swatchGap = 4;
-            int cols = Math.max(1, (item.width - 16 + swatchGap) / (swatchSize + swatchGap));
-            for (int i = 0; i < modes.size(); i++) {
-                String modeName = modes.get(i);
-                int col = i % cols;
-                int row = i / cols;
-                int sx = item.x + 8 + col * (swatchSize + swatchGap);
-                int sy = item.y + 22 + row * (swatchSize + swatchGap);
-                int color = colorSetting.getColorFor(modeName);
-                boolean selected = modeName.equalsIgnoreCase(curVal);
-                boolean swatchHover = isHovered(mouseX, mouseY, sx, sy, swatchSize, swatchSize);
-
-                GuiRenderUtils.fillRoundedRect(extractor, sx, sy, swatchSize, swatchSize, 4, color);
-                if (selected) {
-                    GuiRenderUtils.drawRoundedOutline(extractor, sx - 1, sy - 1, swatchSize + 2, swatchSize + 2, 5, 0xFFFFFFFF);
-                    GuiRenderUtils.drawCenteredText(extractor, this.font, "•", sx + swatchSize / 2, sy + 3, 0xFFFFFFFF);
-                } else if (swatchHover) {
-                    GuiRenderUtils.drawRoundedOutline(extractor, sx - 1, sy - 1, swatchSize + 2, swatchSize + 2, 5, menuAccent());
-                    setTooltip(setting.getName() + ": " + modeName, "Click to select " + modeName);
-                } else {
-                    GuiRenderUtils.drawRoundedOutline(extractor, sx, sy, swatchSize, swatchSize, 4, 0x66000000);
-                }
-            }
-        } else if (setting instanceof ModeSetting modeSetting) {
-            List<String> modes = modeSetting.getModes();
-            if (isCompactSegmentedMode(modeSetting, item.width)) {
-                GuiRenderUtils.drawText(extractor, this.font, setting.getName(), item.x + 8, item.y + 6, 0xFFE2E8F0);
-                int segY = item.y + 20;
-                int segH = 16;
-                int totalW = item.width - 16;
-                int segGap = 4;
-                int segW = (totalW - segGap * (modes.size() - 1)) / modes.size();
-                for (int i = 0; i < modes.size(); i++) {
-                    String opt = modes.get(i);
-                    int sx = item.x + 8 + i * (segW + segGap);
-                    boolean active = opt.equalsIgnoreCase(modeSetting.getValue());
-                    boolean segHover = isHovered(mouseX, mouseY, sx, segY, segW, segH);
-                    int bg = active ? menuAccentDark() : (segHover ? menuBgLight() : menuBgDark());
-                    GuiRenderUtils.fillRoundedRect(extractor, sx, segY, segW, segH, 4, bg);
-                    GuiRenderUtils.drawRoundedOutline(extractor, sx, segY, segW, segH, 4,
-                            active ? menuAccent() : menuBorder());
-                    String label = GuiRenderUtils.truncate(this.font, opt, segW - 6);
-                    GuiRenderUtils.drawCenteredText(extractor, this.font, label, sx + segW / 2, segY + 4,
-                            active ? 0xFFFFFFFF : (segHover ? 0xFFE2E8F0 : 0xFF94A3B8));
-                }
-            } else {
-                // Expandable dropdown mode selector
+        switch (setting) {
+            case BooleanSetting booleanSetting -> {
                 GuiRenderUtils.drawText(extractor, this.font, setting.getName(), item.x + 8, item.y + 8, 0xFFE2E8F0);
-                boolean isExpanded = (expandedDropdown == modeSetting);
-                String valLabel = modeSetting.getValue() + (isExpanded ? " ▴" : " ▾");
-                int pillW = Math.min(item.width / 2, GuiRenderUtils.textWidth(this.font, valLabel) + 12);
-                int pillX = item.x + item.width - pillW - 6;
-                int pillY = item.y + 4;
-                GuiRenderUtils.fillRoundedRect(extractor, pillX, pillY, pillW, 16, 4,
-                        isExpanded ? menuAccentDark() : menuBgDark());
-                GuiRenderUtils.drawRoundedOutline(extractor, pillX, pillY, pillW, 16, 4,
-                        isExpanded ? menuAccent() : menuBorder());
-                GuiRenderUtils.drawCenteredText(extractor, this.font,
-                        GuiRenderUtils.truncate(this.font, valLabel, pillW - 6),
-                        pillX + pillW / 2, pillY + 4, isExpanded ? 0xFFFFFFFF : menuAccent());
+                float target = booleanSetting.getValue() ? 1.0F : 0.0F;
+                float anim = boolSettingAnimMap.getOrDefault(setting, target);
+                anim += (target - anim) * 0.25F;
+                boolSettingAnimMap.put(setting, anim);
 
-                if (isExpanded) {
-                    int optY = item.y + 24;
-                    for (String opt : modes) {
-                        boolean active = opt.equalsIgnoreCase(modeSetting.getValue());
-                        boolean optHover = isHovered(mouseX, mouseY, item.x + 6, optY, item.width - 12, 16);
-                        GuiRenderUtils.fillRoundedRect(extractor, item.x + 6, optY, item.width - 12, 16, 4,
-                                active ? menuAccentDark() : (optHover ? menuBgLight() : menuBgDark()));
-                        String prefix = active ? "● " : "  ";
-                        GuiRenderUtils.drawText(extractor, this.font, prefix + opt, item.x + 12, optY + 4,
-                                active ? 0xFFFFFFFF : (optHover ? 0xFFE2E8F0 : 0xFF94A3B8));
-                        optY += 18;
+                int swW = 26;
+                int swH = 14;
+                int swX = item.x + item.width - swW - 8;
+                int swY = item.y + (item.height - swH) / 2;
+                GuiRenderUtils.drawToggleSwitch(extractor, swX, swY, swW, swH, anim, menuAccent(), 0xFF334155);
+            }
+            case ColorModeSetting colorSetting -> {
+                GuiRenderUtils.drawText(extractor, this.font, setting.getName(), item.x + 8, item.y + 7, 0xFFE2E8F0);
+                String curVal = colorSetting.getValue();
+                GuiRenderUtils.drawText(extractor, this.font, curVal,
+                        item.x + item.width - GuiRenderUtils.textWidth(this.font, curVal) - 8, item.y + 7, menuAccent());
+
+                List<String> modes = colorSetting.getModes();
+                int swatchSize = 14;
+                int swatchGap = 4;
+                int cols = Math.max(1, (item.width - 16 + swatchGap) / (swatchSize + swatchGap));
+                for (int i = 0; i < modes.size(); i++) {
+                    String modeName = modes.get(i);
+                    int col = i % cols;
+                    int row = i / cols;
+                    int sx = item.x + 8 + col * (swatchSize + swatchGap);
+                    int sy = item.y + 22 + row * (swatchSize + swatchGap);
+                    int color = colorSetting.getColorFor(modeName);
+                    boolean selected = modeName.equalsIgnoreCase(curVal);
+                    boolean swatchHover = isHovered(mouseX, mouseY, sx, sy, swatchSize, swatchSize);
+
+                    GuiRenderUtils.fillRoundedRect(extractor, sx, sy, swatchSize, swatchSize, 4, color);
+                    if (selected) {
+                        GuiRenderUtils.drawRoundedOutline(extractor, sx - 1, sy - 1, swatchSize + 2, swatchSize + 2, 5, 0xFFFFFFFF);
+                        GuiRenderUtils.drawCenteredText(extractor, this.font, "•", sx + swatchSize / 2, sy + 3, 0xFFFFFFFF);
+                    } else if (swatchHover) {
+                        GuiRenderUtils.drawRoundedOutline(extractor, sx - 1, sy - 1, swatchSize + 2, swatchSize + 2, 5, menuAccent());
+                        setTooltip(setting.getName() + ": " + modeName, "Click to select " + modeName);
+                    } else {
+                        GuiRenderUtils.drawRoundedOutline(extractor, sx, sy, swatchSize, swatchSize, 4, 0x66000000);
                     }
                 }
             }
-        } else if (setting instanceof NumberSetting numberSetting) {
-            GuiRenderUtils.drawText(extractor, this.font, setting.getName(), item.x + 8, item.y + 6, 0xFFE2E8F0);
-            String valStr = formatValue(numberSetting.getValue());
-            int badgeW = GuiRenderUtils.textWidth(this.font, valStr) + 10;
-            int badgeX = item.x + item.width - badgeW - 6;
-            GuiRenderUtils.fillRoundedRect(extractor, badgeX, item.y + 4, badgeW, 12, 4, menuBgDark());
-            GuiRenderUtils.drawCenteredText(extractor, this.font, valStr, badgeX + badgeW / 2, item.y + 6, menuAccent());
+            case ModeSetting modeSetting -> {
+                List<String> modes = modeSetting.getModes();
+                if (isCompactSegmentedMode(modeSetting, item.width)) {
+                    GuiRenderUtils.drawText(extractor, this.font, setting.getName(), item.x + 8, item.y + 6, 0xFFE2E8F0);
+                    int segY = item.y + 20;
+                    int segH = 16;
+                    int totalW = item.width - 16;
+                    int segGap = 4;
+                    int segW = (totalW - segGap * (modes.size() - 1)) / modes.size();
+                    for (int i = 0; i < modes.size(); i++) {
+                        String opt = modes.get(i);
+                        int sx = item.x + 8 + i * (segW + segGap);
+                        boolean active = opt.equalsIgnoreCase(modeSetting.getValue());
+                        boolean segHover = isHovered(mouseX, mouseY, sx, segY, segW, segH);
+                        int bg = active ? menuAccentDark() : (segHover ? menuBgLight() : menuBgDark());
+                        GuiRenderUtils.fillRoundedRect(extractor, sx, segY, segW, segH, 4, bg);
+                        GuiRenderUtils.drawRoundedOutline(extractor, sx, segY, segW, segH, 4,
+                                active ? menuAccent() : menuBorder());
+                        String label = GuiRenderUtils.truncate(this.font, opt, segW - 6);
+                        GuiRenderUtils.drawCenteredText(extractor, this.font, label, sx + segW / 2, segY + 4,
+                                active ? 0xFFFFFFFF : (segHover ? 0xFFE2E8F0 : 0xFF94A3B8));
+                    }
+                } else {
+                    // Expandable dropdown mode selector
+                    GuiRenderUtils.drawText(extractor, this.font, setting.getName(), item.x + 8, item.y + 8, 0xFFE2E8F0);
+                    boolean isExpanded = (expandedDropdown == modeSetting);
+                    String valLabel = modeSetting.getValue() + (isExpanded ? " ▴" : " ▾");
+                    int pillW = Math.min(item.width / 2, GuiRenderUtils.textWidth(this.font, valLabel) + 12);
+                    int pillX = item.x + item.width - pillW - 6;
+                    int pillY = item.y + 4;
+                    GuiRenderUtils.fillRoundedRect(extractor, pillX, pillY, pillW, 16, 4,
+                            isExpanded ? menuAccentDark() : menuBgDark());
+                    GuiRenderUtils.drawRoundedOutline(extractor, pillX, pillY, pillW, 16, 4,
+                            isExpanded ? menuAccent() : menuBorder());
+                    GuiRenderUtils.drawCenteredText(extractor, this.font,
+                            GuiRenderUtils.truncate(this.font, valLabel, pillW - 6),
+                            pillX + pillW / 2, pillY + 4, isExpanded ? 0xFFFFFFFF : menuAccent());
 
-            int trackX = item.x + 8;
-            int trackW = item.width - 16;
-            int trackY = item.y + item.height - 10;
-            int trackH = 4;
-            GuiRenderUtils.fillRoundedRect(extractor, trackX, trackY, trackW, trackH, 2, 0xFF334155);
+                    if (isExpanded) {
+                        int optY = item.y + 24;
+                        for (String opt : modes) {
+                            boolean active = opt.equalsIgnoreCase(modeSetting.getValue());
+                            boolean optHover = isHovered(mouseX, mouseY, item.x + 6, optY, item.width - 12, 16);
+                            GuiRenderUtils.fillRoundedRect(extractor, item.x + 6, optY, item.width - 12, 16, 4,
+                                    active ? menuAccentDark() : (optHover ? menuBgLight() : menuBgDark()));
+                            String prefix = active ? "● " : "  ";
+                            GuiRenderUtils.drawText(extractor, this.font, prefix + opt, item.x + 12, optY + 4,
+                                    active ? 0xFFFFFFFF : (optHover ? 0xFFE2E8F0 : 0xFF94A3B8));
+                            optY += 18;
+                        }
+                    }
+                }
+            }
+            case NumberSetting numberSetting -> {
+                GuiRenderUtils.drawText(extractor, this.font, setting.getName(), item.x + 8, item.y + 6, 0xFFE2E8F0);
+                String valStr = formatValue(numberSetting.getValue());
+                int badgeW = GuiRenderUtils.textWidth(this.font, valStr) + 10;
+                int badgeX = item.x + item.width - badgeW - 6;
+                GuiRenderUtils.fillRoundedRect(extractor, badgeX, item.y + 4, badgeW, 12, 4, menuBgDark());
+                GuiRenderUtils.drawCenteredText(extractor, this.font, valStr, badgeX + badgeW / 2, item.y + 6, menuAccent());
 
-            double range = numberSetting.getMax() - numberSetting.getMin();
-            double t = range <= 0 ? 0 : (numberSetting.getValue() - numberSetting.getMin()) / range;
-            t = Math.clamp(t, 0.0, 1.0);
-            int fillW = Math.max(4, (int) Math.round(trackW * t));
-            GuiRenderUtils.fillRoundedRect(extractor, trackX, trackY, fillW, trackH, 2, menuAccent());
+                int trackX = item.x + 8;
+                int trackW = item.width - 16;
+                int trackY = item.y + item.height - 10;
+                int trackH = 4;
+                GuiRenderUtils.fillRoundedRect(extractor, trackX, trackY, trackW, trackH, 2, 0xFF334155);
 
-            int knobX = trackX + (int) Math.round((trackW - 8) * t);
-            GuiRenderUtils.fillRoundedRect(extractor, knobX, trackY - 2, 8, 8, 4, 0xFFFFFFFF);
-            GuiRenderUtils.drawRoundedOutline(extractor, knobX, trackY - 2, 8, 8, 4, menuAccent());
-        } else if (setting instanceof TextSetting textSetting) {
-            GuiRenderUtils.drawText(extractor, this.font, setting.getName(), item.x + 8, item.y + 8, 0xFFE2E8F0);
-            String value = textSetting.getValue();
-            boolean blank = value == null || value.isBlank();
-            String label = blank ? "Edit ✎" : GuiRenderUtils.truncate(this.font,
-                    (textSetting.isSecret() ? mask(value) : value) + " ✎", item.width / 2);
-            int btnW = GuiRenderUtils.textWidth(this.font, label) + 12;
-            int btnX = item.x + item.width - btnW - 6;
-            GuiRenderUtils.fillRoundedRect(extractor, btnX, item.y + 4, btnW, 16, 4, menuBgDark());
-            GuiRenderUtils.drawRoundedOutline(extractor, btnX, item.y + 4, btnW, 16, 4, menuBorder());
-            GuiRenderUtils.drawCenteredText(extractor, this.font, label, btnX + btnW / 2, item.y + 8,
-                    blank ? 0xFF94A3B8 : menuAccent());
-        } else if (setting instanceof NickEntryListSetting) {
-            GuiRenderUtils.drawText(extractor, this.font, setting.getName(), item.x + 8, item.y + 8, 0xFFE2E8F0);
-            int count = NickToolState.getEntries().size();
-            String label = (count == 0 ? "Manage (0)" : count + " entries") + " ✎";
-            int btnW = GuiRenderUtils.textWidth(this.font, label) + 12;
-            int btnX = item.x + item.width - btnW - 6;
-            GuiRenderUtils.fillRoundedRect(extractor, btnX, item.y + 4, btnW, 16, 4, menuBgDark());
-            GuiRenderUtils.drawRoundedOutline(extractor, btnX, item.y + 4, btnW, 16, 4, menuBorder());
-            GuiRenderUtils.drawCenteredText(extractor, this.font, label, btnX + btnW / 2, item.y + 8, menuAccent());
+                double range = numberSetting.getMax() - numberSetting.getMin();
+                double t = range <= 0 ? 0 : (numberSetting.getValue() - numberSetting.getMin()) / range;
+                t = Math.clamp(t, 0.0, 1.0);
+                int fillW = Math.max(4, (int) Math.round(trackW * t));
+                GuiRenderUtils.fillRoundedRect(extractor, trackX, trackY, fillW, trackH, 2, menuAccent());
+
+                int knobX = trackX + (int) Math.round((trackW - 8) * t);
+                GuiRenderUtils.fillRoundedRect(extractor, knobX, trackY - 2, 8, 8, 4, 0xFFFFFFFF);
+                GuiRenderUtils.drawRoundedOutline(extractor, knobX, trackY - 2, 8, 8, 4, menuAccent());
+            }
+            case TextSetting textSetting -> {
+                GuiRenderUtils.drawText(extractor, this.font, setting.getName(), item.x + 8, item.y + 8, 0xFFE2E8F0);
+                String value = textSetting.getValue();
+                boolean blank = value == null || value.isBlank();
+                String label = blank ? "Edit ✎" : GuiRenderUtils.truncate(this.font,
+                        (textSetting.isSecret() ? mask(value) : value) + " ✎", item.width / 2);
+                int btnW = GuiRenderUtils.textWidth(this.font, label) + 12;
+                int btnX = item.x + item.width - btnW - 6;
+                GuiRenderUtils.fillRoundedRect(extractor, btnX, item.y + 4, btnW, 16, 4, menuBgDark());
+                GuiRenderUtils.drawRoundedOutline(extractor, btnX, item.y + 4, btnW, 16, 4, menuBorder());
+                GuiRenderUtils.drawCenteredText(extractor, this.font, label, btnX + btnW / 2, item.y + 8,
+                        blank ? 0xFF94A3B8 : menuAccent());
+            }
+            case NickEntryListSetting nickEntryListSetting -> {
+                GuiRenderUtils.drawText(extractor, this.font, setting.getName(), item.x + 8, item.y + 8, 0xFFE2E8F0);
+                int count = NickToolState.getEntries().size();
+                String label = (count == 0 ? "Manage (0)" : count + " entries") + " ✎";
+                int btnW = GuiRenderUtils.textWidth(this.font, label) + 12;
+                int btnX = item.x + item.width - btnW - 6;
+                GuiRenderUtils.fillRoundedRect(extractor, btnX, item.y + 4, btnW, 16, 4, menuBgDark());
+                GuiRenderUtils.drawRoundedOutline(extractor, btnX, item.y + 4, btnW, 16, 4, menuBorder());
+                GuiRenderUtils.drawCenteredText(extractor, this.font, label, btnX + btnW / 2, item.y + 8, menuAccent());
+            }
+            case MacroListSetting macroListSetting -> {
+                GuiRenderUtils.drawText(extractor, this.font, setting.getName(), item.x + 8, item.y + 8, 0xFFE2E8F0);
+                int count = QuickCommandsState.getEntries().size();
+                String label = (count == 0 ? "Manage (0)" : count + (count == 1 ? " macro" : " macros")) + " ✎";
+                int btnW = GuiRenderUtils.textWidth(this.font, label) + 12;
+                int btnX = item.x + item.width - btnW - 6;
+                GuiRenderUtils.fillRoundedRect(extractor, btnX, item.y + 4, btnW, 16, 4, menuBgDark());
+                GuiRenderUtils.drawRoundedOutline(extractor, btnX, item.y + 4, btnW, 16, 4, menuBorder());
+                GuiRenderUtils.drawCenteredText(extractor, this.font, label, btnX + btnW / 2, item.y + 8, menuAccent());
+            }
+            default -> {
+            }
         }
     }
 
@@ -1029,13 +1149,13 @@ public class ClickGuiScreen extends Screen {
         int curY = (int) Math.round(topY - scroll);
 
         // Keybind Card
-        items.add(DrawerItem.keybind(module, x, curY, width, 24));
+        items.add(DrawerItem.keybind(module, x, curY, width));
         curY += 28;
 
         // General Settings
         List<Setting<?>> general = module.getGeneralSettings();
         if (!general.isEmpty()) {
-            items.add(DrawerItem.header("Module Settings", x, curY, width, 18));
+            items.add(DrawerItem.header("Module Settings", x, curY, width));
             curY += 20;
             for (Setting<?> setting : general) {
                 int h = computeSettingRowHeight(setting, width);
@@ -1048,7 +1168,7 @@ public class ClickGuiScreen extends Screen {
         List<Setting<?>> hudSettings = module.getHudAppearanceSettings();
         if (!hudSettings.isEmpty()) {
             curY += 2;
-            items.add(DrawerItem.header("HUD Appearance", x, curY, width, 18));
+            items.add(DrawerItem.header("HUD Appearance", x, curY, width));
             curY += 20;
             for (Setting<?> setting : hudSettings) {
                 int h = computeSettingRowHeight(setting, width);
@@ -1058,7 +1178,7 @@ public class ClickGuiScreen extends Screen {
         }
 
         if (general.isEmpty() && hudSettings.isEmpty()) {
-            items.add(DrawerItem.info("No additional settings for this module", x, curY + 4, width, 28));
+            items.add(DrawerItem.info(x, curY + 4, width));
         }
 
         return items;
@@ -1069,22 +1189,26 @@ public class ClickGuiScreen extends Screen {
         int curY = (int) Math.round(topY - scroll);
         ClientSettings cs = StarClient.getInstance().getClientSettings();
 
-        items.add(DrawerItem.header("Theme & Appearance", x, curY, width, 18));
+        items.add(DrawerItem.header("Theme & Appearance", x, curY, width));
         curY += 22;
 
         for (Setting<?> setting : cs.getSettings()) {
-            if (setting.getName().equals("HUD Text Shadow")) {
-                curY += 4;
-                items.add(DrawerItem.header("HUD & In-Game Visuals", x, curY, width, 18));
-                curY += 22;
-            } else if (setting.getName().equals("Hypixel API Key")) {
-                curY += 4;
-                items.add(DrawerItem.header("Integrations & API", x, curY, width, 18));
-                curY += 22;
-            } else if (setting.getName().equals("Experimental Features")) {
-                curY += 4;
-                items.add(DrawerItem.header("Advanced & Experimental", x, curY, width, 18));
-                curY += 22;
+            switch (setting.getName()) {
+                case "HUD Text Shadow" -> {
+                    curY += 4;
+                    items.add(DrawerItem.header("HUD & In-Game Visuals", x, curY, width));
+                    curY += 22;
+                }
+                case "Hypixel API Key" -> {
+                    curY += 4;
+                    items.add(DrawerItem.header("Integrations & API", x, curY, width));
+                    curY += 22;
+                }
+                case "Experimental Features" -> {
+                    curY += 4;
+                    items.add(DrawerItem.header("Advanced & Experimental", x, curY, width));
+                    curY += 22;
+                }
             }
             int h = computeSettingRowHeight(setting, width);
             items.add(DrawerItem.setting(setting, x, curY, width, h));
@@ -1119,7 +1243,7 @@ public class ClickGuiScreen extends Screen {
     }
 
     private int drawerVisibleWidth() {
-        if (isSettingsView() || isStatsView()) return 0;
+        if (isSettingsView() || isStatsView() || isProfilesView()) return 0;
         if (drawerModule == null && drawerProgress <= 0.01F) return 0;
         return Math.round(DRAWER_WIDTH * drawerProgress);
     }
@@ -1177,6 +1301,9 @@ public class ClickGuiScreen extends Screen {
         }
         if (isStatsView()) {
             return this.statsViewRenderer.computeMaxScroll(contentWidth, viewportHeight);
+        }
+        if (isProfilesView()) {
+            return this.profilesViewRenderer.computeMaxScroll(contentWidth, viewportHeight);
         }
         List<Module> visible = getVisibleModules();
         int cols = computeGridColumns(contentWidth);
@@ -1241,16 +1368,68 @@ public class ClickGuiScreen extends Screen {
 
         int searchY = startY + (HEADER_HEIGHT - SEARCH_HEIGHT) / 2;
 
-        // 1. Check Edit HUD Button
+        // 0. Check open Profile Quick-Switcher Dropdown first
         int hudBtnX = startX + guiWidth - 12 - HUD_EDITOR_BTN_WIDTH;
+        int profBtnX = hudBtnX - 6 - PROFILE_BTN_WIDTH;
+        if (profileDropdownOpen) {
+            ProfileManager pm = StarClient.getInstance().getProfileManager();
+            if (pm != null) {
+                List<ClientProfile> profiles = pm.getProfiles();
+                int dropW = 148;
+                int dropX = Math.min(profBtnX, startX + guiWidth - dropW - 10);
+                int dropY = startY + HEADER_HEIGHT - 4;
+                int rowH = 20;
+                int dropH = (profiles.size() + 1) * rowH + 8;
+
+                if (isHovered(mouseX, mouseY, dropX, dropY, dropW, dropH)) {
+                    int ry = dropY + 4;
+                    for (ClientProfile p : profiles) {
+                        if (isHovered(mouseX, mouseY, dropX + 4, ry, dropW - 8, rowH)) {
+                            pm.switchProfile(p.getId());
+                            profileDropdownOpen = false;
+                            return true;
+                        }
+                        ry += rowH;
+                    }
+                    if (isHovered(mouseX, mouseY, dropX + 4, ry + 1, dropW - 8, rowH - 1)) {
+                        profileDropdownOpen = false;
+                        activeSidebarSection = SidebarSection.CATEGORY;
+                        selectedCategory = Category.PROFILES;
+                        clearSearchIfActive();
+                        targetModuleScroll = 0;
+                        drawerModule = null;
+                        return true;
+                    }
+                    return true;
+                }
+            }
+            if (!isHovered(mouseX, mouseY, profBtnX, searchY, PROFILE_BTN_WIDTH, SEARCH_HEIGHT)) {
+                profileDropdownOpen = false;
+            }
+        }
+
+        // 1. Check Edit HUD Button & Profile Quick-Switcher Button
         if (isHovered(mouseX, mouseY, hudBtnX, searchY, HUD_EDITOR_BTN_WIDTH, SEARCH_HEIGHT)) {
             Minecraft.getInstance().gui.setScreen(new HudEditorScreen(this));
+            return true;
+        }
+        if (isHovered(mouseX, mouseY, profBtnX, searchY, PROFILE_BTN_WIDTH, SEARCH_HEIGHT)) {
+            if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
+                profileDropdownOpen = false;
+                activeSidebarSection = SidebarSection.CATEGORY;
+                selectedCategory = Category.PROFILES;
+                clearSearchIfActive();
+                targetModuleScroll = 0;
+                drawerModule = null;
+            } else {
+                profileDropdownOpen = !profileDropdownOpen;
+            }
             return true;
         }
 
         // 2. Check Search Box & Clear Button
         int searchX = startX + SIDEBAR_WIDTH + 12;
-        int searchW = 190;
+        int searchW = 160;
         if (isSearching()) {
             int clearX = searchX + searchW - 16;
             int clearY = searchY + (SEARCH_HEIGHT - 8) / 2;
@@ -1261,6 +1440,7 @@ public class ClickGuiScreen extends Screen {
             }
         }
         if (isHovered(mouseX, mouseY, searchX, searchY, searchW, SEARCH_HEIGHT)) {
+            this.profilesViewRenderer.clearFocus();
             this.searchBox.setFocused(true);
             this.setFocused(this.searchBox);
             return super.mouseClicked(event, action);
@@ -1270,11 +1450,11 @@ public class ClickGuiScreen extends Screen {
         }
 
         // 3. Check Filter Pills
-        int filterX = searchX + searchW + 10;
+        int filterX = searchX + searchW + 8;
         int filterY = searchY + 1;
         int filterH = SEARCH_HEIGHT - 2;
         for (FilterMode mode : FilterMode.values()) {
-            int pillW = GuiRenderUtils.textWidth(this.font, mode.label) + 14;
+            int pillW = GuiRenderUtils.textWidth(this.font, mode.label) + 12;
             if (isHovered(mouseX, mouseY, filterX, filterY, pillW, filterH)) {
                 selectedFilter = mode;
                 targetModuleScroll = 0;
@@ -1286,24 +1466,27 @@ public class ClickGuiScreen extends Screen {
         // 4. Check Sidebar Items
         int itemX = startX + 6;
         int itemW = SIDEBAR_WIDTH - 12;
-        int itemH = 22;
-        int curY = startY + HEADER_HEIGHT + 8;
+        int itemH = sidebarItemHeight();
+        int itemGap = sidebarItemGap();
+        int curY = startY + HEADER_HEIGHT + 6;
 
         if (isHovered(mouseX, mouseY, itemX, curY, itemW, itemH)) {
             activeSidebarSection = SidebarSection.FAVORITES;
             clearSearchIfActive();
+            this.profilesViewRenderer.clearFocus();
             targetModuleScroll = 0;
             return true;
         }
-        curY += itemH + 3;
+        curY += itemH + itemGap;
 
         if (isHovered(mouseX, mouseY, itemX, curY, itemW, itemH)) {
             activeSidebarSection = SidebarSection.ACTIVE;
             clearSearchIfActive();
+            this.profilesViewRenderer.clearFocus();
             targetModuleScroll = 0;
             return true;
         }
-        curY += itemH + 12;
+        curY += itemH + 9;
 
         for (Category category : Category.values()) {
             if (isHovered(mouseX, mouseY, itemX, curY, itemW, itemH)) {
@@ -1314,18 +1497,19 @@ public class ClickGuiScreen extends Screen {
                 activeSidebarSection = SidebarSection.CATEGORY;
                 selectedCategory = category;
                 clearSearchIfActive();
+                this.profilesViewRenderer.clearFocus();
                 targetModuleScroll = 0;
-                if (category == Category.SETTINGS) {
+                if (category == Category.SETTINGS || category == Category.PROFILES || category == Category.STATS) {
                     drawerModule = null;
                     expandedDropdown = null;
                 }
                 return true;
             }
-            curY += itemH + 3;
+            curY += itemH + itemGap;
         }
 
         // 5. Check Settings Drawer interactions if open
-        if (drawerModule != null && !isSettingsView() && !isStatsView() && drawerProgress > 0.5F) {
+        if (drawerModule != null && !isSettingsView() && !isStatsView() && !isProfilesView() && drawerProgress > 0.5F) {
             int drawerX = startX + guiWidth - DRAWER_WIDTH;
             int drawerY = startY + HEADER_HEIGHT;
             int drawerH = guiHeight - HEADER_HEIGHT;
@@ -1358,6 +1542,10 @@ public class ClickGuiScreen extends Screen {
                         StarClient.getInstance().getConfigManager().saveConfig();
                         return true;
                     }
+                }
+            } else if (isProfilesView()) {
+                if (this.profilesViewRenderer.mouseClicked(this.font, contentLeft, contentWidth, panelTop, moduleScroll, mouseX, mouseY, button)) {
+                    return true;
                 }
             } else if (isStatsView()) {
                 if (this.statsViewRenderer.mouseClicked(contentLeft, contentWidth, panelTop, mouseX, mouseY)) {
@@ -1587,6 +1775,8 @@ public class ClickGuiScreen extends Screen {
             Minecraft.getInstance().gui.setScreen(new TextSettingScreen(textSetting, this));
         } else if (setting instanceof NickEntryListSetting) {
             Minecraft.getInstance().gui.setScreen(new NickToolScreen(this));
+        } else if (setting instanceof MacroListSetting) {
+            Minecraft.getInstance().gui.setScreen(new QuickCommandsScreen(this));
         }
     }
 
@@ -1780,8 +1970,18 @@ public class ClickGuiScreen extends Screen {
             return true;
         }
 
+        if (isProfilesView() && this.profilesViewRenderer.hasFocusedInput()) {
+            if (this.profilesViewRenderer.keyPressed(event)) {
+                return true;
+            }
+        }
+
         // Escape closes card modal first, then expanded dropdown, then open Settings Drawer, then focused search / search query, then screen
         if (key == GLFW.GLFW_KEY_ESCAPE) {
+            if (profileDropdownOpen) {
+                profileDropdownOpen = false;
+                return true;
+            }
             if (isStatsView() && this.statsViewRenderer.isShowingCardModal()) {
                 this.statsViewRenderer.closeCardModal();
                 return true;
@@ -1815,6 +2015,9 @@ public class ClickGuiScreen extends Screen {
 
     @Override
     public boolean charTyped(@NonNull CharacterEvent event) {
+        if (isProfilesView() && this.profilesViewRenderer.hasFocusedInput()) {
+            return this.profilesViewRenderer.charTyped(event);
+        }
         if (this.searchBox != null && this.searchBox.isFocused()) {
             return this.searchBox.charTyped(event);
         }
@@ -1847,6 +2050,12 @@ public class ClickGuiScreen extends Screen {
         return !isSearching()
                 && activeSidebarSection == SidebarSection.CATEGORY
                 && selectedCategory == Category.SETTINGS;
+    }
+
+    private boolean isProfilesView() {
+        return !isSearching()
+                && activeSidebarSection == SidebarSection.CATEGORY
+                && selectedCategory == Category.PROFILES;
     }
 
     private boolean isStatsView() {
@@ -1964,20 +2173,20 @@ public class ClickGuiScreen extends Screen {
             int width,
             int height
     ) {
-        static DrawerItem header(String title, int x, int y, int width, int height) {
-            return new DrawerItem(title, false, null, null, null, x, y, width, height);
+        static DrawerItem header(String title, int x, int y, int width) {
+            return new DrawerItem(title, false, null, null, null, x, y, width, 18);
         }
 
-        static DrawerItem keybind(Module module, int x, int y, int width, int height) {
-            return new DrawerItem(null, true, module, null, null, x, y, width, height);
+        static DrawerItem keybind(Module module, int x, int y, int width) {
+            return new DrawerItem(null, true, module, null, null, x, y, width, 24);
         }
 
         static DrawerItem setting(Setting<?> setting, int x, int y, int width, int height) {
             return new DrawerItem(null, false, null, setting, null, x, y, width, height);
         }
 
-        static DrawerItem info(String msg, int x, int y, int width, int height) {
-            return new DrawerItem(null, false, null, null, msg, x, y, width, height);
+        static DrawerItem info(int x, int y, int width) {
+            return new DrawerItem(null, false, null, null, "No additional settings for this module", x, y, width, 28);
         }
 
         boolean contains(double mouseX, double mouseY) {

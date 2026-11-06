@@ -35,10 +35,9 @@ public final class ScoreboardRenderer {
         if (client.player == null) return;
 
         Scoreboard scoreboard = objective.getScoreboard();
-        if (scoreboard == null) return;
 
         Collection<PlayerScoreEntry> rawScores = scoreboard.listPlayerScores(objective);
-        if (rawScores == null || rawScores.isEmpty()) return;
+        if (rawScores.isEmpty()) return;
 
         NumberFormat numberFormat = objective.numberFormatOrDefault(StyledFormat.SIDEBAR_DEFAULT);
 
@@ -51,12 +50,12 @@ public final class ScoreboardRenderer {
 
         if (activeScores.isEmpty()) return;
 
-        boolean hideRedNumbers = getBool(mod, "Hide Red Numbers", true);
-        boolean useClientTheme = getBool(mod, "Use Client Theme", true);
-        boolean showBorder = getBool(mod, "Show Border", true);
+        boolean hideRedNumbers = getBool(mod, "Hide Red Numbers");
+        boolean useClientTheme = getBool(mod, "Use Client Theme");
+        boolean showBorder = getBool(mod, "Show Border");
         double opacity = getNum(mod, "Background Opacity", 70.0);
-        boolean rounded = getBool(mod, "Rounded Corners", true);
-        boolean textShadow = getBool(mod, "Text Shadow", true);
+        boolean rounded = getBool(mod, "Rounded Corners");
+        boolean textShadow = getBool(mod, "Text Shadow");
         int offsetY = (int) Math.round(getNum(mod, "Offset Y", 0.0));
 
         Font font = client.font;
@@ -72,7 +71,7 @@ public final class ScoreboardRenderer {
             Component score = entry.formatValue(numberFormat);
 
             int nameW = font.width(name);
-            int scoreW = (!hideRedNumbers && score != null) ? font.width(score) : 0;
+            int scoreW = !hideRedNumbers ? font.width(score) : 0;
             int totalW = nameW + (scoreW > 0 ? scoreW + 10 : 0);
 
             maxRowWidth = Math.max(maxRowWidth, totalW);
@@ -116,12 +115,12 @@ public final class ScoreboardRenderer {
         Minecraft client = Minecraft.getInstance();
         Font font = client.font;
 
-        boolean hideRedNumbers = getBool(mod, "Hide Red Numbers", true);
-        boolean useClientTheme = getBool(mod, "Use Client Theme", true);
-        boolean showBorder = getBool(mod, "Show Border", true);
+        boolean hideRedNumbers = getBool(mod, "Hide Red Numbers");
+        boolean useClientTheme = getBool(mod, "Use Client Theme");
+        boolean showBorder = getBool(mod, "Show Border");
         double opacity = getNum(mod, "Background Opacity", 70.0);
-        boolean rounded = getBool(mod, "Rounded Corners", true);
-        boolean textShadow = getBool(mod, "Text Shadow", true);
+        boolean rounded = getBool(mod, "Rounded Corners");
+        boolean textShadow = getBool(mod, "Text Shadow");
         boolean transparent = mod.isTransparentBackground();
         int offsetY = (int) Math.round(getNum(mod, "Offset Y", 0.0));
 
@@ -224,9 +223,9 @@ public final class ScoreboardRenderer {
         }
     }
 
-    private static boolean getBool(Module mod, String name, boolean def) {
+    private static boolean getBool(Module mod, String name) {
         Setting<?> s = mod.getSetting(name);
-        return s == null ? def : (boolean) s.getValue();
+        return s == null ? true : (boolean) s.getValue();
     }
 
     private static double getNum(Module mod, String name, double def) {

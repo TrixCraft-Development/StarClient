@@ -27,7 +27,6 @@ public class ChangelogScreen extends Screen {
     private double scroll = 0.0;
     private double targetScroll = 0.0;
     private boolean draggingScrollbar = false;
-    private double scrollbarDragOffsetY = 0.0;
 
     public ChangelogScreen(Screen parent) {
         super(Component.literal("Star Client Changelog"));
@@ -258,7 +257,6 @@ public class ChangelogScreen extends Screen {
             int scrollTrackX = pX + pW - 16;
             if (mx >= scrollTrackX - 4 && mx <= scrollTrackX + 12 && my >= vTop && my <= vTop + vHeight) {
                 this.draggingScrollbar = true;
-                this.scrollbarDragOffsetY = my;
                 updateScrollFromMouse(my);
                 return true;
             }
@@ -267,7 +265,7 @@ public class ChangelogScreen extends Screen {
     }
 
     @Override
-    public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+    public boolean mouseDragged(@NonNull MouseButtonEvent event, double dx, double dy) {
         if (this.draggingScrollbar) {
             updateScrollFromMouse(event.y());
             return true;
@@ -276,7 +274,7 @@ public class ChangelogScreen extends Screen {
     }
 
     @Override
-    public boolean mouseReleased(MouseButtonEvent event) {
+    public boolean mouseReleased(@NonNull MouseButtonEvent event) {
         if (this.draggingScrollbar) {
             this.draggingScrollbar = false;
             return true;

@@ -27,6 +27,10 @@ public class HudLayout {
     public static final String SCOREBOARD = "scoreboard";
     public static final String BOSS_BAR = "boss_bar";
     public static final String INVENTORY = "inventory_hud";
+    public static final String CLOCK = "clock";
+    public static final String COMPASS = "compass";
+    public static final String SERVER_INFO = "server_info";
+    public static final String MEMORY = "memory";
     public static final int AUTO = Integer.MIN_VALUE;
 
     public static final int FPS_WIDTH = 130;
@@ -68,6 +72,10 @@ public class HudLayout {
         positions.put(SCOREBOARD, new int[]{AUTO, AUTO});
         positions.put(BOSS_BAR, new int[]{AUTO, AUTO});
         positions.put(INVENTORY, new int[]{AUTO, AUTO});
+        positions.put(CLOCK, new int[]{AUTO, AUTO});
+        positions.put(COMPASS, new int[]{AUTO, AUTO});
+        positions.put(SERVER_INFO, new int[]{AUTO, AUTO});
+        positions.put(MEMORY, new int[]{AUTO, AUTO});
     }
 
     public void setBossBarSize(int width, int height) {
@@ -117,7 +125,11 @@ public class HudLayout {
 
     public int effectiveX(String id, int screenWidth, int maxModWidth) {
         return switch (id) {
-            case FPS, PING, COORDINATES, CPS, REACH, SPEED, COMBO, POTIONS -> isAuto(id) ? 8 : getX(id);
+            case FPS, PING, COORDINATES, CPS, REACH, SPEED, COMBO, CLOCK, SERVER_INFO, MEMORY, POTIONS -> isAuto(id) ? 8 : getX(id);
+            case COMPASS -> {
+                int w = maxModWidth > 0 ? maxModWidth : 210;
+                yield isAuto(id) ? (screenWidth - w) / 2 : getX(id);
+            }
             case ARRAYLIST -> isAuto(id) ? screenWidth - maxModWidth - 8 : getX(id);
             case KEYSTROKES -> isAuto(id) ? screenWidth - keystrokesWidth() - 8 : getX(id);
             case ARMOR -> isAuto(id) ? (screenWidth - armorWidth()) / 2 : getX(id);
@@ -149,7 +161,10 @@ public class HudLayout {
             case REACH -> isAuto(id) ? screenHeight - 122 : getY(id);
             case SPEED -> isAuto(id) ? screenHeight - 146 : getY(id);
             case COMBO -> isAuto(id) ? screenHeight - 170 : getY(id);
-            case POTIONS, ARRAYLIST -> isAuto(id) ? 8 : getY(id);
+            case CLOCK -> isAuto(id) ? screenHeight - 194 : getY(id);
+            case MEMORY -> isAuto(id) ? screenHeight - 222 : getY(id);
+            case SERVER_INFO -> isAuto(id) ? 60 : getY(id);
+            case COMPASS, POTIONS, ARRAYLIST -> isAuto(id) ? 8 : getY(id);
             case KEYSTROKES -> isAuto(id) ? screenHeight - keystrokesHeight() - 8 : getY(id);
             case ARMOR -> isAuto(id) ? screenHeight - armorHeight() - 8 : getY(id);
             case TARGET_HUD -> isAuto(id) ? screenHeight / 2 + 12 : getY(id);
@@ -298,7 +313,7 @@ public class HudLayout {
 
     public void fromJson(JsonObject obj) {
         reset();
-        for (String id : new String[]{FPS, PING, COORDINATES, ARRAYLIST, KEYSTROKES, ARMOR, CPS, REACH, SPEED, COMBO, POTIONS, TARGET_HUD, SCOREBOARD, BOSS_BAR, INVENTORY}) {
+        for (String id : new String[]{FPS, PING, COORDINATES, ARRAYLIST, KEYSTROKES, ARMOR, CPS, REACH, SPEED, COMBO, CLOCK, COMPASS, SERVER_INFO, MEMORY, POTIONS, TARGET_HUD, SCOREBOARD, BOSS_BAR, INVENTORY}) {
             if (obj.has(id)) {
                 JsonObject o = obj.getAsJsonObject(id);
                 setPosition(id, o.get("x").getAsInt(), o.get("y").getAsInt());
@@ -342,6 +357,31 @@ public class HudLayout {
         int comboX = layout.effectiveX(COMBO, screenWidth, 0);
         int comboY = layout.effectiveY(COMBO, screenHeight);
         rects.add(new Rect(COMBO, comboX, comboY, comboX + STAT_WIDTH, comboY + ELEMENT_HEIGHT));
+
+        int clockX = layout.effectiveX(CLOCK, screenWidth, 0);
+        int clockY = layout.effectiveY(CLOCK, screenHeight);
+        rects.add(new Rect(CLOCK, clockX, clockY, clockX + STAT_WIDTH, clockY + ELEMENT_HEIGHT));
+
+        Module compassMod = StarClient.getInstance().getModuleManager().getModuleByName("Compass Display");
+        int compW = CompassRenderer.getWidth(compassMod);
+        int compH = CompassRenderer.getHeight(compassMod);
+        int compX = layout.effectiveX(COMPASS, screenWidth, compW);
+        int compY = layout.effectiveY(COMPASS, screenHeight);
+        rects.add(new Rect(COMPASS, compX, compY, compX + compW, compY + compH));
+
+        Module srvMod = StarClient.getInstance().getModuleManager().getModuleByName("Server Info");
+        int srvW = ServerInfoRenderer.getWidth(font, net.minecraft.client.Minecraft.getInstance(), srvMod);
+        int srvH = ServerInfoRenderer.getHeight(net.minecraft.client.Minecraft.getInstance(), srvMod);
+        int srvX = layout.effectiveX(SERVER_INFO, screenWidth, srvW);
+        int srvY = layout.effectiveY(SERVER_INFO, screenHeight);
+        rects.add(new Rect(SERVER_INFO, srvX, srvY, srvX + srvW, srvY + srvH));
+
+        Module memMod = StarClient.getInstance().getModuleManager().getModuleByName("Memory Display");
+        int memW = MemoryHudRenderer.getWidth(font, memMod);
+        int memH = MemoryHudRenderer.getHeight(memMod);
+        int memX = layout.effectiveX(MEMORY, screenWidth, memW);
+        int memY = layout.effectiveY(MEMORY, screenHeight);
+        rects.add(new Rect(MEMORY, memX, memY, memX + memW, memY + memH));
 
         int potX = layout.effectiveX(POTIONS, screenWidth, 0);
         int potY = layout.effectiveY(POTIONS, screenHeight);

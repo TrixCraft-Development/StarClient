@@ -23,7 +23,6 @@ public abstract class OverlayTextureMixin {
     private void updateHitColorTexture(CallbackInfoReturnable<GpuTextureView> cir) {
         if (!HitColorState.consumeDirty()) return;
         NativeImage pixels = this.texture.getPixels();
-        if (pixels == null) return;
         int pixelColor = HitColorState.getOverlayPixelColor();
         for (int y = 0; y < 8; y++) {
             for (int x = 0; x < 16; x++) {

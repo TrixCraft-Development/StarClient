@@ -3,12 +3,19 @@ package net.starclient.mixin;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.client.multiplayer.ServerData;
+import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.network.protocol.game.ClientboundLoginPacket;
 import net.minecraft.network.protocol.game.ClientboundPlayerCombatKillPacket;
 import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
+import net.minecraft.network.protocol.game.ClientboundSetTimePacket;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.world.phys.Vec3;
+import net.starclient.StarClient;
+import net.starclient.config.ProfileManager;
 import net.starclient.module.AntiKnockbackState;
+import net.starclient.module.ServerSessionTracker;
 import net.starclient.stats.ClientStatsManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -36,15 +43,43 @@ public abstract class ClientPacketListenerMixin {
     @Inject(method = "handleLogin", at = @At("TAIL"))
     private void onLogin(ClientboundLoginPacket packet, CallbackInfo ci) {
         Minecraft client = Minecraft.getInstance();
+        StarClient sc = StarClient.getInstance();
+        if (sc != null) {
+            sc.ensureConfigLoaded();
+        }
+        ServerSessionTracker.onSessionJoined(client.getCurrentServer());
+        ProfileManager pm = sc != null ? sc.getProfileManager() : null;
         if (client.isLocalServer()) {
             ClientStatsManager.getInstance().onWorldJoined();
+            if (pm != null && client.getSingleplayerServer() != null) {
+                IntegratedServer sp = client.getSingleplayerServer();
+                String levelName = sp.getWorldData().getLevelName();
+                String folderName = null;
+                try {
+                    var rootPath = sp.getWorldPath(LevelResource.ROOT).normalize();
+                    if (rootPath.getFileName() != null) {
+                        folderName = rootPath.getFileName().toString();
+                    }
+                } catch (Exception ignored) {
+                }
+                pm.onWorldJoined(levelName, folderName);
+            }
         } else {
             ClientStatsManager.getInstance().onServerJoined();
+            if (pm != null && client.getCurrentServer() != null) {
+                ServerData sd = client.getCurrentServer();
+                pm.onServerJoined(sd.ip, sd.name);
+            }
         }
     }
 
+    @Inject(method = "handleSetTime", at = @At("HEAD"))
+    private void onSetTime(ClientboundSetTimePacket packet, CallbackInfo ci) {
+        ServerSessionTracker.onTimePacket(packet.gameTime());
+    }
+
     @Inject(method = "sendChat", at = @At("HEAD"))
-    private void onSendChat(String message, CallbackInfo ci) {
+    private void onSendChat(String content, CallbackInfo ci) {
         ClientStatsManager.getInstance().onChatSent();
     }
 

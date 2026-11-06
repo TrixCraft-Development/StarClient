@@ -3,7 +3,6 @@ package net.starclient.gui;
 import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.Identifier;
@@ -27,22 +26,7 @@ public final class TitleBackgroundOverlay {
             Identifier.fromNamespaceAndPath(StarClient.MOD_ID, "textures/gui/title_background");
     private static boolean wallpaperRegistered;
 
-    private static final class Star {
-        final float rx;
-        final float ry;
-        final int size;
-        final float speed;
-        final float phase;
-        final int color;
-
-        Star(float rx, float ry, int size, float speed, float phase, int color) {
-            this.rx = rx;
-            this.ry = ry;
-            this.size = size;
-            this.speed = speed;
-            this.phase = phase;
-            this.color = color;
-        }
+    private record Star(float rx, float ry, int size, float speed, float phase, int color) {
     }
 
     private static final List<Star> STARS = new ArrayList<>();
@@ -60,7 +44,7 @@ public final class TitleBackgroundOverlay {
         }
     }
 
-    private static final record BackgroundOption(String mode, String label, String icon) {}
+    private record BackgroundOption(String mode, String label, String icon) {}
 
     private static final List<BackgroundOption> OPTIONS = List.of(
             new BackgroundOption(ClientSettings.BG_MODERN, "Modern Dark", "✨"),
@@ -163,7 +147,6 @@ public final class TitleBackgroundOverlay {
 
     public void render(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         Minecraft client = Minecraft.getInstance();
-        if (client == null || client.font == null) return;
         StarClient starClient = StarClient.getInstance();
         ClientSettings cs = starClient != null ? starClient.getClientSettings() : null;
         if (cs == null) return;
@@ -236,7 +219,7 @@ public final class TitleBackgroundOverlay {
         }
     }
 
-    public boolean mouseClicked(Screen parentScreen, @NonNull MouseButtonEvent event) {
+    public boolean mouseClicked(@NonNull MouseButtonEvent event) {
         if (event.button() != GLFW.GLFW_MOUSE_BUTTON_LEFT) return false;
         double mouseX = event.x();
         double mouseY = event.y();

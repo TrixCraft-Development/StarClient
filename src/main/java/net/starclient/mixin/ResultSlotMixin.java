@@ -14,10 +14,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class ResultSlotMixin {
 
     @Inject(method = "onTake", at = @At("HEAD"))
-    private void onItemCrafted(Player player, ItemStack stack, CallbackInfo ci) {
+    private void onItemCrafted(Player player, ItemStack carried, CallbackInfo ci) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc != null && player == mc.player && stack != null && !stack.isEmpty()) {
-            ClientStatsManager.getInstance().onItemCrafted(stack.getCount());
+        if (player == mc.player && carried != null && !carried.isEmpty()) {
+            ClientStatsManager.getInstance().onItemCrafted(carried.getCount());
         }
     }
 }

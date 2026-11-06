@@ -18,7 +18,7 @@ public abstract class MinecraftMixin {
     }
 
     @Inject(method = "runTick", at = @At("HEAD"))
-    private void onRunTick(boolean render, CallbackInfo ci) {
+    private void onRunTick(boolean advanceGameTime, CallbackInfo ci) {
         ClientStatsManager.getInstance().updatePlaytime((Minecraft) (Object) this);
     }
 }

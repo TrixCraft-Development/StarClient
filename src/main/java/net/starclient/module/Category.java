@@ -10,6 +10,7 @@ public enum Category {
     WORLD("World", "🌍"),
     SERVER("Server", "🖥"),
     UI("UI & Visuals", "🎨"),
+    PROFILES("Profiles", "🗂"),
     STATS("Stats", "📊"),
     SETTINGS("Settings", "⚙");
 

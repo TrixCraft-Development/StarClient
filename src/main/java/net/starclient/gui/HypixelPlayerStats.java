@@ -86,7 +86,7 @@ public final class HypixelPlayerStats {
             line.add("W", stats.wins());
             line.add("L", stats.losses());
             if (stats.winRate() >= 0) {
-                line.add("WR", String.format(Locale.ROOT, "%.1f%%", stats.winRate()));
+                line.add(String.format(Locale.ROOT, "%.1f%%", stats.winRate()));
             }
         }
         if (options.kills()) {
@@ -132,8 +132,8 @@ public final class HypixelPlayerStats {
             }
         }
 
-        void add(String label, String value) {
-            add(label, value, ChatFormatting.WHITE);
+        void add(String value) {
+            add("WR", value, ChatFormatting.WHITE);
         }
 
         void add(String label, String value, ChatFormatting color) {

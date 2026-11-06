@@ -1,10 +1,33 @@
-# Star Client v0.9-dev
+# Star Client v0.10-dev
 
-> Welcome to Star Client **v0.9-dev**! A high-performance, modular Fabric client for Minecraft 26.2 featuring glassmorphic UI, custom HUD widgets, and game enhancements.
+> Welcome to Star Client **v0.10-dev**! A high-performance, modular Fabric client for Minecraft 26.2 featuring glassmorphic UI, custom HUD widgets, and game enhancements.
 
 ---
 
 ## What's New
+
+### Render, HUD & Quality-of-Life Modules
+- [NEW] **Performance (`RENDER`)**: Comprehensive FPS booster featuring **Entity Distance Culling**, **Block Entity (Chest / Skull / Sign) Culling**, **Sign Text Distance Culling**, **Armor Stand & Item Frame Culling** (with **Keep Named Holograms** preservation), **Dropped Item & XP Orb Culling**, **Particle Reduction (`0%`–`100%`)** + selective particle toggles, **Beacon Beam / Weather / Cloud** render toggles, and **Dynamic Unfocused FPS Limiter** (`5`–`60` FPS when alt-tabbed).
+- [IMPROVED] **Client Render & Lookup Optimization**: Upgraded `ModuleManager.getModuleByName` and `Module.getSetting` to `O(1)` hash-map lookups and cached the sorted `Active Modules` list to eliminate per-frame HUD stream allocations.
+- [NEW] **Compass Display (`UI`)**: Sleek scrolling horizontal compass ribbon (with tick marks, `N/NE/E/SE/S/SW/W/NW` markers, and heading degrees badge) or compact cardinal HUD widget.
+- [NEW] **Server Info (`UI`)**: Customizable HUD card with individual toggles for **Server IP / World**, **Server Brand** (*Paper*, *Hypixel*, *Vanilla*), live color-coded **Server TPS** (`20.0 TPS`), **Session Time**, and **Compact Mode**.
+- [NEW] **Memory Display (`UI`)**: Real-time RAM allocation HUD widget with percentage, megabytes (`MB`), visual memory usage bar, and optional live **FPS sparkline graph**.
+- [NEW] **Fog Customizer (`RENDER`)**: Independently disable **Water Fog**, **Lava Fog**, **Blindness / Darkness / Powder Snow Fog**, or **Terrain Fog**, or adjust the **Fog Distance** multiplier (`0.2x`–`3.0x`).
+- [NEW] **Glint Customizer (`RENDER`)**: Customize enchantment glint shimmer speed (`0x`–`5x`), brightness/strength (`0x`–`2x`), force enchantment glint onto all items, or disable all glint.
+- [NEW] **Auto Respawn & Auto Reconnect (`PLAYER`)**: Automatically respawn upon death and automatically reconnect to your last multiplayer server when disconnected, each with configurable delay sliders (`0s`–`60s`) and live countdown banners.
+- [NEW] **Hand Customizer (`RENDER`)**: Customize first-person main-hand and off-hand position (`X`, `Y`, `Z`), item scale, 3-axis rotation (`Pitch`, `Yaw`, `Roll`), offhand mirroring, and swing animation speed.
+- [NEW] **Hitboxes (`RENDER`)**: Clean customizable 3D entity hitboxes without needing `F3+B`, featuring entity filters, eye-height ring, look-direction vector, line width slider, and dynamic crosshair target highlighting.
+- [NEW] **Trajectories (`RENDER`)**: Real-time 3D projectile path prediction and landing box / entity hit indicators for bows, crossbows, tridents, ender pearls, snowballs, eggs, wind charges, splash/lingering potions, and XP bottles.
+- [NEW] **Quick Commands / Keybind Macros (`PLAYER`)**: Bind keys to instantly execute server commands (`/hub`, `/l`, `/play ...`) or chat messages (`gg`) with a dedicated macro manager modal.
+- [NEW] **Real-Time Clock HUD (`Clock Display` in `UI`)**: Draggable HUD widget showing real-world system time with `24-Hour` and `12-Hour (AM/PM)` formats, optional seconds counter, and clock icon toggle.
+- [IMPROVED] **Smooth Zoom & Scroll Curves (`Zoom` in `UI`)**: Exponential camera FOV interpolation for silky-smooth zoom in/out transitions and mouse wheel scroll zooming without mutating vanilla FOV settings.
+
+### Custom Saved Profiles & Auto-Linking
+- [NEW] **Custom Saved Profiles**: Create, rename, duplicate, and manage multiple custom profiles (e.g. *Survival*, *PvP*, *Hypixel*) from the new **Profiles** tab or the ClickGUI header quick-switcher.
+- [NEW] **Profile Share Codes (`Export` / `Import`)**: Export any profile to your clipboard as a compact `STAR-PROFILE:...` share string (`📤`) or import a friend's profile in one click (`📥 Import`).
+- [NEW] **Per-Profile Hotkeys**: Bind a custom key (`⌨`) to any profile card to switch between loadouts instantly mid-game.
+- [NEW] **Full Profile Snapshots**: Each profile independently saves enabled modules, module settings, keybinds, macros, HUD layout positions, client theme settings, and equipped cosmetics.
+- [NEW] **World & Server Auto-Selection**: Link any Singleplayer world or Multiplayer server IP to a profile — Star Client automatically activates that profile upon joining.
 
 ### Cosmetics Studio & 3D Live Avatar
 - [NEW] **Dedicated Cosmetics Studio**: Opened directly from the Module menu with sleek client theme synchronization and optimized card layouts.

@@ -7,12 +7,14 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.phys.Vec3;
 import net.starclient.module.FreeCamState;
 import net.starclient.module.FreeLookState;
+import net.starclient.module.ZoomState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(Camera.class)
 public abstract class CameraMixin {
@@ -22,6 +24,15 @@ public abstract class CameraMixin {
 
     @Shadow
     private boolean detached;
+
+    @Inject(method = "calculateFov", at = @At("RETURN"), cancellable = true)
+    private void starclient$smoothZoomFov(float partialTicks, CallbackInfoReturnable<Float> cir) {
+        float baseFov = cir.getReturnValue();
+        float modified = ZoomState.modifyFov(baseFov);
+        if (Math.abs(modified - baseFov) > 0.001F) {
+            cir.setReturnValue(modified);
+        }
+    }
 
     @Inject(method = "update(Lnet/minecraft/client/DeltaTracker;)V", at = @At("TAIL"))
     private void cameraOverride(DeltaTracker deltaTracker, CallbackInfo ci) {

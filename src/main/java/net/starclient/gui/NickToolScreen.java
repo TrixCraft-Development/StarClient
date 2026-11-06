@@ -439,7 +439,7 @@ public class NickToolScreen extends Screen {
                     int delY = y + (itemH - delH) / 2;
                     if (hovered(delX, delY, delW, delH, mouseX, mouseY)) {
                         NickToolState.removeEntry(entry.real());
-                        status = "✓ Removed: " + entry.real();
+                        status = "Removed: " + entry.real();
                         save();
                         return true;
                     }
@@ -489,7 +489,7 @@ public class NickToolScreen extends Screen {
             return;
         }
         NickToolState.addEntry(real, nick);
-        status = "✓ Added: " + real + " ➔ " + nick;
+        status = "Added: " + real + " ➔ " + nick;
         if (this.realBox != null) this.realBox.setValue("");
         if (this.nickBox != null) this.nickBox.setValue("");
         setFocusedField(null);
@@ -527,7 +527,7 @@ public class NickToolScreen extends Screen {
             if (this.yourNickBox != null && this.yourNickBox.isFocused()) {
                 NickToolState.setSelfNick(this.yourNickBox.getValue());
                 save();
-                status = "✓ Saved your display name";
+                status = "Saved your display name";
                 setFocusedField(null);
                 return true;
             }

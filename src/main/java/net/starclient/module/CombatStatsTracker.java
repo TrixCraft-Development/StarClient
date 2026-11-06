@@ -52,7 +52,7 @@ public final class CombatStatsTracker {
 
     private static void spawnHitParticles(Entity target) {
         Minecraft client = Minecraft.getInstance();
-        if (client == null || client.particleEngine == null || client.level == null) {
+        if (client.level == null) {
             return;
         }
 

@@ -48,7 +48,6 @@ public abstract class TitleScreenMixin {
     @Inject(method = "extractRenderState", at = @At("TAIL"))
     private void renderClientName(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a, CallbackInfo ci) {
         Minecraft client = Minecraft.getInstance();
-        if (client.font == null) return;
 
         String name = StarClient.CLIENT_NAME;
         float scale = 4.0f;
@@ -187,7 +186,7 @@ public abstract class TitleScreenMixin {
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
     private void starclient$onMouseClicked(MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
-        if (this.starclient$backgroundOverlay.mouseClicked((Screen) (Object) this, event)) {
+        if (this.starclient$backgroundOverlay.mouseClicked(event)) {
             if (this.starclient$backgroundOverlay.isDropdownOpen()) {
                 this.starclient$accountSwitcher.closeDropdown();
             }

@@ -14,6 +14,7 @@ import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.Identifier;
 import org.joml.Quaternionf;
+import org.jspecify.annotations.NonNull;
 
 public class StarCosmeticLayer extends RenderLayer<AvatarRenderState, PlayerModel> {
 
@@ -25,11 +26,10 @@ public class StarCosmeticLayer extends RenderLayer<AvatarRenderState, PlayerMode
     }
 
     @Override
-    public void submit(PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int packedLight, AvatarRenderState state, float yRot, float xRot) {
+    public void submit(@NonNull PoseStack poseStack, @NonNull SubmitNodeCollector submitNodeCollector, int packedLight, AvatarRenderState state, float yRot, float xRot) {
         if (state.isInvisible) return;
 
         Minecraft client = Minecraft.getInstance();
-        if (client == null) return;
 
         // Render on local player or in GUI preview
         if (client.player != null && state.id != client.player.getId() && state.id != 0) {
@@ -134,7 +134,7 @@ public class StarCosmeticLayer extends RenderLayer<AvatarRenderState, PlayerMode
                         halfW + xOffA, yA, zA, u1Outer, v0,
                         halfW + xOffB, yB, zB, u1Outer, v1,
                         -halfW + xOffB, yB, zB, u0Outer, v1,
-                        packedLight, 255, 255, 255, 255);
+                        packedLight);
 
                 // 2. Inner Face (underside facing player's back)
                 float u0Inner = 12.0f / 64.0f;
@@ -144,7 +144,7 @@ public class StarCosmeticLayer extends RenderLayer<AvatarRenderState, PlayerMode
                         -halfW + xOffA, yA, zA - thickness, u0Inner, v0,
                         -halfW + xOffB, yB, zB - thickness, u0Inner, v1,
                         halfW + xOffB, yB, zB - thickness, u1Inner, v1,
-                        packedLight, 255, 255, 255, 255);
+                        packedLight);
 
                 // 3. Left Edge Strip
                 addDoubleSidedQuad(pose, consumer,
@@ -152,7 +152,7 @@ public class StarCosmeticLayer extends RenderLayer<AvatarRenderState, PlayerMode
                         -halfW + xOffA, yA, zA, 1.0f / 64.0f, v0,
                         -halfW + xOffB, yB, zB, 1.0f / 64.0f, v1,
                         -halfW + xOffB, yB, zB - thickness, 0.0f, v1,
-                        packedLight, 255, 255, 255, 255);
+                        packedLight);
 
                 // 4. Right Edge Strip
                 addDoubleSidedQuad(pose, consumer,
@@ -160,7 +160,7 @@ public class StarCosmeticLayer extends RenderLayer<AvatarRenderState, PlayerMode
                         halfW + xOffA, yA, zA - thickness, 12.0f / 64.0f, v0,
                         halfW + xOffB, yB, zB - thickness, 12.0f / 64.0f, v1,
                         halfW + xOffB, yB, zB, 11.0f / 64.0f, v1,
-                        packedLight, 255, 255, 255, 255);
+                        packedLight);
             }
 
             // Top Cap (u: 1..10/64, v: 0..1/32)
@@ -169,7 +169,7 @@ public class StarCosmeticLayer extends RenderLayer<AvatarRenderState, PlayerMode
                     halfW + xPts[0], yPts[0], zPts[0], 10.0f / 64.0f, 0.0f,
                     halfW + xPts[0], yPts[0], zPts[0] - thickness, 10.0f / 64.0f, 1.0f / 32.0f,
                     -halfW + xPts[0], yPts[0], zPts[0] - thickness, 1.0f / 64.0f, 1.0f / 32.0f,
-                    packedLight, 255, 255, 255, 255);
+                    packedLight);
 
             // Bottom Cap (u: 11..20/64, v: 0..1/32)
             int last = segments;
@@ -178,7 +178,7 @@ public class StarCosmeticLayer extends RenderLayer<AvatarRenderState, PlayerMode
                     halfW + xPts[last], yPts[last], zPts[last] - thickness, 20.0f / 64.0f, 0.0f,
                     halfW + xPts[last], yPts[last], zPts[last], 20.0f / 64.0f, 1.0f / 32.0f,
                     -halfW + xPts[last], yPts[last], zPts[last], 11.0f / 64.0f, 1.0f / 32.0f,
-                    packedLight, 255, 255, 255, 255);
+                    packedLight);
         });
 
         poseStack.popPose();
@@ -187,7 +187,7 @@ public class StarCosmeticLayer extends RenderLayer<AvatarRenderState, PlayerMode
     private void renderVanillaCape(PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int packedLight,
                                   AvatarRenderState state, CapeCosmetic cape) {
         poseStack.pushPose();
-        if (state.chestEquipment != null && !state.chestEquipment.isEmpty()) {
+        if (!state.chestEquipment.isEmpty()) {
             poseStack.translate(0.0f, -0.053125f, 0.06875f);
         }
         RenderType renderType = RenderTypes.entitySolid(cape.textureId());
@@ -235,7 +235,6 @@ public class StarCosmeticLayer extends RenderLayer<AvatarRenderState, PlayerMode
     private void drawWing(PoseStack poseStack, SubmitNodeCollector collector, RenderType renderType, int light, String wingsId, boolean mirrored) {
         switch (wingsId) {
             case "dragon_void" -> renderDragonWing(poseStack, collector, renderType, light, mirrored);
-            case "angel_light" -> renderAngelWing(poseStack, collector, renderType, light, mirrored);
             case "demon_flame" -> renderDemonWing(poseStack, collector, renderType, light, mirrored);
             case "fairy_prismatic" -> renderFairyWing(poseStack, collector, renderType, light, mirrored);
             default -> renderAngelWing(poseStack, collector, renderType, light, mirrored);
@@ -287,14 +286,14 @@ public class StarCosmeticLayer extends RenderLayer<AvatarRenderState, PlayerMode
                     x1, y1, z1, 0.5f, 0.0f,
                     x3, y3, z3, 0.8f, 1.0f,
                     x4, y4, z4, 0.2f, 1.0f,
-                    light, 255, 255, 255, 255);
+                    light);
 
             addDoubleSidedQuad(pose, consumer,
                     x1, y1, z1, 0.5f, 0.0f,
                     x2, y2, z2, 1.0f, 0.2f,
                     x3, y3, z3, 0.8f, 1.0f,
                     x1, y1 + 0.3f, z1, 0.5f, 0.8f,
-                    light, 255, 255, 255, 255);
+                    light);
         });
     }
 
@@ -334,7 +333,7 @@ public class StarCosmeticLayer extends RenderLayer<AvatarRenderState, PlayerMode
                     r, -r, 0.0f, 1.0f, 0.0f,
                     r, r, 0.0f, 1.0f, 1.0f,
                     -r, r, 0.0f, 0.0f, 1.0f,
-                    light, 255, 255, 255, 255);
+                    light);
         });
 
         poseStack.popPose();
@@ -369,7 +368,7 @@ public class StarCosmeticLayer extends RenderLayer<AvatarRenderState, PlayerMode
                     w, 0.0f, 0.0f, 1.0f, 0.0f,
                     0.0f, h, 0.08f, 0.5f, 1.0f,
                     0.0f, h, 0.08f, 0.5f, 1.0f,
-                    light, 255, 255, 255, 255);
+                    light);
         });
     }
 
@@ -387,7 +386,7 @@ public class StarCosmeticLayer extends RenderLayer<AvatarRenderState, PlayerMode
                     s, yTop, -s - 0.005f, 1.0f, 0.0f,
                     s, yBottom, -s - 0.005f, 1.0f, 0.3f,
                     -s, yBottom, -s - 0.005f, 0.0f, 0.3f,
-                    light, 255, 255, 255, 255);
+                    light);
 
             // Back headband strip
             addDoubleSidedQuad(pose, consumer,
@@ -395,7 +394,7 @@ public class StarCosmeticLayer extends RenderLayer<AvatarRenderState, PlayerMode
                     s, yTop, s + 0.005f, 1.0f, 0.0f,
                     s, yBottom, s + 0.005f, 1.0f, 0.3f,
                     -s, yBottom, s + 0.005f, 0.0f, 0.3f,
-                    light, 255, 255, 255, 255);
+                    light);
 
             // Left side
             addDoubleSidedQuad(pose, consumer,
@@ -403,7 +402,7 @@ public class StarCosmeticLayer extends RenderLayer<AvatarRenderState, PlayerMode
                     -s - 0.005f, yTop, s, 1.0f, 0.0f,
                     -s - 0.005f, yBottom, s, 1.0f, 0.3f,
                     -s - 0.005f, yBottom, -s, 0.0f, 0.3f,
-                    light, 255, 255, 255, 255);
+                    light);
 
             // Right side
             addDoubleSidedQuad(pose, consumer,
@@ -411,7 +410,7 @@ public class StarCosmeticLayer extends RenderLayer<AvatarRenderState, PlayerMode
                     s + 0.005f, yTop, s, 1.0f, 0.0f,
                     s + 0.005f, yBottom, s, 1.0f, 0.3f,
                     s + 0.005f, yBottom, -s, 0.0f, 0.3f,
-                    light, 255, 255, 255, 255);
+                    light);
 
             // Fluttering sash tails at back
             float sway = (float) Math.sin((System.currentTimeMillis() % 1000000) * 0.006f) * 0.05f;
@@ -422,7 +421,7 @@ public class StarCosmeticLayer extends RenderLayer<AvatarRenderState, PlayerMode
                     -0.02f, yBottom, s + 0.01f, 0.2f, 0.0f,
                     -0.04f + sway, -0.10f, s + 0.08f, 0.2f, 1.0f,
                     -0.12f + sway, -0.10f, s + 0.08f, 0.0f, 1.0f,
-                    light, 255, 255, 255, 255);
+                    light);
 
             // Tail 2
             addDoubleSidedQuad(pose, consumer,
@@ -430,7 +429,7 @@ public class StarCosmeticLayer extends RenderLayer<AvatarRenderState, PlayerMode
                     0.08f, yBottom, s + 0.01f, 0.7f, 0.0f,
                     0.10f - sway, -0.08f, s + 0.07f, 0.7f, 1.0f,
                     0.02f - sway, -0.08f, s + 0.07f, 0.5f, 1.0f,
-                    light, 255, 255, 255, 255);
+                    light);
         });
     }
 
@@ -462,33 +461,33 @@ public class StarCosmeticLayer extends RenderLayer<AvatarRenderState, PlayerMode
                     w, 0.0f, -0.03f, 1.0f, 0.0f,
                     0.0f, h, 0.0f, 0.5f, 1.0f,
                     0.0f, h, 0.0f, 0.5f, 1.0f,
-                    light, 255, 255, 255, 255);
+                    light);
 
             addDoubleSidedQuad(pose, consumer,
                     w, 0.0f, 0.03f, 0.0f, 0.0f,
                     -w, 0.0f, 0.03f, 1.0f, 0.0f,
                     0.0f, h, 0.0f, 0.5f, 1.0f,
                     0.0f, h, 0.0f, 0.5f, 1.0f,
-                    light, 255, 255, 255, 255);
+                    light);
         });
     }
 
     private static void addDoubleSidedQuad(PoseStack.Pose pose, VertexConsumer consumer,
-                                          float x0, float y0, float z0, float u0, float v0,
-                                          float x1, float y1, float z1, float u1, float v1,
-                                          float x2, float y2, float z2, float u2, float v2,
-                                          float x3, float y3, float z3, float u3, float v3,
-                                          int light, int r, int g, int b, int a) {
+                                           float x0, float y0, float z0, float u0, float v0,
+                                           float x1, float y1, float z1, float u1, float v1,
+                                           float x2, float y2, float z2, float u2, float v2,
+                                           float x3, float y3, float z3, float u3, float v3,
+                                           int light) {
         // Front face
-        consumer.addVertex(pose, x0, y0, z0).setColor(r, g, b, a).setUv(u0, v0).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0.0f, 1.0f, 0.0f);
-        consumer.addVertex(pose, x1, y1, z1).setColor(r, g, b, a).setUv(u1, v1).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0.0f, 1.0f, 0.0f);
-        consumer.addVertex(pose, x2, y2, z2).setColor(r, g, b, a).setUv(u2, v2).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0.0f, 1.0f, 0.0f);
-        consumer.addVertex(pose, x3, y3, z3).setColor(r, g, b, a).setUv(u3, v3).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0.0f, 1.0f, 0.0f);
+        consumer.addVertex(pose, x0, y0, z0).setColor(255, 255, 255, 255).setUv(u0, v0).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0.0f, 1.0f, 0.0f);
+        consumer.addVertex(pose, x1, y1, z1).setColor(255, 255, 255, 255).setUv(u1, v1).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0.0f, 1.0f, 0.0f);
+        consumer.addVertex(pose, x2, y2, z2).setColor(255, 255, 255, 255).setUv(u2, v2).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0.0f, 1.0f, 0.0f);
+        consumer.addVertex(pose, x3, y3, z3).setColor(255, 255, 255, 255).setUv(u3, v3).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0.0f, 1.0f, 0.0f);
 
         // Back face (reverse vertex order)
-        consumer.addVertex(pose, x3, y3, z3).setColor(r, g, b, a).setUv(u3, v3).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0.0f, -1.0f, 0.0f);
-        consumer.addVertex(pose, x2, y2, z2).setColor(r, g, b, a).setUv(u2, v2).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0.0f, -1.0f, 0.0f);
-        consumer.addVertex(pose, x1, y1, z1).setColor(r, g, b, a).setUv(u1, v1).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0.0f, -1.0f, 0.0f);
-        consumer.addVertex(pose, x0, y0, z0).setColor(r, g, b, a).setUv(u0, v0).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0.0f, -1.0f, 0.0f);
+        consumer.addVertex(pose, x3, y3, z3).setColor(255, 255, 255, 255).setUv(u3, v3).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0.0f, -1.0f, 0.0f);
+        consumer.addVertex(pose, x2, y2, z2).setColor(255, 255, 255, 255).setUv(u2, v2).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0.0f, -1.0f, 0.0f);
+        consumer.addVertex(pose, x1, y1, z1).setColor(255, 255, 255, 255).setUv(u1, v1).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0.0f, -1.0f, 0.0f);
+        consumer.addVertex(pose, x0, y0, z0).setColor(255, 255, 255, 255).setUv(u0, v0).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0.0f, -1.0f, 0.0f);
     }
 }

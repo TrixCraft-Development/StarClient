@@ -51,7 +51,7 @@ public abstract class NickTagMixin<T extends Entity> {
         StarClient mod = StarClient.getInstance();
         if (client.player != null && mod != null && mod.getClientSettings().isTabIcon()) {
             boolean isSelf = player == client.player;
-            String username = player.getGameProfile() != null ? player.getGameProfile().name() : null;
+            String username = player.getGameProfile().name();
             RankManager rankManager = mod.getRankManager();
             Rank rank = rankManager != null
                     ? rankManager.getDisplayRank(player.getUUID(), username, isSelf)

@@ -79,8 +79,7 @@ public final class InventoryHudRenderer {
 
         // Hide in inventory / container screens if setting enabled
         boolean hideInInventory = isTrue(mod, "Hide in Inventory", true);
-        if (hideInInventory && client.gui != null && client.gui.screen() instanceof AbstractContainerScreen<?>
-                && !(client.gui.screen() instanceof HudEditorScreen)) {
+        if (hideInInventory && client.gui.screen() instanceof AbstractContainerScreen<?>) {
             return;
         }
 

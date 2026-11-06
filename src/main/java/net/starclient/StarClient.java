@@ -10,7 +10,9 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
 import net.starclient.account.AccountManager;
+import net.starclient.config.ClientProfile;
 import net.starclient.config.ConfigManager;
+import net.starclient.config.ProfileManager;
 import net.starclient.cosmetics.CosmeticManager;
 import net.starclient.cosmetics.CosmeticTrailManager;
 import net.starclient.cosmetics.PresetCosmetics;
@@ -40,6 +42,7 @@ public class StarClient implements ClientModInitializer {
     private AccountManager accountManager;
     private ModuleManager moduleManager;
     private ConfigManager configManager;
+    private ProfileManager profileManager;
     private CosmeticManager cosmeticManager;
     private FabricModManager modManager;
     private HudLayout hudLayout;
@@ -57,6 +60,7 @@ public class StarClient implements ClientModInitializer {
         this.rankManager = new RankManager();
         this.accountManager = new AccountManager();
         this.moduleManager = new ModuleManager();
+        this.profileManager = new ProfileManager();
         this.configManager = new ConfigManager();
         this.cosmeticManager = new CosmeticManager();
         net.starclient.cosmetics.PresetCosmetics.exportDefaultTexturesIfMissing();
@@ -72,6 +76,11 @@ public class StarClient implements ClientModInitializer {
             Class.forName(net.starclient.gui.StatsViewRenderer.StatCard.class.getName());
             Class.forName(net.starclient.gui.StatsViewRenderer.ModalStat.class.getName());
             Class.forName(net.starclient.gui.StatsViewRenderer.StatsTab.class.getName());
+            Class.forName(net.starclient.gui.ProfilesViewRenderer.class.getName());
+            Class.forName(net.starclient.gui.ProfilesViewRenderer.FocusedInput.class.getName());
+            Class.forName(ClientProfile.class.getName());
+            Class.forName(ProfileManager.class.getName());
+            Class.forName(ProfileManager.SavedServerInfo.class.getName());
             Class.forName(net.starclient.gui.CosmeticsScreen.class.getName());
             Class.forName(net.starclient.gui.ClickGuiScreen.class.getName());
         } catch (Throwable t) {
@@ -96,6 +105,7 @@ public class StarClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             ensureConfigLoaded();
             ClientStatsManager.getInstance().onTick(client);
+            net.starclient.module.AutoRespawnReconnectState.onClientTick(client);
             boolean inGame = client.player != null && client.level != null;
             if (inGame) {
                 if (client.gui.screen() == null) {
@@ -153,6 +163,10 @@ public class StarClient implements ClientModInitializer {
 
     public ConfigManager getConfigManager() {
         return configManager;
+    }
+
+    public ProfileManager getProfileManager() {
+        return profileManager;
     }
 
     public CosmeticManager getCosmeticManager() {

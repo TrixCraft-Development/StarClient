@@ -29,12 +29,12 @@ public final class PresetCosmetics {
     public static Identifier getOrRegisterCape(String id) {
         Identifier fileId = Identifier.fromNamespaceAndPath(StarClient.MOD_ID, "textures/capes/" + id + ".png");
         Minecraft client = Minecraft.getInstance();
-        if (client != null && client.getResourceManager() != null) {
-            try {
-                if (client.getResourceManager().getResource(fileId).isPresent()) {
-                    return fileId;
-                }
-            } catch (Exception ignored) {}
+        client.getResourceManager();
+        try {
+            if (client.getResourceManager().getResource(fileId).isPresent()) {
+                return fileId;
+            }
+        } catch (Exception ignored) {
         }
         if (PresetCosmetics.class.getResource("/assets/starclient/textures/capes/" + id + ".png") != null) {
             return fileId;
@@ -48,7 +48,6 @@ public final class PresetCosmetics {
         NativeImage img = new NativeImage(64, 32, true);
 
         switch (id) {
-            case "starclient_official" -> generateStarClientCape(img);
             case "galaxy_nebula" -> generateGalaxyCape(img);
             case "cyber_neon" -> generateCyberNeonCape(img);
             case "crimson_flame" -> generateFlameCape(img);
@@ -69,12 +68,12 @@ public final class PresetCosmetics {
     public static Identifier getOrRegisterWing(String id) {
         Identifier fileId = Identifier.fromNamespaceAndPath(StarClient.MOD_ID, "textures/wings/" + id + ".png");
         Minecraft client = Minecraft.getInstance();
-        if (client != null && client.getResourceManager() != null) {
-            try {
-                if (client.getResourceManager().getResource(fileId).isPresent()) {
-                    return fileId;
-                }
-            } catch (Exception ignored) {}
+        client.getResourceManager();
+        try {
+            if (client.getResourceManager().getResource(fileId).isPresent()) {
+                return fileId;
+            }
+        } catch (Exception ignored) {
         }
 
         Identifier textureId = Identifier.fromNamespaceAndPath(StarClient.MOD_ID, "textures/wings/preset_" + id);
@@ -86,7 +85,6 @@ public final class PresetCosmetics {
 
         switch (id) {
             case "dragon_void" -> generateDragonWings(img);
-            case "angel_light" -> generateAngelWings(img);
             case "demon_flame" -> generateDemonWings(img);
             case "fairy_prismatic" -> generateFairyWings(img);
             default -> generateAngelWings(img);
@@ -101,12 +99,12 @@ public final class PresetCosmetics {
     public static Identifier getOrRegisterHeadwear(String id) {
         Identifier fileId = Identifier.fromNamespaceAndPath(StarClient.MOD_ID, "textures/headwear/" + id + ".png");
         Minecraft client = Minecraft.getInstance();
-        if (client != null && client.getResourceManager() != null) {
-            try {
-                if (client.getResourceManager().getResource(fileId).isPresent()) {
-                    return fileId;
-                }
-            } catch (Exception ignored) {}
+        client.getResourceManager();
+        try {
+            if (client.getResourceManager().getResource(fileId).isPresent()) {
+                return fileId;
+            }
+        } catch (Exception ignored) {
         }
 
         Identifier textureId = Identifier.fromNamespaceAndPath(StarClient.MOD_ID, "textures/headwear/preset_" + id);
@@ -117,7 +115,6 @@ public final class PresetCosmetics {
         NativeImage img = new NativeImage(32, 32, true);
 
         switch (id) {
-            case "angel_halo" -> generateHaloTexture(img);
             case "demon_horns" -> generateHornsTexture(img);
             case "ninja_bandana" -> generateBandanaTexture(img);
             case "cat_ears" -> generateCatEarsTexture(img);
@@ -133,7 +130,7 @@ public final class PresetCosmetics {
     public static void tickAnimations(long ticks) {
         // Animated Chroma Cape (shifts colors smoothly)
         DynamicTexture chromaTex = PRESET_TEXTURES.get("cape_animated_chroma");
-        if (chromaTex != null && chromaTex.getPixels() != null) {
+        if (chromaTex != null) {
             float phase = (ticks % 100) / 100.0f;
             generateChromaCape(chromaTex.getPixels(), phase);
             chromaTex.upload();
@@ -141,7 +138,7 @@ public final class PresetCosmetics {
 
         // Animated Cosmic Cape (pulsing star shimmer)
         DynamicTexture cosmicTex = PRESET_TEXTURES.get("cape_animated_cosmic");
-        if (cosmicTex != null && cosmicTex.getPixels() != null) {
+        if (cosmicTex != null) {
             float pulse = (float) (Math.sin(ticks * 0.12) * 0.5 + 0.5);
             generateCosmicCape(cosmicTex.getPixels(), pulse);
             cosmicTex.upload();
@@ -180,36 +177,36 @@ public final class PresetCosmetics {
         }
     }
 
-    private static void drawStarEmblem(NativeImage img, int cx, int cy, int cyan, int white, int darkBlue) {
-        img.setPixel(cx, cy, white);
-        img.setPixel(cx + 1, cy, white);
-        img.setPixel(cx, cy + 1, white);
-        img.setPixel(cx + 1, cy + 1, white);
+    private static void drawStarEmblem(NativeImage img, int cx, int cyan, int white, int darkBlue) {
+        img.setPixel(cx, 8, white);
+        img.setPixel(cx + 1, 8, white);
+        img.setPixel(cx, 8 + 1, white);
+        img.setPixel(cx + 1, 8 + 1, white);
 
-        img.setPixel(cx, cy - 2, cyan);
-        img.setPixel(cx + 1, cy - 2, cyan);
-        img.setPixel(cx, cy - 1, cyan);
-        img.setPixel(cx + 1, cy - 1, cyan);
+        img.setPixel(cx, 8 - 2, cyan);
+        img.setPixel(cx + 1, 8 - 2, cyan);
+        img.setPixel(cx, 8 - 1, cyan);
+        img.setPixel(cx + 1, 8 - 1, cyan);
 
-        img.setPixel(cx, cy + 2, cyan);
-        img.setPixel(cx + 1, cy + 2, cyan);
-        img.setPixel(cx, cy + 3, cyan);
-        img.setPixel(cx + 1, cy + 3, cyan);
+        img.setPixel(cx, 8 + 2, cyan);
+        img.setPixel(cx + 1, 8 + 2, cyan);
+        img.setPixel(cx, 8 + 3, cyan);
+        img.setPixel(cx + 1, 8 + 3, cyan);
 
-        img.setPixel(cx - 2, cy, cyan);
-        img.setPixel(cx - 1, cy, cyan);
-        img.setPixel(cx - 2, cy + 1, cyan);
-        img.setPixel(cx - 1, cy + 1, cyan);
+        img.setPixel(cx - 2, 8, cyan);
+        img.setPixel(cx - 1, 8, cyan);
+        img.setPixel(cx - 2, 8 + 1, cyan);
+        img.setPixel(cx - 1, 8 + 1, cyan);
 
-        img.setPixel(cx + 2, cy, cyan);
-        img.setPixel(cx + 3, cy, cyan);
-        img.setPixel(cx + 2, cy + 1, cyan);
-        img.setPixel(cx + 3, cy + 1, cyan);
+        img.setPixel(cx + 2, 8, cyan);
+        img.setPixel(cx + 3, 8, cyan);
+        img.setPixel(cx + 2, 8 + 1, cyan);
+        img.setPixel(cx + 3, 8 + 1, cyan);
 
-        img.setPixel(cx - 1, cy - 1, darkBlue);
-        img.setPixel(cx + 2, cy - 1, darkBlue);
-        img.setPixel(cx - 1, cy + 2, darkBlue);
-        img.setPixel(cx + 2, cy + 2, darkBlue);
+        img.setPixel(cx - 1, 8 - 1, darkBlue);
+        img.setPixel(cx + 2, 8 - 1, darkBlue);
+        img.setPixel(cx - 1, 8 + 2, darkBlue);
+        img.setPixel(cx + 2, 8 + 2, darkBlue);
     }
 
     private static void generateStarClientCape(NativeImage img) {
@@ -220,9 +217,9 @@ public final class PresetCosmetics {
         int darkBlue = toAbgr(0xFF1E293B);
 
         // Outer surface (cx=5, cy=8) - Top / Outside face
-        drawStarEmblem(img, 5, 8, cyan, white, darkBlue);
+        drawStarEmblem(img, 5, cyan, white, darkBlue);
         // Inner surface (cx=16, cy=8) - Underside face
-        drawStarEmblem(img, 16, 8, cyan, white, darkBlue);
+        drawStarEmblem(img, 16, cyan, white, darkBlue);
     }
 
     private static void generateGalaxyCape(NativeImage img) {
@@ -340,21 +337,21 @@ public final class PresetCosmetics {
         img.setPixel(17, 14, petal2);
     }
 
-    private static void drawVoidEye(NativeImage img, int cx, int cy, int tealGlow, int tealCore, int purple) {
-        img.setPixel(cx, cy, purple);
-        img.setPixel(cx + 1, cy, purple);
-        img.setPixel(cx, cy + 1, purple);
-        img.setPixel(cx + 1, cy + 1, purple);
+    private static void drawVoidEye(NativeImage img, int cx, int tealGlow, int tealCore, int purple) {
+        img.setPixel(cx, 8, purple);
+        img.setPixel(cx + 1, 8, purple);
+        img.setPixel(cx, 8 + 1, purple);
+        img.setPixel(cx + 1, 8 + 1, purple);
 
-        img.setPixel(cx - 1, cy, tealGlow);
-        img.setPixel(cx + 2, cy, tealGlow);
-        img.setPixel(cx - 1, cy + 1, tealGlow);
-        img.setPixel(cx + 2, cy + 1, tealGlow);
+        img.setPixel(cx - 1, 8, tealGlow);
+        img.setPixel(cx + 2, 8, tealGlow);
+        img.setPixel(cx - 1, 8 + 1, tealGlow);
+        img.setPixel(cx + 2, 8 + 1, tealGlow);
 
-        img.setPixel(cx, cy - 1, tealCore);
-        img.setPixel(cx + 1, cy - 1, tealCore);
-        img.setPixel(cx, cy + 2, tealCore);
-        img.setPixel(cx + 1, cy + 2, tealCore);
+        img.setPixel(cx, 8 - 1, tealCore);
+        img.setPixel(cx + 1, 8 - 1, tealCore);
+        img.setPixel(cx, 8 + 2, tealCore);
+        img.setPixel(cx + 1, 8 + 2, tealCore);
     }
 
     private static void generateVoidCape(NativeImage img) {
@@ -363,8 +360,8 @@ public final class PresetCosmetics {
         int tealCore = toAbgr(0xFF5EEAD4);
         int purple = toAbgr(0xFF6B21A8);
 
-        drawVoidEye(img, 5, 8, tealGlow, tealCore, purple);
-        drawVoidEye(img, 16, 8, tealGlow, tealCore, purple);
+        drawVoidEye(img, 5, tealGlow, tealCore, purple);
+        drawVoidEye(img, 16, tealGlow, tealCore, purple);
     }
 
     private static void generateMatrixCape(NativeImage img) {
@@ -401,18 +398,18 @@ public final class PresetCosmetics {
         }
     }
 
-    private static void drawCosmicStar(NativeImage img, int cx, int cy, int starCol, int cyan) {
-        img.setPixel(cx, cy, starCol);
-        img.setPixel(cx + 1, cy, starCol);
-        img.setPixel(cx, cy + 1, starCol);
-        img.setPixel(cx + 1, cy + 1, starCol);
+    private static void drawCosmicStar(NativeImage img, int cx, int starCol, int cyan) {
+        img.setPixel(cx, 8, starCol);
+        img.setPixel(cx + 1, 8, starCol);
+        img.setPixel(cx, 8 + 1, starCol);
+        img.setPixel(cx + 1, 8 + 1, starCol);
 
-        img.setPixel(cx, cy - 2, cyan);
-        img.setPixel(cx + 1, cy - 2, cyan);
-        img.setPixel(cx, cy + 3, cyan);
-        img.setPixel(cx + 1, cy + 3, cyan);
-        img.setPixel(cx - 2, cy, cyan);
-        img.setPixel(cx + 3, cy, cyan);
+        img.setPixel(cx, 8 - 2, cyan);
+        img.setPixel(cx + 1, 8 - 2, cyan);
+        img.setPixel(cx, 8 + 3, cyan);
+        img.setPixel(cx + 1, 8 + 3, cyan);
+        img.setPixel(cx - 2, 8, cyan);
+        img.setPixel(cx + 3, 8, cyan);
     }
 
     private static void generateCosmicCape(NativeImage img, float pulse) {
@@ -420,8 +417,8 @@ public final class PresetCosmetics {
         int starCol = toAbgr(0xFF000000 | (Math.round(255 * (0.4f + pulse * 0.6f)) << 16) | (Math.round(255 * (0.7f + pulse * 0.3f)) << 8) | 255);
         int cyan = toAbgr(0xFF38BDF8);
 
-        drawCosmicStar(img, 5, 8, starCol, cyan);
-        drawCosmicStar(img, 16, 8, starCol, cyan);
+        drawCosmicStar(img, 5, starCol, cyan);
+        drawCosmicStar(img, 16, starCol, cyan);
     }
 
     // --- WINGS TEXTURE GENERATORS ---

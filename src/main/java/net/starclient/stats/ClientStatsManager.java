@@ -218,7 +218,7 @@ public class ClientStatsManager {
 
     public GameplayStats getActiveStats() {
         Minecraft mc = Minecraft.getInstance();
-        return (mc != null && mc.isLocalServer()) ? this.singleplayer : this.multiplayer;
+        return mc.isLocalServer() ? this.singleplayer : this.multiplayer;
     }
 
     public GameplayStats getSingleplayerStats() {
@@ -364,7 +364,6 @@ public class ClientStatsManager {
 
     public void onEntityDied(LivingEntity entity) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc == null) return;
         if (entity == mc.player) {
             onPlayerDeath();
             return;

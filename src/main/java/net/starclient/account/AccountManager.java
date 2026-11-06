@@ -58,28 +58,22 @@ public final class AccountManager {
             return;
         }
         Minecraft client = Minecraft.getInstance();
-        if (client == null || client.getUser() == null) {
-            return;
-        }
         initialCaptured = true;
         User current = client.getUser();
         String name = current.getName();
         UUID uuid = current.getProfileId();
         String token = current.getAccessToken();
-        if (name == null || uuid == null) {
-            return;
-        }
 
         for (MinecraftAccount existing : accounts) {
             if (existing.getUuid().equals(uuid) || existing.getUsername().equalsIgnoreCase(name)) {
-                if (token != null && !token.isBlank() && ! "0".equals(token) && existing.getAccessToken().isBlank()) {
+                if (!token.isBlank() && !"0".equals(token) && existing.getAccessToken().isBlank()) {
                     existing.setAccessToken(token);
                 }
                 return;
             }
         }
 
-        boolean hasRealToken = token != null && !token.isBlank() && !"0".equals(token) && !"null".equalsIgnoreCase(token);
+        boolean hasRealToken = !token.isBlank() && !"0".equals(token) && !"null".equalsIgnoreCase(token);
         MinecraftAccount.AccountType type = hasRealToken
                 ? MinecraftAccount.AccountType.MICROSOFT
                 : MinecraftAccount.AccountType.OFFLINE;
@@ -95,10 +89,10 @@ public final class AccountManager {
         return statusMessage;
     }
 
-    public synchronized MinecraftAccount addOrUpdateOfflineAccount(String username) {
+    public synchronized void addOrUpdateOfflineAccount(String username) {
         String cleanName = username == null ? "" : username.trim();
         if (cleanName.isEmpty()) {
-            return null;
+            return;
         }
         if (cleanName.length() > 16) {
             cleanName = cleanName.substring(0, 16);
@@ -111,7 +105,7 @@ public final class AccountManager {
                 existing.setUuid(offlineUuid);
                 save();
                 switchToAccount(existing);
-                return existing;
+                return;
             }
         }
 
@@ -119,7 +113,6 @@ public final class AccountManager {
         accounts.add(created);
         save();
         switchToAccount(created);
-        return created;
     }
 
     public synchronized void addOrUpdateMicrosoftAccount(MinecraftAccount account) {
@@ -149,7 +142,7 @@ public final class AccountManager {
 
     public boolean isActive(MinecraftAccount account) {
         Minecraft client = Minecraft.getInstance();
-        if (client == null || client.getUser() == null || account == null) {
+        if (account == null) {
             return false;
         }
         return account.getUsername().equalsIgnoreCase(client.getUser().getName());
@@ -189,9 +182,6 @@ public final class AccountManager {
 
     private void applySessionOnClientThread(MinecraftAccount account) {
         Minecraft client = Minecraft.getInstance();
-        if (client == null) {
-            return;
-        }
         client.execute(() -> {
             String token = account.isMicrosoft() && !account.getAccessToken().isBlank()
                     ? account.getAccessToken()
@@ -237,20 +227,18 @@ public final class AccountManager {
 
     public Identifier getSkinTexture(MinecraftAccount account) {
         Minecraft client = Minecraft.getInstance();
-        if (client == null || account == null) {
+        if (account == null) {
             return DefaultPlayerSkin.getDefaultTexture();
         }
         PlayerSkinRenderCache cache = client.playerSkinRenderCache();
-        if (cache != null && !account.getUsername().isBlank()) {
+        if (!account.getUsername().isBlank()) {
             String key = account.getUsername().toLowerCase(Locale.ROOT);
             ResolvableProfile resolvable = skinProfileCache.computeIfAbsent(
                     key,
                     k -> ResolvableProfile.createUnresolved(account.getUsername())
             );
             PlayerSkinRenderCache.RenderInfo info = cache.getOrDefault(resolvable);
-            if (info != null && info.playerSkin() != null && info.playerSkin().body() != null) {
-                return info.playerSkin().body().texturePath();
-            }
+            return info.playerSkin().body().texturePath();
         }
         return DefaultPlayerSkin.get(new GameProfile(account.getUuid(), account.getUsername())).body().texturePath();
     }

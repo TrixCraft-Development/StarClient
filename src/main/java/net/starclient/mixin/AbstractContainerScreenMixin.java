@@ -4,7 +4,6 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
@@ -16,6 +15,7 @@ import net.starclient.gui.GuiRenderUtils;
 import net.starclient.gui.InventorySearchHolder;
 import net.starclient.gui.InventorySearchManager;
 import org.lwjgl.glfw.GLFW;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -29,7 +29,9 @@ public abstract class AbstractContainerScreenMixin extends Screen implements Inv
 
     @Shadow protected int leftPos;
     @Shadow protected int topPos;
+    @Final
     @Shadow protected int imageWidth;
+    @Final
     @Shadow protected int imageHeight;
 
     @Unique
@@ -56,18 +58,11 @@ public abstract class AbstractContainerScreenMixin extends Screen implements Inv
 
     @Override
     public int starclient$getBarY() {
-        boolean isCreative = ((Object) this) instanceof CreativeModeInventoryScreen;
         // In CreativeModeInventoryScreen, bottom tabs extend down to topPos + imageHeight + 28.
         // Place the search bar cleanly below them with a 4px gap (at +32) so it does not overlap.
-        int extra = isCreative ? 32 : 4;
+        int extra = 4;
         int y = this.topPos + this.imageHeight + extra;
-        if (!isCreative) {
-            return Math.min(y, this.height - 22);
-        }
-        if (y + 18 > this.height) {
-            return Math.max(this.topPos + this.imageHeight + 30, this.height - 20);
-        }
-        return y;
+        return Math.min(y, this.height - 22);
     }
 
     @Unique
@@ -97,7 +92,7 @@ public abstract class AbstractContainerScreenMixin extends Screen implements Inv
     }
 
     @Inject(method = "extractContents", at = @At("TAIL"))
-    private void starclient$onExtractContents(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+    private void starclient$onExtractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a, CallbackInfo ci) {
         if (!InventorySearchManager.isEnabled()) return;
         starclient$ensureSearchBox();
         if (this.starclient$searchBox == null) return;
@@ -115,19 +110,19 @@ public abstract class AbstractContainerScreenMixin extends Screen implements Inv
         boolean focused = this.starclient$searchBox.isFocused();
         boolean hovered = mouseX >= barX && mouseX <= barX + barW && mouseY >= barY && mouseY <= barY + barH;
 
-        extractor.nextStratum();
+        graphics.nextStratum();
 
         // Search bar background & shadow
-        GuiRenderUtils.drawDropShadow(extractor, barX, barY, barW, barH, 4, 2, 60);
-        GuiRenderUtils.fillRoundedRect(extractor, barX, barY, barW, barH, 4, 0xEE0F172A);
+        GuiRenderUtils.drawDropShadow(graphics, barX, barY, barW, barH, 4, 2, 60);
+        GuiRenderUtils.fillRoundedRect(graphics, barX, barY, barW, barH, 4, 0xEE0F172A);
         int borderCol = focused ? accent : (hovered ? 0x8864748B : 0x3364748B);
-        GuiRenderUtils.drawRoundedOutline(extractor, barX, barY, barW, barH, 4, borderCol);
+        GuiRenderUtils.drawRoundedOutline(graphics, barX, barY, barW, barH, 4, borderCol);
 
         // Magnifying glass icon
-        GuiRenderUtils.drawText(extractor, this.font, "🔍", barX + 5, barY + 5, focused ? accent : 0xFF94A3B8);
+        GuiRenderUtils.drawText(graphics, this.font, "🔍", barX + 5, barY + 5, focused ? accent : 0xFF94A3B8);
 
         // EditBox text rendering
-        this.starclient$searchBox.extractRenderState(extractor, mouseX, mouseY, delta);
+        this.starclient$searchBox.extractRenderState(graphics, mouseX, mouseY, a);
 
         // Clear button '✕'
         if (!this.starclient$searchBox.getValue().isEmpty()) {
@@ -135,14 +130,14 @@ public abstract class AbstractContainerScreenMixin extends Screen implements Inv
             int clearY = barY + 4;
             boolean clearHover = mouseX >= clearX - 3 && mouseX <= clearX + 11 && mouseY >= clearY - 3 && mouseY <= clearY + 11;
             if (clearHover) {
-                GuiRenderUtils.fillRoundedRect(extractor, clearX - 2, clearY - 2, 12, 12, 3, 0x33EF4444);
+                GuiRenderUtils.fillRoundedRect(graphics, clearX - 2, clearY - 2, 12, 12, 3, 0x33EF4444);
             }
-            GuiRenderUtils.drawCenteredText(extractor, this.font, "✕", clearX + 4, clearY + 1, clearHover ? 0xFFEF4444 : 0xFF94A3B8);
+            GuiRenderUtils.drawCenteredText(graphics, this.font, "✕", clearX + 4, clearY + 1, clearHover ? 0xFFEF4444 : 0xFF94A3B8);
         }
     }
 
     @Inject(method = "extractSlot", at = @At("TAIL"))
-    private void starclient$onExtractSlot(GuiGraphicsExtractor extractor, Slot slot, int mouseX, int mouseY, CallbackInfo ci) {
+    private void starclient$onExtractSlot(GuiGraphicsExtractor graphics, Slot slot, int mouseX, int mouseY, CallbackInfo ci) {
         if (!InventorySearchManager.isEnabled() || this.starclient$searchBox == null) return;
         String query = this.starclient$searchBox.getValue();
         if (query.isBlank()) return;
@@ -154,15 +149,15 @@ public abstract class AbstractContainerScreenMixin extends Screen implements Inv
         int accent = cs != null ? cs.getMenuAccentColor() : 0xFF38BDF8;
 
         if (matches) {
-            GuiRenderUtils.drawRoundedOutline(extractor, slot.x - 1, slot.y - 1, 18, 18, 2, accent);
-            GuiRenderUtils.fillRoundedRect(extractor, slot.x, slot.y, 16, 16, 2, 0x2538BDF8);
+            GuiRenderUtils.drawRoundedOutline(graphics, slot.x - 1, slot.y - 1, 18, 18, 2, accent);
+            GuiRenderUtils.fillRoundedRect(graphics, slot.x, slot.y, 16, 16, 2, 0x2538BDF8);
         } else {
-            extractor.fill(slot.x, slot.y, slot.x + 16, slot.y + 16, 0xCC000000);
+            graphics.fill(slot.x, slot.y, slot.x + 16, slot.y + 16, 0xCC000000);
         }
     }
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
-    private void starclient$onMouseClicked(MouseButtonEvent event, boolean action, CallbackInfoReturnable<Boolean> cir) {
+    private void starclient$onMouseClicked(MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
         if (!InventorySearchManager.isEnabled()) return;
         starclient$ensureSearchBox();
         if (this.starclient$searchBox == null) return;
@@ -192,7 +187,7 @@ public abstract class AbstractContainerScreenMixin extends Screen implements Inv
             this.starclient$searchBox.setFocused(true);
             this.setFocused(this.starclient$searchBox);
             InventorySearchManager.setSearchFocused(true);
-            this.starclient$searchBox.mouseClicked(event, action);
+            this.starclient$searchBox.mouseClicked(event, doubleClick);
             cir.setReturnValue(true);
         } else if (this.starclient$searchBox.isFocused()) {
             this.starclient$searchBox.setFocused(false);

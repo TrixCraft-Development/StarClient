@@ -15,11 +15,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class BlockItemMixin {
 
     @Inject(method = "place", at = @At("RETURN"))
-    private void onBlockPlaced(BlockPlaceContext context, CallbackInfoReturnable<InteractionResult> cir) {
+    private void onBlockPlaced(BlockPlaceContext placeContext, CallbackInfoReturnable<InteractionResult> cir) {
         if (cir.getReturnValue() != null && cir.getReturnValue().consumesAction()) {
-            Player player = context.getPlayer();
+            Player player = placeContext.getPlayer();
             Minecraft mc = Minecraft.getInstance();
-            if (player != null && mc != null && player == mc.player) {
+            if (player != null && player == mc.player) {
                 ClientStatsManager.getInstance().onBlockPlaced();
             }
         }

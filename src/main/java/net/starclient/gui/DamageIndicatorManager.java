@@ -4,13 +4,10 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.component.ItemAttributeModifiers;
 import net.minecraft.world.phys.Vec3;
 import net.starclient.StarClient;
 import net.starclient.module.Module;
@@ -18,7 +15,6 @@ import net.starclient.setting.NumberSetting;
 import net.starclient.setting.Setting;
 import org.joml.Matrix3x2fStack;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -87,7 +83,7 @@ public final class DamageIndicatorManager {
     }
 
     public void onEntityHealthUpdate(LivingEntity entity) {
-        if (entity == null || entity.level() == null || !entity.level().isClientSide()) return;
+        if (entity == null || !entity.level().isClientSide()) return;
         int entityId = safeGetId(entity);
         if (entityId == 0) return;
 
@@ -95,7 +91,7 @@ public final class DamageIndicatorManager {
         if (mod == null || !mod.isEnabled()) return;
 
         Minecraft client = Minecraft.getInstance();
-        if (entity == client.player && !getBool(mod, "Show Self", true)) {
+        if (entity == client.player && !getBool(mod, "Show Self")) {
             return;
         }
 
@@ -113,7 +109,7 @@ public final class DamageIndicatorManager {
     }
 
     public void onEntityHurt(LivingEntity entity) {
-        if (entity == null || entity.level() == null || !entity.level().isClientSide()) return;
+        if (entity == null || !entity.level().isClientSide()) return;
         int entityId = safeGetId(entity);
         if (entityId == 0) return;
 
@@ -121,7 +117,7 @@ public final class DamageIndicatorManager {
         if (mod == null || !mod.isEnabled()) return;
 
         Minecraft client = Minecraft.getInstance();
-        if (entity == client.player && !getBool(mod, "Show Self", true)) {
+        if (entity == client.player && !getBool(mod, "Show Self")) {
             return;
         }
 
@@ -140,7 +136,7 @@ public final class DamageIndicatorManager {
     }
 
     public void recordPlayerAttack(Player attacker, Entity target) {
-        if (attacker == null || target == null || !(target instanceof LivingEntity living)) return;
+        if (attacker == null || !(target instanceof LivingEntity living)) return;
         int targetId = safeGetId(living);
         if (targetId == 0) return;
 
@@ -177,9 +173,9 @@ public final class DamageIndicatorManager {
         if (mod == null || !mod.isEnabled()) return;
 
         String format = getString(mod, "Format", "Damage & Heart");
-        boolean showCrits = getBool(mod, "Show Crits", true);
+        boolean showCrits = getBool(mod, "Show Crits");
         double durationSec = getNum(mod, "Duration", 1.2);
-        boolean showIcon = getBool(mod, "Show Heart Icon", true);
+        boolean showIcon = getBool(mod, "Show Heart Icon");
 
         String text;
         String heart = showIcon ? " ❤" : "";
@@ -232,9 +228,7 @@ public final class DamageIndicatorManager {
         String movement = getString(mod, "Movement", "Bounce Up");
         double scaleBase = getNum(mod, "Scale", 1.0);
 
-        Iterator<Indicator> it = indicators.iterator();
-        while (it.hasNext()) {
-            Indicator ind = it.next();
+        for (Indicator ind : indicators) {
             long elapsed = now - ind.spawnTime;
             if (elapsed > ind.durationMs) {
                 indicators.remove(ind);
@@ -289,9 +283,9 @@ public final class DamageIndicatorManager {
         return StarClient.getInstance().getModuleManager().getModuleByName("Damage Indicators");
     }
 
-    private static boolean getBool(Module mod, String name, boolean def) {
+    private static boolean getBool(Module mod, String name) {
         Setting<?> s = mod.getSetting(name);
-        return s == null ? def : (boolean) s.getValue();
+        return s == null || (boolean) s.getValue();
     }
 
     private static double getNum(Module mod, String name, double def) {

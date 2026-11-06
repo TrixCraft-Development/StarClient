@@ -1,7 +1,6 @@
 package net.starclient.mixin;
 
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
@@ -23,7 +22,7 @@ public abstract class CreativeModeInventoryScreenMixin {
     private EditBox searchBox;
 
     @Inject(method = "mouseClicked", at = @At("HEAD"))
-    private void starclient$onCreativeMouseClicked(MouseButtonEvent event, boolean action, CallbackInfoReturnable<Boolean> cir) {
+    private void starclient$onCreativeMouseClicked(MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
         if (!InventorySearchManager.isEnabled()) return;
         if (((Object) this) instanceof InventorySearchHolder holder) {
             EditBox box = holder.starclient$getSearchBox();
@@ -46,9 +45,6 @@ public abstract class CreativeModeInventoryScreenMixin {
                 }
             } else if (box.isFocused()) {
                 box.setFocused(false);
-                if (((Object) this) instanceof Screen screen) {
-                    screen.setFocused(null);
-                }
                 InventorySearchManager.setSearchFocused(false);
             }
         }
@@ -65,18 +61,12 @@ public abstract class CreativeModeInventoryScreenMixin {
                     if (!box.getValue().isEmpty()) {
                         box.setValue("");
                         box.setFocused(false);
-                        if (((Object) this) instanceof Screen screen) {
-                            screen.setFocused(null);
-                        }
                         InventorySearchManager.setSearchFocused(false);
                         cir.setReturnValue(true);
                         return;
                     }
                 } else if (key == GLFW.GLFW_KEY_ENTER) {
                     box.setFocused(false);
-                    if (((Object) this) instanceof Screen screen) {
-                        screen.setFocused(null);
-                    }
                     InventorySearchManager.setSearchFocused(false);
                     cir.setReturnValue(true);
                     return;

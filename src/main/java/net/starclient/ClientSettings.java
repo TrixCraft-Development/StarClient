@@ -90,6 +90,12 @@ public final class ClientSettings {
         return settings;
     }
 
+    public void resetToDefaults() {
+        for (Setting<?> setting : settings) {
+            setting.reset();
+        }
+    }
+
     public boolean isHudTextShadow() {
         return hudTextShadow.getValue();
     }

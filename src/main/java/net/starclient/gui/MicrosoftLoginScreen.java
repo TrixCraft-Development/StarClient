@@ -141,7 +141,7 @@ public class MicrosoftLoginScreen extends Screen {
     }
 
     private void drawButton(GuiGraphicsExtractor extractor, String label, int x, int y, int width, int color, int mouseX, int mouseY) {
-        boolean isHovered = hovered(x, y, width, BUTTON_HEIGHT, mouseX, mouseY);
+        boolean isHovered = hovered(x, y, width, mouseX, mouseY);
         int bg = isHovered ? darken(color) : color;
         extractor.fill(x, y, x + width, y + BUTTON_HEIGHT, bg);
         extractor.text(this.font, label, x + (width - this.font.width(label)) / 2, y + 8, 0xFFFFFFFF);
@@ -163,12 +163,12 @@ public class MicrosoftLoginScreen extends Screen {
             int pY = panelY();
             int btnY = pY + PANEL_HEIGHT - 36;
 
-            if (hovered(pX + 18, btnY, 100, BUTTON_HEIGHT, mouseX, mouseY)) {
+            if (hovered(pX + 18, btnY, 100, mouseX, mouseY)) {
                 this.cancelled.set(true);
                 Minecraft.getInstance().gui.setScreen(parent);
                 return true;
             }
-            if (hovered(pX + PANEL_WIDTH - 18 - 220, btnY, 220, BUTTON_HEIGHT, mouseX, mouseY)) {
+            if (hovered(pX + PANEL_WIDTH - 18 - 220, btnY, 220, mouseX, mouseY)) {
                 if (hasError) {
                     startDeviceCodeFlow();
                 } else if (!"...".equals(userCode)) {
@@ -198,8 +198,8 @@ public class MicrosoftLoginScreen extends Screen {
         super.removed();
     }
 
-    private static boolean hovered(int x, int y, int w, int h, double mouseX, double mouseY) {
-        return mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + h;
+    private static boolean hovered(int x, int y, int w, double mouseX, double mouseY) {
+        return mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + MicrosoftLoginScreen.BUTTON_HEIGHT;
     }
 
     @Override

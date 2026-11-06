@@ -26,7 +26,7 @@ public abstract class NickTabMixin {
         }
         Minecraft client = Minecraft.getInstance();
         StarClient mod = StarClient.getInstance();
-        if (client.player != null && mod != null && mod.getClientSettings().isTabIcon() && info.getProfile() != null) {
+        if (client.player != null && mod != null && mod.getClientSettings().isTabIcon()) {
             boolean isSelf = info.getProfile().id().equals(client.player.getUUID());
             RankManager rankManager = mod.getRankManager();
             Rank rank = rankManager != null

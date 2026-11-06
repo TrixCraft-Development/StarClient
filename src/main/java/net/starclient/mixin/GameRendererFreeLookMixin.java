@@ -9,11 +9,15 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelTargetBundle;
 import net.minecraft.client.renderer.PostChain;
+import net.minecraft.client.renderer.state.GameRenderState;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
+import net.minecraft.world.level.material.FogType;
 import net.starclient.StarClient;
+import net.starclient.module.FogCustomizerState;
 import net.starclient.module.FreeLookState;
+import net.starclient.module.GlintCustomizerState;
 import net.starclient.module.MotionBlurState;
 import net.starclient.module.NoHurtCamState;
 import org.joml.Matrix4fc;
@@ -53,6 +57,10 @@ public abstract class GameRendererFreeLookMixin {
     @Final
     private Camera mainCamera;
 
+    @Shadow
+    @Final
+    private GameRenderState gameRenderState;
+
     @Unique
     private float starclient$prevYaw;
     @Unique
@@ -69,9 +77,30 @@ public abstract class GameRendererFreeLookMixin {
         }
     }
 
+    @Inject(method = "extractOptions", at = @At("RETURN"))
+    private void starclient$customizeGlintOptions(CallbackInfo ci) {
+        if (this.gameRenderState != null) {
+            GlintCustomizerState.applyOptions(this.gameRenderState.optionsRenderState);
+        }
+    }
+
+    @Inject(method = "extractCamera", at = @At("RETURN"))
+    private void starclient$customizeCameraFogState(DeltaTracker deltaTracker, float worldPartialTicks, float cameraEntityPartialTicks, CallbackInfo ci) {
+        if (!FogCustomizerState.isActive() || this.gameRenderState == null) {
+            return;
+        }
+        CameraRenderState camState = this.gameRenderState.levelRenderState.cameraRenderState;
+        if (FogCustomizerState.shouldReplaceFluidFogType(camState.fogType)) {
+            camState.fogType = FogType.NONE;
+        }
+        if (FogCustomizerState.shouldDisableBlindnessFog()) {
+            camState.entityRenderState.doesMobEffectBlockSky = false;
+        }
+    }
+
     @Inject(method = "bobHurt", at = @At("HEAD"), cancellable = true)
     private void adjustHurtCam(CameraRenderState cameraState, PoseStack poseStack, CallbackInfo ci) {
-        if (!NoHurtCamState.isActive() || cameraState.entityRenderState == null) {
+        if (!NoHurtCamState.isActive()) {
             return;
         }
         if (cameraState.entityRenderState.isDeadOrDying) {

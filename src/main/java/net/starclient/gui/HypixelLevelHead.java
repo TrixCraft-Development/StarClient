@@ -45,7 +45,7 @@ public final class HypixelLevelHead {
 
     public static boolean isHypixel(Minecraft client) {
         ServerData server = client.getCurrentServer();
-        if (server == null || server.ip == null) {
+        if (server == null) {
             return false;
         }
         String ip = server.ip.toLowerCase(Locale.ROOT);
@@ -67,7 +67,7 @@ public final class HypixelLevelHead {
         }
         if (serverCheck && !isHypixel(client)) {
             ServerData server = client.getCurrentServer();
-            String host = server == null || server.ip == null ? "unknown" : server.ip;
+            String host = server == null ? "unknown" : server.ip;
             return "Hypixel Level Head: not on Hypixel (" + host + ")";
         }
         return null;

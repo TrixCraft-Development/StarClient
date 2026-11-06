@@ -94,7 +94,7 @@ public class ConfirmDeleteAccountScreen extends Screen {
     }
 
     private void drawButton(GuiGraphicsExtractor extractor, String label, int x, int y, int color, int mouseX, int mouseY) {
-        boolean isHovered = hovered(x, y, BUTTON_WIDTH, BUTTON_HEIGHT, mouseX, mouseY);
+        boolean isHovered = hovered(x, y, mouseX, mouseY);
         int bg = isHovered ? darken(color) : color;
         extractor.fill(x, y, x + BUTTON_WIDTH, y + BUTTON_HEIGHT, bg);
         extractor.text(this.font, label, x + (BUTTON_WIDTH - this.font.width(label)) / 2, y + 8, 0xFFFFFFFF);
@@ -116,11 +116,11 @@ public class ConfirmDeleteAccountScreen extends Screen {
             int pY = panelY();
             int btnY = pY + PANEL_HEIGHT - 36;
 
-            if (hovered(pX + 18, btnY, BUTTON_WIDTH, BUTTON_HEIGHT, mouseX, mouseY)) {
+            if (hovered(pX + 18, btnY, mouseX, mouseY)) {
                 Minecraft.getInstance().gui.setScreen(parent);
                 return true;
             }
-            if (hovered(pX + PANEL_WIDTH - 18 - BUTTON_WIDTH, btnY, BUTTON_WIDTH, BUTTON_HEIGHT, mouseX, mouseY)) {
+            if (hovered(pX + PANEL_WIDTH - 18 - BUTTON_WIDTH, btnY, mouseX, mouseY)) {
                 confirmDelete();
                 return true;
             }
@@ -146,8 +146,8 @@ public class ConfirmDeleteAccountScreen extends Screen {
         Minecraft.getInstance().gui.setScreen(parent);
     }
 
-    private static boolean hovered(int x, int y, int w, int h, double mouseX, double mouseY) {
-        return mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + h;
+    private static boolean hovered(int x, int y, double mouseX, double mouseY) {
+        return mouseX >= x && mouseX <= x + ConfirmDeleteAccountScreen.BUTTON_WIDTH && mouseY >= y && mouseY <= y + ConfirmDeleteAccountScreen.BUTTON_HEIGHT;
     }
 
     @Override

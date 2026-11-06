@@ -174,9 +174,7 @@ public class CosmeticsScreen extends Screen {
         super.init();
 
         Minecraft client = Minecraft.getInstance();
-        if (client != null && client.getSkinManager() != null) {
-            client.getGameProfile();
-        }
+        client.getGameProfile();
         try {
             this.skinLookup = client.getSkinManager().createLookup(client.getGameProfile(), true);
         } catch (Exception ignored) {
@@ -208,11 +206,11 @@ public class CosmeticsScreen extends Screen {
     }
 
     private int panelWidth() {
-        return Math.max(480, Math.min(TARGET_WIDTH, this.width - 20));
+        return Math.clamp(this.width - 20, 480, TARGET_WIDTH);
     }
 
     private int panelHeight() {
-        return Math.max(340, Math.min(TARGET_HEIGHT, this.height - 20));
+        return Math.clamp(this.height - 20, 340, TARGET_HEIGHT);
     }
 
     private int panelX() {
@@ -732,8 +730,7 @@ public class CosmeticsScreen extends Screen {
     private PlayerSkin resolvePlayerSkin(Minecraft client) {
         if (client.player != null) {
             try {
-                PlayerSkin s = client.player.getSkin();
-                if (s != null) return s;
+                return client.player.getSkin();
             } catch (Exception ignored) {}
         }
         if (this.skinLookup == null) {
@@ -863,7 +860,7 @@ public class CosmeticsScreen extends Screen {
         // Nametag: ⭐ <PlayerName> (matching in-game billboarding tag)
         RankManager rankManager = StarClient.getInstance() != null ? StarClient.getInstance().getRankManager() : null;
         Rank rank = rankManager != null ? rankManager.getSelfRank() : Rank.USER;
-        String username = "Player";
+        String username;
         if (client.player != null) {
             username = client.player.getGameProfile().name();
         } else {
@@ -983,8 +980,7 @@ public class CosmeticsScreen extends Screen {
             for (int i = 0; i < types.length; i++) {
                 tabWidths[i] = this.font.width(shortTabNames[i]) + 12;
             }
-            int tabStartX = backBtnX + backBtnW + 8;
-            int curTabX = tabStartX;
+            int curTabX = backBtnX + backBtnW + 8;
             int tabY = pY + (HEADER_HEIGHT - tabH) / 2;
 
             for (int i = 0; i < types.length; i++) {
@@ -993,9 +989,7 @@ public class CosmeticsScreen extends Screen {
                     this.activeType = types[i];
                     this.scroll = 0;
                     this.targetScroll = 0;
-                    if (this.minecraft != null) {
-                        this.minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
-                    }
+                    this.minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
                     return true;
                 }
                 curTabX += tw + 3;
@@ -1132,10 +1126,10 @@ public class CosmeticsScreen extends Screen {
     private boolean isItemEquipped(CosmeticManager cosmetics, CosmeticItem item) {
         if (item == null || item.id() == null) return false;
         return switch (item.type()) {
-            case CAPE -> item.id().equals(cosmetics.getEquippedCape());
-            case WINGS -> item.id().equals(cosmetics.getEquippedWings());
-            case HEADWEAR -> item.id().equals(cosmetics.getEquippedHeadwear());
-            case TRAIL -> item.id().equals(cosmetics.getEquippedTrail());
+            case CAPE -> item.id().equalsIgnoreCase(cosmetics.getEquippedCape());
+            case WINGS -> item.id().equalsIgnoreCase(cosmetics.getEquippedWings());
+            case HEADWEAR -> item.id().equalsIgnoreCase(cosmetics.getEquippedHeadwear());
+            case TRAIL -> item.id().equalsIgnoreCase(cosmetics.getEquippedTrail());
             default -> false;
         };
     }
@@ -1282,13 +1276,11 @@ public class CosmeticsScreen extends Screen {
             StarClient.getInstance().getConfigManager().saveConfig();
         }
         Minecraft client = Minecraft.getInstance();
-        if (client != null) {
-            client.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
-            if (this.parent != null) {
-                client.gui.setScreen(this.parent);
-            } else {
-                this.onClose();
-            }
+        client.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+        if (this.parent != null) {
+            client.gui.setScreen(this.parent);
+        } else {
+            this.onClose();
         }
     }
 

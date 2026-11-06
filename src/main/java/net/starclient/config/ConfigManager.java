@@ -10,6 +10,7 @@ import net.starclient.StarClient;
 import net.starclient.changelog.ChangelogManager;
 import net.starclient.module.Module;
 import net.starclient.setting.BooleanSetting;
+import net.starclient.setting.MacroListSetting;
 import net.starclient.setting.ModeSetting;
 import net.starclient.setting.NickEntryListSetting;
 import net.starclient.setting.NumberSetting;
@@ -52,46 +53,184 @@ public class ConfigManager {
         }
     }
 
+    public @NonNull JsonObject captureStateJson() {
+        JsonObject root = new JsonObject();
+        root.add("modules", getJsonObject());
+        root.add("hudLayout", StarClient.getInstance().getHudLayout().toJson());
+        root.add("clientSettings", getClientSettingsJson());
+
+        // Per-account cosmetics
+        JsonObject perAccountObj = new JsonObject();
+        for (java.util.Map.Entry<String, net.starclient.cosmetics.CosmeticManager.AccountCosmetics> entry :
+                StarClient.getInstance().getCosmeticManager().getAllAccountCosmetics().entrySet()) {
+            JsonObject accObj = new JsonObject();
+            net.starclient.cosmetics.CosmeticManager.AccountCosmetics c = entry.getValue();
+            accObj.addProperty("equippedCape", c.equippedCape == null ? "" : c.equippedCape);
+            accObj.addProperty("equippedWings", c.equippedWings == null ? "" : c.equippedWings);
+            accObj.addProperty("equippedHeadwear", c.equippedHeadwear == null ? "" : c.equippedHeadwear);
+            accObj.addProperty("equippedTrail", c.equippedTrail == null ? "" : c.equippedTrail);
+            accObj.addProperty("trailMode", c.trailMode != null ? c.trailMode : "Always");
+            accObj.addProperty("capeWaveSpeed", c.capeWaveSpeed);
+            accObj.addProperty("capeWaveAmplitude", c.capeWaveAmplitude);
+            accObj.addProperty("capeWindSway", c.capeWindSway);
+            perAccountObj.add(entry.getKey(), accObj);
+        }
+        root.add("accountCosmetics", perAccountObj);
+
+        String equippedCape = StarClient.getInstance().getCosmeticManager().getEquippedCape();
+        root.addProperty("equippedCape", equippedCape == null ? "" : equippedCape);
+        String equippedWings = StarClient.getInstance().getCosmeticManager().getEquippedWings();
+        root.addProperty("equippedWings", equippedWings == null ? "" : equippedWings);
+        String equippedHeadwear = StarClient.getInstance().getCosmeticManager().getEquippedHeadwear();
+        root.addProperty("equippedHeadwear", equippedHeadwear == null ? "" : equippedHeadwear);
+        String equippedTrail = StarClient.getInstance().getCosmeticManager().getEquippedTrail();
+        root.addProperty("equippedTrail", equippedTrail == null ? "" : equippedTrail);
+        root.addProperty("trailMode", StarClient.getInstance().getCosmeticManager().getTrailMode());
+        root.addProperty("capeWaveSpeed", StarClient.getInstance().getCosmeticManager().getCapeWaveSpeed());
+        root.addProperty("capeWaveAmplitude", StarClient.getInstance().getCosmeticManager().getCapeWaveAmplitude());
+        root.addProperty("capeWindSway", StarClient.getInstance().getCosmeticManager().isCapeWindSway());
+        return root;
+    }
+
+    public void applyStateJson(JsonObject root) {
+        if (root == null) return;
+
+        if (root.has("clientSettings") && root.get("clientSettings").isJsonObject()) {
+            StarClient.getInstance().getClientSettings().resetToDefaults();
+            JsonObject settingsObj = root.getAsJsonObject("clientSettings");
+            for (Setting<?> setting : StarClient.getInstance().getClientSettings().getSettings()) {
+                if (settingsObj.has(setting.getName())) {
+                    switch (setting) {
+                        case BooleanSetting bs ->
+                                bs.setValue(settingsObj.get(setting.getName()).getAsBoolean());
+                        case NumberSetting ns ->
+                                ns.setValue(settingsObj.get(setting.getName()).getAsDouble());
+                        case ModeSetting ms ->
+                                ms.setValue(settingsObj.get(setting.getName()).getAsString());
+                        case TextSetting ts ->
+                                ts.setValue(settingsObj.get(setting.getName()).getAsString());
+                        default -> {
+                        }
+                    }
+                }
+            }
+        }
+
+        if (root.has("modules") && root.get("modules").isJsonObject()) {
+            JsonObject modulesObj = root.getAsJsonObject("modules");
+            for (Module module : StarClient.getInstance().getModuleManager().getModules()) {
+                if (modulesObj.has(module.getName())) {
+                    JsonObject modObj = modulesObj.getAsJsonObject(module.getName());
+                    if (modObj.has("favorite")) {
+                        module.setFavorite(modObj.get("favorite").getAsBoolean());
+                    } else {
+                        module.setFavorite(false);
+                    }
+                    if (modObj.has("keybind")) {
+                        module.setKeyBind(modObj.get("keybind").getAsInt());
+                    } else {
+                        module.setKeyBind(module.getDefaultKeyBind());
+                    }
+                    if (modObj.has("settings") && modObj.get("settings").isJsonObject()) {
+                        JsonObject settingsObj = modObj.getAsJsonObject("settings");
+                        for (Setting<?> setting : module.getSettings()) {
+                            if (settingsObj.has(setting.getName())) {
+                                switch (setting) {
+                                    case BooleanSetting bs ->
+                                            bs.setValue(settingsObj.get(setting.getName()).getAsBoolean());
+                                    case NumberSetting ns ->
+                                            ns.setValue(settingsObj.get(setting.getName()).getAsDouble());
+                                    case ModeSetting ms ->
+                                            ms.setValue(settingsObj.get(setting.getName()).getAsString());
+                                    case TextSetting ts ->
+                                            ts.setValue(settingsObj.get(setting.getName()).getAsString());
+                                    case NickEntryListSetting nl -> {
+                                        nl.getValue().clear();
+                                        if (settingsObj.get(nl.getName()).isJsonArray()) {
+                                            for (var elem : settingsObj.get(nl.getName()).getAsJsonArray()) {
+                                                JsonObject obj = elem.getAsJsonObject();
+                                                String real = obj.has("real") ? obj.get("real").getAsString() : "";
+                                                String nick = obj.has("nick") ? obj.get("nick").getAsString() : "";
+                                                nl.getValue().add(new NickEntryListSetting.NickEntry(real, nick));
+                                            }
+                                        }
+                                    }
+                                    case MacroListSetting ml -> {
+                                        ml.getValue().clear();
+                                        if (settingsObj.get(ml.getName()).isJsonArray()) {
+                                            for (var elem : settingsObj.get(ml.getName()).getAsJsonArray()) {
+                                                JsonObject obj = elem.getAsJsonObject();
+                                                String cmd = obj.has("command") ? obj.get("command").getAsString() : "";
+                                                int keyBind = obj.has("keyBind") ? obj.get("keyBind").getAsInt() : -1;
+                                                boolean enabled = !obj.has("enabled") || obj.get("enabled").getAsBoolean();
+                                                if (!cmd.isBlank()) {
+                                                    ml.getValue().add(new MacroListSetting.MacroEntry(cmd, keyBind, enabled));
+                                                }
+                                            }
+                                        }
+                                    }
+                                    default -> {
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (modObj.has("enabled")) {
+                        module.setEnabled(modObj.get("enabled").getAsBoolean());
+                    }
+                } else {
+                    module.resetToFullDefault();
+                }
+            }
+        }
+
+        StarClient.getInstance().getHudLayout().reset();
+        if (root.has("hudLayout") && root.get("hudLayout").isJsonObject()) {
+            StarClient.getInstance().getHudLayout().fromJson(root.getAsJsonObject("hudLayout"));
+        }
+
+        StarClient.getInstance().getCosmeticManager().clearAllAccountCosmetics();
+        if (root.has("accountCosmetics") && root.get("accountCosmetics").isJsonObject()) {
+            JsonObject perAccountObj = root.getAsJsonObject("accountCosmetics");
+            for (String key : perAccountObj.keySet()) {
+                if (perAccountObj.get(key).isJsonObject()) {
+                    JsonObject accObj = perAccountObj.getAsJsonObject(key);
+                    net.starclient.cosmetics.CosmeticManager.AccountCosmetics c = new net.starclient.cosmetics.CosmeticManager.AccountCosmetics();
+                    if (accObj.has("equippedCape")) c.equippedCape = accObj.get("equippedCape").getAsString();
+                    if (accObj.has("equippedWings")) c.equippedWings = accObj.get("equippedWings").getAsString();
+                    if (accObj.has("equippedHeadwear")) c.equippedHeadwear = accObj.get("equippedHeadwear").getAsString();
+                    if (accObj.has("equippedTrail")) c.equippedTrail = accObj.get("equippedTrail").getAsString();
+                    if (accObj.has("trailMode")) c.trailMode = accObj.get("trailMode").getAsString();
+                    if (accObj.has("capeWaveSpeed")) c.capeWaveSpeed = accObj.get("capeWaveSpeed").getAsFloat();
+                    if (accObj.has("capeWaveAmplitude")) c.capeWaveAmplitude = accObj.get("capeWaveAmplitude").getAsFloat();
+                    if (accObj.has("capeWindSway")) c.capeWindSway = accObj.get("capeWindSway").getAsBoolean();
+                    StarClient.getInstance().getCosmeticManager().setAccountCosmetics(key, c);
+                }
+            }
+        }
+        if (root.has("equippedCape")) {
+            net.starclient.cosmetics.CosmeticManager.AccountCosmetics c = StarClient.getInstance().getCosmeticManager().getActiveCosmetics();
+            c.equippedCape = root.get("equippedCape").getAsString();
+            if (root.has("equippedWings")) c.equippedWings = root.get("equippedWings").getAsString();
+            if (root.has("equippedHeadwear")) c.equippedHeadwear = root.get("equippedHeadwear").getAsString();
+            if (root.has("equippedTrail")) c.equippedTrail = root.get("equippedTrail").getAsString();
+            if (root.has("trailMode")) c.trailMode = root.get("trailMode").getAsString();
+            if (root.has("capeWaveSpeed")) c.capeWaveSpeed = root.get("capeWaveSpeed").getAsFloat();
+            if (root.has("capeWaveAmplitude")) c.capeWaveAmplitude = root.get("capeWaveAmplitude").getAsFloat();
+            if (root.has("capeWindSway")) c.capeWindSway = root.get("capeWindSway").getAsBoolean();
+        }
+    }
+
     public void saveConfig() {
         try {
-            JsonObject root = new JsonObject();
-            JsonObject modulesObj = getJsonObject();
-
-            root.add("modules", modulesObj);
-            root.add("hudLayout", StarClient.getInstance().getHudLayout().toJson());
-            root.add("clientSettings", getClientSettingsJson());
-
-            // Per-account cosmetics
-            JsonObject perAccountObj = new JsonObject();
-            for (java.util.Map.Entry<String, net.starclient.cosmetics.CosmeticManager.AccountCosmetics> entry :
-                    StarClient.getInstance().getCosmeticManager().getAllAccountCosmetics().entrySet()) {
-                JsonObject accObj = new JsonObject();
-                net.starclient.cosmetics.CosmeticManager.AccountCosmetics c = entry.getValue();
-                accObj.addProperty("equippedCape", c.equippedCape == null ? "" : c.equippedCape);
-                accObj.addProperty("equippedWings", c.equippedWings == null ? "" : c.equippedWings);
-                accObj.addProperty("equippedHeadwear", c.equippedHeadwear == null ? "" : c.equippedHeadwear);
-                accObj.addProperty("equippedTrail", c.equippedTrail == null ? "" : c.equippedTrail);
-                accObj.addProperty("trailMode", c.trailMode != null ? c.trailMode : "Always");
-                accObj.addProperty("capeWaveSpeed", c.capeWaveSpeed);
-                accObj.addProperty("capeWaveAmplitude", c.capeWaveAmplitude);
-                accObj.addProperty("capeWindSway", c.capeWindSway);
-                perAccountObj.add(entry.getKey(), accObj);
-            }
-            root.add("accountCosmetics", perAccountObj);
-
-            String equippedCape = StarClient.getInstance().getCosmeticManager().getEquippedCape();
-            root.addProperty("equippedCape", equippedCape == null ? "" : equippedCape);
-            String equippedWings = StarClient.getInstance().getCosmeticManager().getEquippedWings();
-            root.addProperty("equippedWings", equippedWings == null ? "" : equippedWings);
-            String equippedHeadwear = StarClient.getInstance().getCosmeticManager().getEquippedHeadwear();
-            root.addProperty("equippedHeadwear", equippedHeadwear == null ? "" : equippedHeadwear);
-            String equippedTrail = StarClient.getInstance().getCosmeticManager().getEquippedTrail();
-            root.addProperty("equippedTrail", equippedTrail == null ? "" : equippedTrail);
-            root.addProperty("trailMode", StarClient.getInstance().getCosmeticManager().getTrailMode());
-            root.addProperty("capeWaveSpeed", StarClient.getInstance().getCosmeticManager().getCapeWaveSpeed());
-            root.addProperty("capeWaveAmplitude", StarClient.getInstance().getCosmeticManager().getCapeWaveAmplitude());
-            root.addProperty("capeWindSway", StarClient.getInstance().getCosmeticManager().isCapeWindSway());
+            JsonObject root = captureStateJson();
             root.addProperty("lastSeenChangelogVersion", ChangelogManager.getInstance().getLastSeenVersion());
+
+            ProfileManager pm = StarClient.getInstance().getProfileManager();
+            if (pm != null) {
+                root.addProperty("activeProfileId", pm.getActiveProfileId());
+                root.add("profiles", pm.toJsonArray());
+            }
 
             try (FileWriter writer = new FileWriter(configFile)) {
                 gson.toJson(root, writer);
@@ -141,6 +280,16 @@ public class ConfigManager {
                     entries.add(entryObj);
                 }
                 settingsObj.add(setting.getName(), entries);
+            } else if (setting instanceof MacroListSetting ml) {
+                JsonArray entries = new JsonArray();
+                for (MacroListSetting.MacroEntry entry : ml.getValue()) {
+                    JsonObject entryObj = new JsonObject();
+                    entryObj.addProperty("command", entry.getCommand());
+                    entryObj.addProperty("keyBind", entry.getKeyBind());
+                    entryObj.addProperty("enabled", entry.isEnabled());
+                    entries.add(entryObj);
+                }
+                settingsObj.add(setting.getName(), entries);
             }
         }
         return settingsObj;
@@ -170,106 +319,27 @@ public class ConfigManager {
 
         try (FileReader reader = new FileReader(configFile)) {
             JsonObject root = JsonParser.parseReader(reader).getAsJsonObject();
-            if (root.has("modules")) {
-                JsonObject modulesObj = root.getAsJsonObject("modules");
-                for (Module module : StarClient.getInstance().getModuleManager().getModules()) {
-                    if (modulesObj.has(module.getName())) {
-                        JsonObject modObj = modulesObj.getAsJsonObject(module.getName());
-                        if (modObj.has("enabled")) {
-                            module.setEnabled(modObj.get("enabled").getAsBoolean());
-                        }
-                        if (modObj.has("favorite")) {
-                            module.setFavorite(modObj.get("favorite").getAsBoolean());
-                        }
-                        if (modObj.has("keybind")) {
-                            module.setKeyBind(modObj.get("keybind").getAsInt());
-                        }
-                        if (modObj.has("settings")) {
-                            JsonObject settingsObj = modObj.getAsJsonObject("settings");
-                            for (Setting<?> setting : module.getSettings()) {
-                                if (settingsObj.has(setting.getName())) {
-                                    switch (setting) {
-                                        case BooleanSetting bs ->
-                                                bs.setValue(settingsObj.get(setting.getName()).getAsBoolean());
-                                        case NumberSetting ns ->
-                                                ns.setValue(settingsObj.get(setting.getName()).getAsDouble());
-                                        case ModeSetting ms ->
-                                                ms.setValue(settingsObj.get(setting.getName()).getAsString());
-                                        case TextSetting ts ->
-                                                ts.setValue(settingsObj.get(setting.getName()).getAsString());
-                                        case NickEntryListSetting nl -> {
-                                            nl.getValue().clear();
-                                            if (settingsObj.get(nl.getName()).isJsonArray()) {
-                                                for (var elem : settingsObj.get(nl.getName()).getAsJsonArray()) {
-                                                    JsonObject obj = elem.getAsJsonObject();
-                                                    String real = obj.has("real") ? obj.get("real").getAsString() : "";
-                                                    String nick = obj.has("nick") ? obj.get("nick").getAsString() : "";
-                                                    nl.getValue().add(new NickEntryListSetting.NickEntry(real, nick));
-                                                }
-                                            }
-                                        }
-                                        default -> {
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            if (root.has("hudLayout")) {
-                StarClient.getInstance().getHudLayout().fromJson(root.getAsJsonObject("hudLayout"));
-            }
-            if (root.has("clientSettings")) {
-                JsonObject settingsObj = root.getAsJsonObject("clientSettings");
-                for (Setting<?> setting : StarClient.getInstance().getClientSettings().getSettings()) {
-                    if (settingsObj.has(setting.getName())) {
-                        switch (setting) {
-                            case BooleanSetting bs ->
-                                    bs.setValue(settingsObj.get(setting.getName()).getAsBoolean());
-                            case NumberSetting ns ->
-                                    ns.setValue(settingsObj.get(setting.getName()).getAsDouble());
-                            case ModeSetting ms ->
-                                    ms.setValue(settingsObj.get(setting.getName()).getAsString());
-                            case TextSetting ts ->
-                                    ts.setValue(settingsObj.get(setting.getName()).getAsString());
-                            default -> {
-                            }
-                        }
-                    }
-                }
-            }
-            if (root.has("accountCosmetics") && root.get("accountCosmetics").isJsonObject()) {
-                JsonObject perAccountObj = root.getAsJsonObject("accountCosmetics");
-                for (String key : perAccountObj.keySet()) {
-                    if (perAccountObj.get(key).isJsonObject()) {
-                        JsonObject accObj = perAccountObj.getAsJsonObject(key);
-                        net.starclient.cosmetics.CosmeticManager.AccountCosmetics c = new net.starclient.cosmetics.CosmeticManager.AccountCosmetics();
-                        if (accObj.has("equippedCape")) c.equippedCape = accObj.get("equippedCape").getAsString();
-                        if (accObj.has("equippedWings")) c.equippedWings = accObj.get("equippedWings").getAsString();
-                        if (accObj.has("equippedHeadwear")) c.equippedHeadwear = accObj.get("equippedHeadwear").getAsString();
-                        if (accObj.has("equippedTrail")) c.equippedTrail = accObj.get("equippedTrail").getAsString();
-                        if (accObj.has("trailMode")) c.trailMode = accObj.get("trailMode").getAsString();
-                        if (accObj.has("capeWaveSpeed")) c.capeWaveSpeed = accObj.get("capeWaveSpeed").getAsFloat();
-                        if (accObj.has("capeWaveAmplitude")) c.capeWaveAmplitude = accObj.get("capeWaveAmplitude").getAsFloat();
-                        if (accObj.has("capeWindSway")) c.capeWindSway = accObj.get("capeWindSway").getAsBoolean();
-                        StarClient.getInstance().getCosmeticManager().setAccountCosmetics(key, c);
-                    }
-                }
-            } else if (root.has("equippedCape")) {
-                net.starclient.cosmetics.CosmeticManager.AccountCosmetics c = StarClient.getInstance().getCosmeticManager().getActiveCosmetics();
-                c.equippedCape = root.get("equippedCape").getAsString();
-                if (root.has("equippedWings")) c.equippedWings = root.get("equippedWings").getAsString();
-                if (root.has("equippedHeadwear")) c.equippedHeadwear = root.get("equippedHeadwear").getAsString();
-                if (root.has("equippedTrail")) c.equippedTrail = root.get("equippedTrail").getAsString();
-                if (root.has("trailMode")) c.trailMode = root.get("trailMode").getAsString();
-                if (root.has("capeWaveSpeed")) c.capeWaveSpeed = root.get("capeWaveSpeed").getAsFloat();
-                if (root.has("capeWaveAmplitude")) c.capeWaveAmplitude = root.get("capeWaveAmplitude").getAsFloat();
-                if (root.has("capeWindSway")) c.capeWindSway = root.get("capeWindSway").getAsBoolean();
-            }
+
             if (root.has("lastSeenChangelogVersion")) {
                 ChangelogManager.getInstance().setLastSeenVersion(root.get("lastSeenChangelogVersion").getAsString());
             }
+
+            // First apply top-level state as baseline
+            applyStateJson(root);
+
+            // Load profiles and apply active profile's snapshot if present
+            ProfileManager pm = StarClient.getInstance().getProfileManager();
+            if (pm != null) {
+                JsonObject baselineSnapshot = captureStateJson();
+                pm.loadFromJson(root, baselineSnapshot);
+                ClientProfile active = pm.getActiveProfile();
+                if (active != null && active.getData() != null && !active.getData().entrySet().isEmpty()) {
+                    applyStateJson(active.getData());
+                } else if (active != null) {
+                    active.setData(baselineSnapshot);
+                }
+            }
+
             StarClient.LOGGER.info("Client configuration loaded successfully.");
         } catch (Exception e) {
             StarClient.LOGGER.error("Failed to load client configuration!", e);

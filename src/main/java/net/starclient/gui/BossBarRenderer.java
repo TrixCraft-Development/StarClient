@@ -28,10 +28,10 @@ public final class BossBarRenderer {
         if (client.player == null) return;
 
         Collection<LerpingBossEvent> events = ((BossHealthOverlayAccessor) overlay).getEvents().values();
-        if (events == null || events.isEmpty()) return;
+        if (events.isEmpty()) return;
 
         graphics.nextStratum();
-        renderEvents(graphics, client, events, mod, false);
+        renderEvents(graphics, client, events, mod);
     }
 
     public static void renderPreview(GuiGraphicsExtractor graphics, Module mod) {
@@ -45,7 +45,7 @@ public final class BossBarRenderer {
         renderCard(graphics, client, sampleName, 0.74f, BossEvent.BossBarColor.PURPLE, BossEvent.BossBarOverlay.PROGRESS, mod, 0, screenWidth, screenHeight);
     }
 
-    private static void renderEvents(GuiGraphicsExtractor graphics, Minecraft client, Collection<LerpingBossEvent> events, Module mod, boolean isPreview) {
+    private static void renderEvents(GuiGraphicsExtractor graphics, Minecraft client, Collection<LerpingBossEvent> events, Module mod) {
         int screenWidth = graphics.guiWidth();
         int screenHeight = graphics.guiHeight();
 
@@ -63,12 +63,12 @@ public final class BossBarRenderer {
         Font font = client.font;
         progress = Math.clamp(progress, 0.0f, 1.0f);
 
-        boolean useClientTheme = getBool(mod, "Use Client Theme", true);
-        boolean showPercentage = getBool(mod, "Show Percentage", true);
-        boolean showName = getBool(mod, "Show Boss Name", true);
-        boolean rounded = getBool(mod, "Rounded Corners", true);
-        boolean textShadow = getBool(mod, "Text Shadow", true);
-        boolean showBorder = getBool(mod, "Show Border", true);
+        boolean useClientTheme = getBool(mod, "Use Client Theme");
+        boolean showPercentage = getBool(mod, "Show Percentage");
+        boolean showName = getBool(mod, "Show Boss Name");
+        boolean rounded = getBool(mod, "Rounded Corners");
+        boolean textShadow = getBool(mod, "Text Shadow");
+        boolean showBorder = getBool(mod, "Show Border");
         double barWidthVal = getNum(mod, "Bar Width", 150.0);
         double barHeightVal = getNum(mod, "Bar Height", 5.0);
         double opacity = getNum(mod, "Background Opacity", 70.0);
@@ -119,7 +119,7 @@ public final class BossBarRenderer {
         }
 
         // Background card
-        boolean transparent = mod != null && mod.isTransparentBackground();
+        boolean transparent = mod.isTransparentBackground();
         if (!transparent) {
             int alpha = Math.clamp((int) Math.round(opacity * 2.55), 0, 255);
             int cardBg = (alpha << 24) | 0x0F172A; // slate-900 glass
@@ -163,7 +163,7 @@ public final class BossBarRenderer {
         GuiRenderUtils.drawRoundedOutline(graphics, contentX, currentY, barW, barH, trackRadius, 0x33FFFFFF);
 
         // Filled Portion
-        int fillW = (int) Math.round(barW * progress);
+        int fillW = Math.round(barW * progress);
         if (fillW > 0) {
             GuiRenderUtils.fillRoundedRect(graphics, contentX, currentY, fillW, barH, trackRadius, barColor);
 
@@ -180,7 +180,7 @@ public final class BossBarRenderer {
         if (notches > 0) {
             float step = (float) barW / (float) notches;
             for (int i = 1; i < notches; i++) {
-                int nx = contentX + (int) Math.round(step * i);
+                int nx = contentX + Math.round(step * i);
                 graphics.fill(nx, currentY, nx + 1, currentY + barH, 0x88000000);
             }
         }
@@ -216,9 +216,9 @@ public final class BossBarRenderer {
         };
     }
 
-    private static boolean getBool(Module mod, String name, boolean def) {
+    private static boolean getBool(Module mod, String name) {
         Setting<?> s = mod.getSetting(name);
-        return s == null ? def : (boolean) s.getValue();
+        return s == null || (boolean) s.getValue();
     }
 
     private static double getNum(Module mod, String name, double def) {

@@ -41,6 +41,7 @@ import net.starclient.mixin.MinecraftAccessor;
 import net.starclient.mixin.MultiPlayerGameModeAccessor;
 import net.starclient.setting.BooleanSetting;
 import net.starclient.setting.ColorModeSetting;
+import net.starclient.setting.MacroListSetting;
 import net.starclient.setting.ModeSetting;
 import net.starclient.setting.NickEntryListSetting;
 import net.starclient.setting.NumberSetting;
@@ -49,13 +50,23 @@ import net.starclient.setting.TextSetting;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class ModuleManager {
     private final List<Module> modules = new ArrayList<>();
+    private final Map<String, Module> modulesByName = new HashMap<>();
+    private List<Module> cachedSortedActiveModules = List.of();
+    private static volatile boolean activeModulesDirty = true;
+
+    public static void markActiveModulesDirty() {
+        activeModulesDirty = true;
+    }
 
     /** How long a key-triggered Hypixel lookup waits before giving up. */
     private static final long LOOKUP_TIMEOUT_MILLIS = 10_000L;
@@ -169,16 +180,20 @@ public class ModuleManager {
             }
         });
 
-        register(new Module("Zoom", "Hold to zoom in; scroll wheel adjusts the zoom level.", Category.UI, GLFW.GLFW_KEY_C) {
-            private double previousFov = 70.0;
+        register(new Module("Zoom", "Hold to zoom in with smooth FOV interpolation and scroll wheel zoom control.", Category.UI, GLFW.GLFW_KEY_C) {
             private boolean previousSmoothCamera = false;
 
-            private static final double DEFAULT_ZOOM_FOV = 50.0;
+            private static final double DEFAULT_ZOOM_FOV = 30.0;
 
             {
                 ZoomState.setZoomModule(this);
-                addSetting(new NumberSetting("FOV", "Zoomed-in field of view", DEFAULT_ZOOM_FOV, 20.0, 110.0, 1.0));
-                addSetting(new BooleanSetting("Smooth Camera", "Enable cinematic smooth camera while zoomed", true));
+                addSetting(new NumberSetting("FOV", "Target zoomed-in field of view", DEFAULT_ZOOM_FOV, 1.0, 100.0, 0.5));
+                addSetting(new BooleanSetting("Smooth Transition", "Smoothly glide in and out when zooming or scrolling", true));
+                addSetting(new NumberSetting("Transition Speed", "Animation glide speed for smooth zoom", 14.0, 4.0, 30.0, 1.0));
+                addSetting(new NumberSetting("Scroll Step", "How much each scroll notch changes the zoom FOV", 4.0, 1.0, 15.0, 0.5));
+                addSetting(new NumberSetting("Mouse Sensitivity", "Camera turn speed multiplier while zoomed (%)", 100.0, 10.0, 250.0, 5.0));
+                addSetting(new BooleanSetting("Cinematic Camera", "Enable slow cinematic mouse damping while zoomed", false));
+                addSetting(new BooleanSetting("Reset on Release", "Reset zoom level back to 30 FOV on each new zoom", false));
             }
 
             @Override
@@ -188,11 +203,11 @@ public class ModuleManager {
 
             @Override
             public void onEnable() {
-                previousFov = mc.options.fov().get();
                 previousSmoothCamera = mc.options.smoothCamera;
-                Setting<?> setting = getSetting("FOV");
-                if (setting instanceof NumberSetting number) {
-                    number.setValue(DEFAULT_ZOOM_FOV);
+                if (getSetting("Reset on Release") instanceof BooleanSetting bs && bs.getValue()) {
+                    if (getSetting("FOV") instanceof NumberSetting number) {
+                        number.setValue(DEFAULT_ZOOM_FOV);
+                    }
                 }
                 applyZoom();
             }
@@ -204,31 +219,26 @@ public class ModuleManager {
 
             @Override
             public void onDisable() {
-                mc.options.fov().set((int) previousFov);
                 mc.options.smoothCamera = previousSmoothCamera;
             }
 
             @Override
             public void onScroll(double amount) {
-                NumberSetting setting = (NumberSetting) getSetting("FOV");
-                if (setting == null) return;
-                setting.setValue(setting.getValue() - amount);
-                applyZoom();
+                if (!(getSetting("FOV") instanceof NumberSetting setting)) return;
+                double step = getSetting("Scroll Step") instanceof NumberSetting ns ? ns.getValue() : 4.0;
+                double current = setting.getValue();
+                // Scale step proportionally at tight FOVs so ultra-deep zoom (down to 1.0 FOV) stays smooth
+                double curveFactor = Math.clamp(current / 30.0, 0.12, 1.4);
+                setting.setValue(Math.clamp(current - amount * step * curveFactor, setting.getMin(), setting.getMax()));
             }
 
             private void applyZoom() {
-                mc.options.fov().set((int) Math.clamp(getFov(), 30.0, 110.0));
                 mc.options.smoothCamera = isSmoothCamera();
             }
 
-            private double getFov() {
-                Setting<?> setting = getSetting("FOV");
-                return setting == null ? 30.0 : (double) setting.getValue();
-            }
-
             private boolean isSmoothCamera() {
-                Setting<?> setting = getSetting("Smooth Camera");
-                return setting == null || (boolean) setting.getValue();
+                Setting<?> setting = getSetting("Cinematic Camera");
+                return setting != null && (boolean) setting.getValue();
             }
         });
 
@@ -1117,7 +1127,7 @@ public class ModuleManager {
             }
 
             private void releaseUse() {
-                if (holdingUse && Minecraft.getInstance().options != null) {
+                if (holdingUse) {
                     Minecraft.getInstance().options.keyUse.setDown(false);
                 }
                 holdingUse = false;
@@ -1599,7 +1609,7 @@ public class ModuleManager {
 
                 Player target = resolveTarget(client);
                 if (target == null) {
-                    debug(client, "no target resolved (mode=" + getString("Target", "Crosshair") + ")");
+                    debug(client, "no target resolved (mode=" + getString() + ")");
                     chat(client, "[Hypixel] No player to look up.");
                     return;
                 }
@@ -1676,7 +1686,7 @@ public class ModuleManager {
                     return null;
                 }
 
-                String mode = getString("Target", "Crosshair");
+                String mode = getString();
                 if ("Self".equalsIgnoreCase(mode)) {
                     return client.player;
                 }
@@ -1774,9 +1784,9 @@ public class ModuleManager {
                 return isOn("Hypixel Only");
             }
 
-            private String getString(String name, String fallback) {
-                Setting<?> setting = getSetting(name);
-                return setting == null ? fallback : (String) setting.getValue();
+            private String getString() {
+                Setting<?> setting = getSetting("Target");
+                return setting == null ? "Crosshair" : (String) setting.getValue();
             }
 
             private double getNumber(String name, double fallback) {
@@ -2033,7 +2043,7 @@ public class ModuleManager {
                 double height = getSetting("Height Offset") instanceof NumberSetting ns ? ns.getValue() : -0.25;
                 double side = getSetting("Side Offset") instanceof NumberSetting ns ? ns.getValue() : 0.0;
                 double scale = getSetting("Scale") instanceof NumberSetting ns ? ns.getValue() : 1.0;
-                boolean block = getSetting("Lower When Blocking") instanceof BooleanSetting bs ? bs.getValue() : true;
+                boolean block = !(getSetting("Lower When Blocking") instanceof BooleanSetting bs) || bs.getValue();
                 LowShieldState.setHeightOffset(height);
                 LowShieldState.setSideOffset(side);
                 LowShieldState.setScale(scale);
@@ -2182,14 +2192,240 @@ public class ModuleManager {
                 TntTimerState.setActive(false);
             }
         });
+
+        register(new Module("Hand Customizer", "Customize first-person hand position, scale, rotation, and swing speed.", Category.RENDER) {
+            {
+                addSetting(new NumberSetting("Main Hand X", "Horizontal offset for main hand", 0.0, -1.0, 1.0, 0.05));
+                addSetting(new NumberSetting("Main Hand Y", "Vertical offset for main hand", 0.0, -1.0, 1.0, 0.05));
+                addSetting(new NumberSetting("Main Hand Z", "Depth offset for main hand", 0.0, -1.0, 1.0, 0.05));
+                addSetting(new NumberSetting("Main Hand Scale", "Size multiplier for main hand", 1.0, 0.3, 2.0, 0.05));
+                addSetting(new NumberSetting("Main Hand Pitch", "Pitch rotation in degrees", 0.0, -180.0, 180.0, 5.0));
+                addSetting(new NumberSetting("Main Hand Yaw", "Yaw rotation in degrees", 0.0, -180.0, 180.0, 5.0));
+                addSetting(new NumberSetting("Main Hand Roll", "Roll rotation in degrees", 0.0, -180.0, 180.0, 5.0));
+                addSetting(new BooleanSetting("Mirror Offhand", "Automatically mirror main hand offsets and scale to offhand", true));
+                addSetting(new NumberSetting("Offhand X", "Horizontal offset for offhand when Mirror Offhand is off", 0.0, -1.0, 1.0, 0.05));
+                addSetting(new NumberSetting("Offhand Y", "Vertical offset for offhand when Mirror Offhand is off", 0.0, -1.0, 1.0, 0.05));
+                addSetting(new NumberSetting("Offhand Z", "Depth offset for offhand when Mirror Offhand is off", 0.0, -1.0, 1.0, 0.05));
+                addSetting(new NumberSetting("Offhand Scale", "Size multiplier for offhand when Mirror Offhand is off", 1.0, 0.3, 2.0, 0.05));
+                addSetting(new NumberSetting("Swing Speed", "Hand attack swing animation speed multiplier (1.0 = normal)", 1.0, 0.2, 3.0, 0.1));
+            }
+
+            @Override
+            public void onEnable() {
+                HandCustomizerState.setActive(true);
+                sync();
+            }
+
+            @Override
+            public void onTick(Minecraft client) {
+                HandCustomizerState.setActive(true);
+                sync();
+            }
+
+            @Override
+            public void onDisable() {
+                HandCustomizerState.setActive(false);
+            }
+
+            private void sync() {
+                double mx = num("Main Hand X", 0.0);
+                double my = num("Main Hand Y", 0.0);
+                double mz = num("Main Hand Z", 0.0);
+                double mScale = num("Main Hand Scale", 1.0);
+                double mPitch = num("Main Hand Pitch", 0.0);
+                double mYaw = num("Main Hand Yaw", 0.0);
+                double mRoll = num("Main Hand Roll", 0.0);
+                boolean mirror = !(getSetting("Mirror Offhand") instanceof BooleanSetting bs) || bs.getValue();
+                double ox = num("Offhand X", 0.0);
+                double oy = num("Offhand Y", 0.0);
+                double oz = num("Offhand Z", 0.0);
+                double oScale = num("Offhand Scale", 1.0);
+                double swing = num("Swing Speed", 1.0);
+                HandCustomizerState.update(mx, my, mz, mScale, mPitch, mYaw, mRoll, mirror, ox, oy, oz, oScale, swing);
+            }
+
+            private double num(String name, double fallback) {
+                return getSetting(name) instanceof NumberSetting ns ? ns.getValue() : fallback;
+            }
+        });
+
+        register(new Module("Hitboxes", "Renders customizable 3D entity hitboxes, eye lines, and look vectors.", Category.RENDER) {
+            {
+                addSetting(new BooleanSetting("Use Client Color", "Match hitbox outlines to Client Menu Color", false));
+                addSetting(new ColorModeSetting("Color", "Hitbox outline color when Use Client Color is off", "White", BlockOutlineState.OUTLINE_COLORS));
+                addSetting(new BooleanSetting("Show Eye Line", "Draw red eye-height ring around living entities", true));
+                addSetting(new BooleanSetting("Show Look Vector", "Draw blue view direction vector from entity eyes", true));
+                addSetting(new BooleanSetting("Highlight Target", "Highlight the entity under your crosshair in gold", true));
+                addSetting(new BooleanSetting("Players Only", "Only render hitboxes for players", false));
+                addSetting(new BooleanSetting("Include Projectiles & Items", "Also show hitboxes on arrows, pearls, and dropped items", true));
+                addSetting(new NumberSetting("Thickness", "Line thickness in pixels", 1.5, 1.0, 4.0, 0.5));
+                addSetting(new NumberSetting("Opacity", "Line opacity", 0.9, 0.2, 1.0, 0.05));
+                addSetting(new NumberSetting("Range", "Max render distance in blocks", 48.0, 8.0, 128.0, 4.0));
+            }
+        });
+
+        register(new Module("Trajectories", "Predicts and renders 3D flight paths and landing points for bows, pearls, tridents, and potions.", Category.RENDER) {
+            {
+                addSetting(new BooleanSetting("Use Client Color", "Match trajectory arc to Client Menu Color", true));
+                addSetting(new ColorModeSetting("Color", "Arc color when Use Client Color is off", "Sky Blue", BlockOutlineState.OUTLINE_COLORS));
+                addSetting(new BooleanSetting("Preview Uncharged Bow", "Show full-charge trajectory while holding a bow or trident before drawing", true));
+                addSetting(new BooleanSetting("Landing Box", "Draw a 3D box at the predicted impact point", true));
+                addSetting(new BooleanSetting("Highlight Hit Entity", "Highlight entities in green when the trajectory will hit them", true));
+                addSetting(new BooleanSetting("Show Distance", "Display distance and target name at the impact point", true));
+                addSetting(new NumberSetting("Thickness", "Arc line thickness in pixels", 2.0, 1.0, 4.0, 0.5));
+            }
+        });
+
+        register(new Module("Quick Commands", "Bind hotkeys to execute server commands (/l, /hub, /play) or chat messages.", Category.PLAYER) {
+            {
+                QuickCommandsState.setModule(this);
+                addSetting(new MacroListSetting("Command Macros", "Manage your command & chat keybind macros"));
+                addSetting(new BooleanSetting("Chat Feedback", "Show a subtle client confirmation in chat when a macro triggers", false));
+            }
+        });
+
+        register(new Module("Clock Display", "Displays real-world system time on the HUD.", Category.UI) {
+            {
+                addSetting(new ModeSetting("Format", "12-hour AM/PM or 24-hour clock format", "24-Hour", List.of("24-Hour", "12-Hour")));
+                addSetting(new BooleanSetting("Show Seconds", "Include seconds in the clock readout", true));
+                addSetting(new BooleanSetting("Only Time", "Only display the time with no icon and no text", false));
+                addSetting(new BooleanSetting("Show Icon", "Show clock icon next to the time", true));
+                addSetting(new BooleanSetting("Show Text", "Show 'Time:' text prefix before the time", false));
+            }
+        });
+
+        register(new Module("Compass Display", "Displays a directional compass ribbon or compact heading widget on the HUD.", Category.UI) {
+            {
+                addSetting(new ModeSetting("Style", "Top ribbon bar or compact stat card", "Ribbon", List.of("Ribbon", "Compact")));
+                addSetting(new BooleanSetting("Show Degrees", "Show numeric heading badge (0° - 360°)", true));
+                addSetting(new BooleanSetting("Show Intercardinals", "Show NE, SE, SW, NW markers on the ribbon", true));
+                addSetting(new NumberSetting("Ribbon Width", "Width of the compass ribbon bar", 210.0, 140.0, 320.0, 10.0));
+            }
+        });
+
+        register(new Module("Server Info", "Displays toggleable server IP/world, server brand, version, estimated TPS, and session time.", Category.UI) {
+            {
+                addSetting(new BooleanSetting("Show IP / World", "Display current server IP address or singleplayer world name", true));
+                addSetting(new BooleanSetting("Show Server Brand", "Display server software/brand (e.g. Paper, Hypixel, Vanilla)", true));
+                addSetting(new BooleanSetting("Show Version", "Display the Minecraft version the server is running on", true));
+                addSetting(new BooleanSetting("Show TPS", "Display estimated server ticks per second (20.0 TPS)", true));
+                addSetting(new BooleanSetting("Show Session Time", "Display elapsed time on the current server/session", true));
+                addSetting(new BooleanSetting("Compact Mode", "Combine enabled items onto a single horizontal line", false));
+            }
+        });
+
+        register(new Module("Memory Display", "Displays allocated RAM usage percentage, megabytes, usage bar, and live FPS graph.", Category.UI) {
+            {
+                addSetting(new BooleanSetting("Show Percentage", "Show RAM usage percentage", true));
+                addSetting(new BooleanSetting("Show Megabytes", "Show used/allocated megabytes (MB)", false));
+                addSetting(new BooleanSetting("Show Usage Bar", "Show a visual progress bar of memory usage", true));
+                addSetting(new BooleanSetting("Show FPS Graph", "Show a live mini sparkline graph of recent FPS", false));
+            }
+        });
+
+        register(new Module("Fog Customizer", "Customize or disable underwater, lava, blindness/darkness, and terrain distance fog.", Category.RENDER) {
+            {
+                FogCustomizerState.setModule(this);
+                addSetting(new BooleanSetting("Disable Water Fog", "Remove underwater fog for crystal-clear water vision", true));
+                addSetting(new BooleanSetting("Disable Lava Fog", "Remove thick orange fog when submerged in lava", true));
+                addSetting(new BooleanSetting("Disable Blindness Fog", "Remove Blindness, Darkness, and Powder Snow fog", true));
+                addSetting(new BooleanSetting("Disable Terrain Fog", "Completely disable distance/atmospheric terrain fog", false));
+                addSetting(new NumberSetting("Fog Distance", "Multiplier for terrain fog start/end distance", 1.5, 0.2, 3.0, 0.1));
+            }
+        });
+
+        register(new Module("Glint Customizer", "Customize enchantment glint speed, strength, or force/disable glint on items.", Category.RENDER) {
+            {
+                GlintCustomizerState.setModule(this);
+                addSetting(new NumberSetting("Glint Speed", "Speed multiplier of the enchantment shimmer animation", 1.0, 0.0, 5.0, 0.1));
+                addSetting(new NumberSetting("Glint Strength", "Brightness/opacity multiplier of the enchantment glint", 1.0, 0.0, 2.0, 0.05));
+                addSetting(new BooleanSetting("Force Glint on All Items", "Render enchantment glint on all items even if unenchanted", false));
+                addSetting(new BooleanSetting("Disable All Glint", "Completely hide enchantment glint on all items and armor", false));
+            }
+        });
+
+        register(new Module("Auto Respawn", "Automatically respawns you when dying, with a configurable delay timer.", Category.PLAYER) {
+            {
+                AutoRespawnReconnectState.setAutoRespawnModule(this);
+                addSetting(new NumberSetting("Respawn Delay", "Delay in seconds before automatically respawning", 0.0, 0.0, 10.0, 0.1));
+                addSetting(new BooleanSetting("Show Countdown", "Display a countdown banner on the Death screen", true));
+            }
+        });
+
+        register(new Module("Auto Reconnect", "Automatically reconnects to the last multiplayer server after being disconnected.", Category.PLAYER) {
+            {
+                AutoRespawnReconnectState.setAutoReconnectModule(this);
+                addSetting(new NumberSetting("Reconnect Delay", "Delay in seconds before automatically reconnecting", 5.0, 1.0, 60.0, 0.5));
+            }
+        });
+
+        register(new Module("Performance", "Boosts FPS with entity/block-entity distance culling, particle limiters, sign text culling, and dynamic unfocused FPS.", Category.RENDER) {
+            {
+                PerformanceState.setModule(this);
+                // 1. Entity Distance Culling
+                addSetting(new BooleanSetting("Cull Distant Entities", "Skip rendering entities beyond Max Entity Distance", true));
+                addSetting(new NumberSetting("Max Entity Distance", "Maximum distance in blocks to render general entities", 64.0, 16.0, 128.0, 4.0));
+                addSetting(new BooleanSetting("Cull Distant Players", "Also apply Max Entity Distance culling to other players", false));
+
+                // 2. Armor Stand & Item Frame Culling
+                addSetting(new BooleanSetting("Cull Armor Stands", "Cull distant armor stands in lobbies and bases", true));
+                addSetting(new NumberSetting("Armor Stand Distance", "Maximum distance in blocks to render armor stands", 32.0, 8.0, 64.0, 4.0));
+                addSetting(new BooleanSetting("Keep Named Holograms", "Always render armor stands with custom names (server holograms)", true));
+                addSetting(new BooleanSetting("Cull Item Frames", "Cull distant item frames and glow item frames", true));
+                addSetting(new NumberSetting("Item Frame Distance", "Maximum distance in blocks to render item frames", 24.0, 8.0, 64.0, 4.0));
+
+                // 3. Dropped Item & XP Orb Culling
+                addSetting(new BooleanSetting("Cull Dropped Items", "Cull distant dropped items and XP orbs on the ground", true));
+                addSetting(new NumberSetting("Dropped Item Distance", "Maximum distance in blocks to render dropped items and XP orbs", 32.0, 8.0, 64.0, 4.0));
+
+                // 4. Block Entity & Sign Text Culling
+                addSetting(new BooleanSetting("Cull Block Entities", "Skip rendering distant chests, skulls, signs, banners, and shulkers", true));
+                addSetting(new NumberSetting("Max Block Entity Distance", "Maximum distance in blocks to render block entities", 48.0, 16.0, 96.0, 4.0));
+                addSetting(new BooleanSetting("Hide Distant Sign Text", "Skip expensive text layout on signs beyond Sign Text Distance", true));
+                addSetting(new NumberSetting("Sign Text Distance", "Maximum distance in blocks to render text on signs", 16.0, 8.0, 48.0, 2.0));
+
+                // 5. Particle Limiter & Selective Toggles
+                addSetting(new NumberSetting("Particle Reduction", "Percentage of newly spawned particles to skip (0% - 100%)", 25.0, 0.0, 100.0, 5.0));
+                addSetting(new BooleanSetting("Disable Explosion Particles", "Suppress TNT, crystal, and creeper explosion particles", false));
+                addSetting(new BooleanSetting("Disable Firework Particles", "Suppress firework rocket spark and flash particles", false));
+                addSetting(new BooleanSetting("Disable Block Break Particles", "Suppress block breaking and crumbling debris particles", false));
+                addSetting(new BooleanSetting("Disable Potion Particles", "Suppress swirling potion status effect particles", false));
+                addSetting(new BooleanSetting("Disable Weather Particles", "Suppress rain splash and dripping water particles", true));
+
+                // 6. World Detail Toggles
+                addSetting(new BooleanSetting("Disable Beacon Beams", "Hide vertical beacon light beams", false));
+                addSetting(new BooleanSetting("Disable Weather Rendering", "Hide falling rain and snow weather sheets", false));
+                addSetting(new BooleanSetting("Disable Clouds", "Skip 3D/2D cloud layer rendering", false));
+
+                // 7. Dynamic FPS (Unfocused Window Limiter)
+                addSetting(new BooleanSetting("Limit Unfocused FPS", "Throttle FPS when the Minecraft window is unfocused / alt-tabbed", true));
+                addSetting(new NumberSetting("Unfocused Max FPS", "Maximum FPS while the game window is unfocused", 15.0, 5.0, 60.0, 5.0));
+            }
+        });
     }
 
     private void register(Module module) {
+        module.markDefaultEnabled(module.isEnabled());
         modules.add(module);
+        if (module.getName() != null) {
+            modulesByName.put(module.getName().toLowerCase(Locale.ROOT), module);
+        }
+        activeModulesDirty = true;
     }
 
     public List<Module> getModules() {
         return modules;
+    }
+
+    public List<Module> getSortedActiveModules() {
+        if (activeModulesDirty) {
+            cachedSortedActiveModules = modules.stream()
+                    .filter(Module::isEnabled)
+                    .sorted(Comparator.comparing(m -> m.getName().toLowerCase(Locale.ROOT)))
+                    .toList();
+            activeModulesDirty = false;
+        }
+        return cachedSortedActiveModules;
     }
 
     public List<Module> getModulesByCategory(Category category) {
@@ -2197,6 +2433,13 @@ public class ModuleManager {
     }
 
     public Module getModuleByName(String name) {
+        if (name == null) {
+            return null;
+        }
+        Module cached = modulesByName.get(name.toLowerCase(Locale.ROOT));
+        if (cached != null) {
+            return cached;
+        }
         return modules.stream().filter(m -> m.getName().equalsIgnoreCase(name)).findFirst().orElse(null);
     }
 
@@ -2238,6 +2481,10 @@ public class ModuleManager {
                 module.onKeyPress(client);
             }
             module.setKeyDownLastTick(down);
+        }
+        QuickCommandsState.handleKeybinds(client);
+        if (StarClient.getInstance() != null && StarClient.getInstance().getProfileManager() != null) {
+            StarClient.getInstance().getProfileManager().handleHotkeys(client);
         }
     }
 }

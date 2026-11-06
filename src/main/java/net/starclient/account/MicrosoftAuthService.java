@@ -79,7 +79,7 @@ public final class MicrosoftAuthService {
                 lastError = e;
             }
         }
-        throw lastError != null ? lastError : new IOException("Unable to start Microsoft Device Code flow.");
+        throw lastError;
     }
 
     public static MinecraftAccount pollAndCompleteLogin(

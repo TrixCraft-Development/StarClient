@@ -22,7 +22,6 @@ import org.joml.Matrix3x2fStack;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -70,7 +69,7 @@ public class HudOverlay {
         Module pingMod = StarClient.getInstance().getModuleManager().getModuleByName("Ping Display");
         if (pingMod != null && pingMod.isEnabled()) {
             int ping = 0;
-            if (client.player.connection != null && client.player.connection.getPlayerInfo(client.player.getUUID()) != null) {
+            if (client.player.connection.getPlayerInfo(client.player.getUUID()) != null) {
                 ping = Objects.requireNonNull(client.player.connection.getPlayerInfo(client.player.getUUID())).getLatency();
             }
             String stats = "Ping: " + ping + "ms";
@@ -173,6 +172,64 @@ public class HudOverlay {
             hudText(extractor, client, stats, cbX + 6, cbY + 5, comboMod.getTextColor());
         }
 
+        // 3d3. Real-Time Clock Display
+        Module clockMod = StarClient.getInstance().getModuleManager().getModuleByName("Clock Display");
+        if (clockMod != null && clockMod.isEnabled()) {
+            Setting<?> fmtSetting = clockMod.getSetting("Format");
+            boolean is12h = fmtSetting != null && "12-Hour".equals(fmtSetting.getValue());
+            Setting<?> secSetting = clockMod.getSetting("Show Seconds");
+            boolean showSeconds = secSetting == null || (boolean) secSetting.getValue();
+            Setting<?> onlyTimeSetting = clockMod.getSetting("Only Time");
+            boolean onlyTime = onlyTimeSetting != null && (boolean) onlyTimeSetting.getValue();
+            Setting<?> iconSetting = clockMod.getSetting("Show Icon");
+            boolean showIcon = iconSetting == null || (boolean) iconSetting.getValue();
+            Setting<?> textSetting = clockMod.getSetting("Show Text");
+            boolean showText = textSetting != null && (boolean) textSetting.getValue();
+
+            java.time.LocalTime nowTime = java.time.LocalTime.now();
+            String pattern = is12h
+                    ? (showSeconds ? "hh:mm:ss a" : "hh:mm a")
+                    : (showSeconds ? "HH:mm:ss" : "HH:mm");
+            String timeStr = nowTime.format(java.time.format.DateTimeFormatter.ofPattern(pattern, Locale.US));
+            String prefix = "";
+            if (!onlyTime) {
+                if (showIcon && showText) {
+                    prefix = "🕒 Time: ";
+                } else if (showIcon) {
+                    prefix = "🕒 ";
+                } else if (showText) {
+                    prefix = "Time: ";
+                }
+            }
+            String stats = prefix + timeStr;
+
+            int clX = layout.effectiveX(HudLayout.CLOCK, screenWidth, 0);
+            int clY = layout.effectiveY(HudLayout.CLOCK, screenHeight);
+            if (!clockMod.isTransparentBackground()) {
+                GuiRenderUtils.fillRoundedRect(extractor, clX, clY, HudLayout.STAT_WIDTH, HudLayout.ELEMENT_HEIGHT, 4, translucentBoxColor(clockMod));
+                GuiRenderUtils.drawRoundedOutline(extractor, clX, clY, HudLayout.STAT_WIDTH, HudLayout.ELEMENT_HEIGHT, 4, boxBorderColor());
+            }
+            hudText(extractor, client, stats, clX + 6, clY + 5, clockMod.getTextColor());
+        }
+
+        // 3d4. Compass Display
+        Module compassMod = StarClient.getInstance().getModuleManager().getModuleByName("Compass Display");
+        if (compassMod != null && compassMod.isEnabled()) {
+            CompassRenderer.render(extractor, client, compassMod, layout, screenWidth, screenHeight);
+        }
+
+        // 3d5. Server Info
+        Module serverInfoMod = StarClient.getInstance().getModuleManager().getModuleByName("Server Info");
+        if (serverInfoMod != null && serverInfoMod.isEnabled()) {
+            ServerInfoRenderer.render(extractor, client, serverInfoMod, layout, screenWidth, screenHeight);
+        }
+
+        // 3d6. Memory Display
+        Module memoryMod = StarClient.getInstance().getModuleManager().getModuleByName("Memory Display");
+        if (memoryMod != null && memoryMod.isEnabled()) {
+            MemoryHudRenderer.render(extractor, client, memoryMod, layout, screenWidth, screenHeight);
+        }
+
         // 3e. Potion Effects HUD
         Module potionsMod = StarClient.getInstance().getModuleManager().getModuleByName("Potion Effects");
         if (potionsMod != null && potionsMod.isEnabled()) {
@@ -188,15 +245,18 @@ public class HudOverlay {
         // 4. Active Modules Arraylist (Top Right, toggled by "Active Modules" module)
         Module activeModsMod = StarClient.getInstance().getModuleManager().getModuleByName("Active Modules");
         if (activeModsMod != null && activeModsMod.isEnabled()) {
-            List<Module> activeModules = StarClient.getInstance().getModuleManager().getModules().stream()
-                    .filter(Module::isEnabled)
-                    .sorted(Comparator.comparing(m -> m.getName().toLowerCase()))
-                    .toList();
+            List<Module> activeModules = StarClient.getInstance().getModuleManager().getSortedActiveModules();
 
             boolean transparentList = activeModsMod.isTransparentBackground();
             int listBgColor = translucentBoxColor(activeModsMod);
 
-            int maxModWidth = activeModules.stream().mapToInt(m -> client.font.width(m.getName()) + 12).max().orElse(0);
+            int maxModWidth = 0;
+            for (Module m : activeModules) {
+                int w = client.font.width(m.getName()) + 12;
+                if (w > maxModWidth) {
+                    maxModWidth = w;
+                }
+            }
             boolean arrayAuto = layout.isAuto(HudLayout.ARRAYLIST);
             int arrayLeft = layout.effectiveX(HudLayout.ARRAYLIST, screenWidth, maxModWidth);
             int arrayY = layout.effectiveY(HudLayout.ARRAYLIST, screenHeight);
@@ -327,6 +387,18 @@ public class HudOverlay {
 
         // 11. Floating Damage Numbers (RPG / Hypixel style)
         DamageIndicatorManager.getInstance().render(extractor, client);
+
+        // 12. Custom Entity Hitboxes
+        Module hitboxMod = StarClient.getInstance().getModuleManager().getModuleByName("Hitboxes");
+        if (hitboxMod != null && hitboxMod.isEnabled()) {
+            HitboxRenderer.render(extractor, client, hitboxMod);
+        }
+
+        // 13. Projectile Trajectories
+        Module trajMod = StarClient.getInstance().getModuleManager().getModuleByName("Trajectories");
+        if (trajMod != null && trajMod.isEnabled()) {
+            TrajectoryRenderer.render(extractor, client, trajMod);
+        }
     }
 
     private static void renderArmor(GuiGraphicsExtractor extractor, Minecraft client, Module module) {
@@ -458,17 +530,17 @@ public class HudOverlay {
         int bgColor = translucentBoxColor(module);
         int textColor = module.getTextColor();
 
-        drawKey(extractor, client, "W", kX + 22, kY, 20, 20, w, transparent, bgColor, textColor);
-        drawKey(extractor, client, "A", kX, kY + 22, 20, 20, a, transparent, bgColor, textColor);
-        drawKey(extractor, client, "S", kX + 22, kY + 22, 20, 20, s, transparent, bgColor, textColor);
-        drawKey(extractor, client, "D", kX + 44, kY + 22, 20, 20, d, transparent, bgColor, textColor);
+        drawKey(extractor, client, "W", kX + 22, kY, w, transparent, bgColor, textColor);
+        drawKey(extractor, client, "A", kX, kY + 22, a, transparent, bgColor, textColor);
+        drawKey(extractor, client, "S", kX + 22, kY + 22, s, transparent, bgColor, textColor);
+        drawKey(extractor, client, "D", kX + 44, kY + 22, d, transparent, bgColor, textColor);
 
         Setting<?> showMouseSetting = module.getSetting("Show Mouse");
         boolean showMouse = showMouseSetting == null || (boolean) showMouseSetting.getValue();
         if (showMouse) {
             int mbY = kY + 44;
-            drawMouse(extractor, client, "LMB", leftClickTimes.size(), kX, mbY, 31, 22, client.mouseHandler.isLeftPressed(), transparent, bgColor, textColor);
-            drawMouse(extractor, client, "RMB", rightClickTimes.size(), kX + 33, mbY, 31, 22, client.mouseHandler.isRightPressed(), transparent, bgColor, textColor);
+            drawMouse(extractor, client, "LMB", leftClickTimes.size(), kX, mbY, client.mouseHandler.isLeftPressed(), transparent, bgColor, textColor);
+            drawMouse(extractor, client, "RMB", rightClickTimes.size(), kX + 33, mbY, client.mouseHandler.isRightPressed(), transparent, bgColor, textColor);
         }
     }
 
@@ -658,29 +730,29 @@ public class HudOverlay {
         };
     }
 
-    private static void drawMouse(GuiGraphicsExtractor extractor, Minecraft client, String label, int cps, int x, int y, int w, int h, boolean pressed, boolean transparent, int bgColor, int textColor) {
+    private static void drawMouse(GuiGraphicsExtractor extractor, Minecraft client, String label, int cps, int x, int y, boolean pressed, boolean transparent, int bgColor, int textColor) {
         int labelCol = pressed ? 0xFFFFFFFF : textColor;
         int accent = StarClient.getInstance().getClientSettings().getMenuAccentColor();
 
         if (!transparent) {
             int bg = pressed ? accent : bgColor;
-            GuiRenderUtils.fillRoundedRect(extractor, x, y, w, h, 4, bg);
-            GuiRenderUtils.drawRoundedOutline(extractor, x, y, w, h, 4, pressed ? 0x88FFFFFF : 0x28FFFFFF);
+            GuiRenderUtils.fillRoundedRect(extractor, x, y, 31, 22, 4, bg);
+            GuiRenderUtils.drawRoundedOutline(extractor, x, y, 31, 22, 4, pressed ? 0x88FFFFFF : 0x28FFFFFF);
         }
-        hudText(extractor, client, label, x + (w - client.font.width(label)) / 2, y + 3, labelCol);
+        hudText(extractor, client, label, x + (31 - client.font.width(label)) / 2, y + 3, labelCol);
         String cpsText = cps + " CPS";
-        hudText(extractor, client, cpsText, x + (w - client.font.width(cpsText)) / 2, y + 12, labelCol);
+        hudText(extractor, client, cpsText, x + (31 - client.font.width(cpsText)) / 2, y + 12, labelCol);
     }
 
-    private static void drawKey(GuiGraphicsExtractor extractor, Minecraft client, String label, int x, int y, int w, int h, boolean pressed, boolean transparent, int bgColor, int textColor) {
+    private static void drawKey(GuiGraphicsExtractor extractor, Minecraft client, String label, int x, int y, boolean pressed, boolean transparent, int bgColor, int textColor) {
         int textCol = pressed ? 0xFFFFFFFF : textColor;
         int accent = StarClient.getInstance().getClientSettings().getMenuAccentColor();
 
         if (!transparent) {
             int bg = pressed ? accent : bgColor;
-            GuiRenderUtils.fillRoundedRect(extractor, x, y, w, h, 4, bg);
-            GuiRenderUtils.drawRoundedOutline(extractor, x, y, w, h, 4, pressed ? 0x88FFFFFF : 0x28FFFFFF);
+            GuiRenderUtils.fillRoundedRect(extractor, x, y, 20, 20, 4, bg);
+            GuiRenderUtils.drawRoundedOutline(extractor, x, y, 20, 20, 4, pressed ? 0x88FFFFFF : 0x28FFFFFF);
         }
-        hudText(extractor, client, label, x + (w - client.font.width(label)) / 2, y + (h - 8) / 2, textCol);
+        hudText(extractor, client, label, x + (20 - client.font.width(label)) / 2, y + (20 - 8) / 2, textCol);
     }
 }
