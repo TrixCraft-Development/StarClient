@@ -201,13 +201,13 @@ public abstract class AbstractContainerScreenMixin extends Screen implements Inv
 
     @Inject(method = "extractTooltip", at = @At("TAIL"))
     private void starclient$onExtractTooltip(GuiGraphicsExtractor graphics, int mouseX, int mouseY, CallbackInfo ci) {
+        ContainerPreviewRenderer.clearPending();
         TooltipFeaturesState.updateHoveredSlot(this.hoveredSlot);
         if (this.hoveredSlot != null
                 && this.hoveredSlot.hasItem()
                 && this.menu.getCarried().isEmpty()
                 && this.minecraft != null) {
-            ContainerPreviewRenderer.renderForHoveredItem(
-                    graphics, this.minecraft, this.hoveredSlot.getItem(), mouseX, mouseY, this.width, this.height);
+            ContainerPreviewRenderer.queueForNextTooltip(this.hoveredSlot.getItem());
         }
     }
 
@@ -325,6 +325,7 @@ public abstract class AbstractContainerScreenMixin extends Screen implements Inv
     private void starclient$onRemoved(CallbackInfo ci) {
         InventorySearchManager.reset();
         TooltipFeaturesState.resetScroll();
+        ContainerPreviewRenderer.clearPending();
         this.starclient$openTimeMs = 0L;
     }
 }

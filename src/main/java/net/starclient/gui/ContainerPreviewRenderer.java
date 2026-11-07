@@ -21,7 +21,9 @@ import net.starclient.module.TooltipFeaturesState;
 
 /**
  * Renders visual hover preview cards for Shulker Boxes (3x9 item grid),
- * Ender Chests (cached 3x9 grid), and Filled Maps (128x128 live map texture).
+ * Ender Chests (cached 3x9 grid), and Filled Maps (128x128 live map texture),
+ * anchored cleanly outside the vanilla item tooltip bounding box so it never
+ * overlaps the item name or lore.
  */
 public final class ContainerPreviewRenderer {
 
@@ -34,17 +36,51 @@ public final class ContainerPreviewRenderer {
     private static int lastMapId = Integer.MIN_VALUE;
     private static long lastMapUploadMs;
 
+    private static ItemStack pendingHoveredStack = ItemStack.EMPTY;
+
     private ContainerPreviewRenderer() {
     }
 
-    public static void renderForHoveredItem(GuiGraphicsExtractor graphics, Minecraft client,
-                                            ItemStack stack, int mouseX, int mouseY,
-                                            int screenW, int screenH) {
+    public static void queueForNextTooltip(ItemStack stack) {
+        if (!TooltipFeaturesState.isContainerPreviewEnabled() || stack == null || stack.isEmpty()) {
+            pendingHoveredStack = ItemStack.EMPTY;
+            return;
+        }
+        pendingHoveredStack = stack;
+    }
+
+    public static void clearPending() {
+        pendingHoveredStack = ItemStack.EMPTY;
+    }
+
+    public static boolean hasPending() {
+        return pendingHoveredStack != null && !pendingHoveredStack.isEmpty();
+    }
+
+    public static void renderPendingForTooltip(GuiGraphicsExtractor graphics,
+                                               int tooltipBoxX, int tooltipBoxY,
+                                               int tooltipBoxW, int tooltipBoxH,
+                                               int screenW, int screenH) {
+        ItemStack stack = pendingHoveredStack;
+        pendingHoveredStack = ItemStack.EMPTY;
+        if (stack == null || stack.isEmpty()) {
+            return;
+        }
+        Minecraft client = Minecraft.getInstance();
+        if (client == null) {
+            return;
+        }
+        renderAnchoredToTooltip(graphics, client, stack, tooltipBoxX, tooltipBoxY, tooltipBoxW, tooltipBoxH, screenW, screenH);
+    }
+
+    public static void renderAnchoredToTooltip(GuiGraphicsExtractor graphics, Minecraft client,
+                                               ItemStack stack,
+                                               int boxX, int boxY, int boxW, int boxH,
+                                               int screenW, int screenH) {
         if (!TooltipFeaturesState.isContainerPreviewEnabled() || stack == null || stack.isEmpty()) {
             return;
         }
 
-        // Check what kind of preview this stack supports
         NonNullList<ItemStack> gridItems = null;
         int accentBorder = StarClient.getInstance().getClientSettings().getMenuAccentColor();
         String headerTitle = stack.getHoverName().getString();
@@ -80,9 +116,10 @@ public final class ContainerPreviewRenderer {
         }
 
         // If Display Mode == "Hold Key" and key is not pressed, show a compact "[Hold Shift to Preview]" pill
+        // directly below (or above) the vanilla tooltip box so it never hides behind the item name.
         if (!TooltipFeaturesState.isPreviewTriggerActive(client)) {
             if (TooltipFeaturesState.isHoldKeyMode()) {
-                renderHoldKeyHint(graphics, client, mouseX, mouseY, screenW, accentBorder);
+                renderHoldKeyHint(graphics, client, boxX, boxY, boxW, boxH, screenW, screenH, accentBorder);
             }
             return;
         }
@@ -90,32 +127,77 @@ public final class ContainerPreviewRenderer {
         graphics.nextStratum();
 
         if (gridItems != null) {
-            renderContainerGrid(graphics, client, gridItems, headerTitle, accentBorder, mouseX, mouseY, screenW, screenH);
+            renderContainerGrid(graphics, client, gridItems, headerTitle, accentBorder, boxX, boxY, boxW, boxH, screenW, screenH);
         } else {
-            renderMapCard(graphics, client, mapId, mapData, headerTitle, accentBorder, mouseX, mouseY, screenW, screenH);
+            renderMapCard(graphics, client, mapId, mapData, headerTitle, accentBorder, boxX, boxY, boxW, boxH, screenW, screenH);
         }
     }
 
     private static void renderHoldKeyHint(GuiGraphicsExtractor graphics, Minecraft client,
-                                          int mouseX, int mouseY, int screenW, int accent) {
+                                          int boxX, int boxY, int boxW, int boxH,
+                                          int screenW, int screenH, int accent) {
         graphics.nextStratum();
         String hint = "Hold [" + TooltipFeaturesState.getHoldKeyName() + "] to preview";
         int w = client.font.width(hint) + 12;
-        int h = 14;
-        int x = mouseX + 12;
-        int y = mouseY - h - 6;
-        if (x + w > screenW - 4) x = mouseX - w - 12;
-        x = Math.max(4, x);
-        y = Math.max(4, y);
+        int h = 15;
+        int gap = 5;
 
-        GuiRenderUtils.fillRoundedRect(graphics, x, y, w, h, 4, 0xEE0B1120);
-        GuiRenderUtils.drawRoundedOutline(graphics, x, y, w, h, 4, GuiRenderUtils.withAlpha(accent, 170));
-        graphics.text(client.font, hint, x + 6, y + 3, 0xFFCBD5E1, false);
+        // Place directly below the vanilla tooltip box; flip above if near bottom of screen
+        int x = Math.clamp(boxX, 4, Math.max(4, screenW - w - 4));
+        int y = boxY + boxH + gap;
+        if (y + h > screenH - 4) {
+            y = boxY - h - gap;
+        }
+        if (y < 4) {
+            // Tooltip fills vertical height — place to the right or left of tooltip
+            if (boxX + boxW + gap + w <= screenW - 4) {
+                x = boxX + boxW + gap;
+            } else {
+                x = Math.max(4, boxX - w - gap);
+            }
+            y = Math.clamp(boxY, 4, Math.max(4, screenH - h - 4));
+        }
+
+        GuiRenderUtils.drawDropShadow(graphics, x, y, w, h, 4, 2, 95);
+        GuiRenderUtils.fillRoundedRect(graphics, x, y, w, h, 4, 0xF20B1120);
+        GuiRenderUtils.drawRoundedOutline(graphics, x, y, w, h, 4, GuiRenderUtils.withAlpha(accent, 190));
+        graphics.text(client.font, hint, x + 6, y + 4, 0xFFE2E8F0, false);
+    }
+
+    private static int[] placeCardOutsideTooltip(int cardW, int cardH,
+                                                 int boxX, int boxY, int boxW, int boxH,
+                                                 int screenW, int screenH) {
+        int gap = 6;
+        int x = Math.clamp(boxX, 6, Math.max(6, screenW - cardW - 6));
+
+        // 1. Prefer directly above the vanilla tooltip
+        int aboveY = boxY - cardH - gap;
+        if (aboveY >= 6) {
+            return new int[]{x, aboveY};
+        }
+
+        // 2. Otherwise directly below the vanilla tooltip
+        int belowY = boxY + boxH + gap;
+        if (belowY + cardH <= screenH - 6) {
+            return new int[]{x, belowY};
+        }
+
+        // 3. Otherwise beside the vanilla tooltip (right first, then left)
+        int clampedY = Math.clamp(boxY, 6, Math.max(6, screenH - cardH - 6));
+        if (boxX + boxW + gap + cardW <= screenW - 6) {
+            return new int[]{boxX + boxW + gap, clampedY};
+        }
+        if (boxX - cardW - gap >= 6) {
+            return new int[]{boxX - cardW - gap, clampedY};
+        }
+
+        return new int[]{x, clampedY};
     }
 
     private static void renderContainerGrid(GuiGraphicsExtractor graphics, Minecraft client,
                                             NonNullList<ItemStack> items, String title, int accent,
-                                            int mouseX, int mouseY, int screenW, int screenH) {
+                                            int boxX, int boxY, int boxW, int boxH,
+                                            int screenW, int screenH) {
         int slotSize = 18;
         int gap = 2;
         int pad = 6;
@@ -123,15 +205,9 @@ public final class ContainerPreviewRenderer {
         int cardW = pad * 2 + 9 * slotSize + 8 * gap; // 190px
         int cardH = pad * 2 + headerH + 3 * slotSize + 2 * gap; // 84px
 
-        // Position neatly above the cursor/tooltip if room, otherwise to the left or below
-        int x = mouseX + 12;
-        int y = mouseY - cardH - 8;
-        if (x + cardW > screenW - 6) {
-            x = Math.max(6, mouseX - cardW - 12);
-        }
-        if (y < 6) {
-            y = Math.min(screenH - cardH - 6, mouseY + 18);
-        }
+        int[] pos = placeCardOutsideTooltip(cardW, cardH, boxX, boxY, boxW, boxH, screenW, screenH);
+        int x = pos[0];
+        int y = pos[1];
 
         GuiRenderUtils.drawDropShadow(graphics, x, y, cardW, cardH, 6, 4, 115);
         GuiRenderUtils.fillRoundedRect(graphics, x, y, cardW, cardH, 6, 0xF20B1120);
@@ -165,7 +241,8 @@ public final class ContainerPreviewRenderer {
     private static void renderMapCard(GuiGraphicsExtractor graphics, Minecraft client,
                                       MapId mapId, MapItemSavedData mapData,
                                       String title, int accent,
-                                      int mouseX, int mouseY, int screenW, int screenH) {
+                                      int boxX, int boxY, int boxW, int boxH,
+                                      int screenW, int screenH) {
         ensureMapTexture(client);
         long now = System.currentTimeMillis();
         if (mapId.id() != lastMapId || (now - lastMapUploadMs) > 250L) {
@@ -191,14 +268,9 @@ public final class ContainerPreviewRenderer {
         int cardW = previewSize + pad * 2;
         int cardH = previewSize + headerH + pad * 2;
 
-        int x = mouseX + 12;
-        int y = mouseY - cardH - 8;
-        if (x + cardW > screenW - 6) {
-            x = Math.max(6, mouseX - cardW - 12);
-        }
-        if (y < 6) {
-            y = Math.min(screenH - cardH - 6, mouseY + 18);
-        }
+        int[] pos = placeCardOutsideTooltip(cardW, cardH, boxX, boxY, boxW, boxH, screenW, screenH);
+        int x = pos[0];
+        int y = pos[1];
 
         GuiRenderUtils.drawDropShadow(graphics, x, y, cardW, cardH, 6, 4, 115);
         GuiRenderUtils.fillRoundedRect(graphics, x, y, cardW, cardH, 6, 0xF20B1120);
