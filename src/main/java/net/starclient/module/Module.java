@@ -3,11 +3,13 @@ package net.starclient.module;
 import net.minecraft.client.Minecraft;
 import net.starclient.StarClient;
 import net.starclient.rank.Rank;
+import net.starclient.setting.BannedWordListSetting;
 import net.starclient.setting.BooleanSetting;
 import net.starclient.setting.ColorModeSetting;
 import net.starclient.setting.MacroListSetting;
 import net.starclient.setting.NickEntryListSetting;
 import net.starclient.setting.Setting;
+import net.starclient.setting.WaypointListSetting;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
@@ -35,13 +37,18 @@ public abstract class Module {
             "Clock Display",
             "Compass Display",
             "Server Info",
-            "Memory Display"
+            "Memory Display",
+            "Minimap",
+            "World Info",
+            "Item Counter"
     );
 
     private static final Set<String> MODULES_WITH_TRANSPARENT_BG = Set.of(
             "Tab",
             "Scoreboard",
-            "Boss Bar"
+            "Boss Bar",
+            "Chat",
+            "Nametags"
     );
 
     private static final Map<String, Integer> BACKGROUND_COLORS = ColorModeSetting.ofPairs(
@@ -275,6 +282,8 @@ public abstract class Module {
                 nl.getValue().clear();
             } else if (setting instanceof MacroListSetting ml) {
                 ml.getValue().clear();
+            } else if (setting instanceof BannedWordListSetting bwl) {
+                bwl.getValue().clear();
             }
         }
         setEnabled(this.defaultEnabled);
@@ -283,7 +292,10 @@ public abstract class Module {
     public void resetSettingsToDefault() {
         this.keyBind = this.defaultKeyBind;
         for (Setting<?> setting : settings) {
-            if (!(setting instanceof NickEntryListSetting) && !(setting instanceof MacroListSetting)) {
+            if (!(setting instanceof NickEntryListSetting)
+                    && !(setting instanceof MacroListSetting)
+                    && !(setting instanceof WaypointListSetting)
+                    && !(setting instanceof BannedWordListSetting)) {
                 setting.reset();
             }
         }

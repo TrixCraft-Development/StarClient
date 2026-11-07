@@ -14,11 +14,14 @@ import net.starclient.StarClient;
 import net.starclient.config.ClientProfile;
 import net.starclient.config.ProfileManager;
 
+import net.starclient.module.ChatPlusState;
 import net.starclient.module.Category;
 import net.starclient.module.Module;
 import net.starclient.module.NickToolState;
 import net.starclient.module.QuickCommandsState;
+import net.starclient.module.WaypointsState;
 import net.starclient.rank.Rank;
+import net.starclient.setting.BannedWordListSetting;
 import net.starclient.setting.BooleanSetting;
 import net.starclient.setting.ColorModeSetting;
 import net.starclient.setting.MacroListSetting;
@@ -27,6 +30,7 @@ import net.starclient.setting.NickEntryListSetting;
 import net.starclient.setting.NumberSetting;
 import net.starclient.setting.Setting;
 import net.starclient.setting.TextSetting;
+import net.starclient.setting.WaypointListSetting;
 import org.jspecify.annotations.NonNull;
 import org.lwjgl.glfw.GLFW;
 
@@ -1068,6 +1072,94 @@ public class ClickGuiScreen extends Screen {
                 GuiRenderUtils.drawRoundedOutline(extractor, btnX, item.y + 4, btnW, 16, 4, menuBorder());
                 GuiRenderUtils.drawCenteredText(extractor, this.font, label, btnX + btnW / 2, item.y + 8, menuAccent());
             }
+            case BannedWordListSetting bannedWordListSetting -> {
+                GuiRenderUtils.drawText(extractor, this.font, setting.getName(), item.x + 8, item.y + 8, 0xFFE2E8F0);
+                int count = ChatPlusState.getBannedWords().size();
+                String label = (count == 0 ? "Manage (0)" : count + (count == 1 ? " word" : " words")) + " ✎";
+                int btnW = GuiRenderUtils.textWidth(this.font, label) + 12;
+                int btnX = item.x + item.width - btnW - 6;
+                GuiRenderUtils.fillRoundedRect(extractor, btnX, item.y + 4, btnW, 16, 4, menuBgDark());
+                GuiRenderUtils.drawRoundedOutline(extractor, btnX, item.y + 4, btnW, 16, 4, menuBorder());
+                GuiRenderUtils.drawCenteredText(extractor, this.font, label, btnX + btnW / 2, item.y + 8, menuAccent());
+            }
+            case WaypointListSetting waypointListSetting -> {
+                List<WaypointsState.Waypoint> wps = WaypointsState.getWaypointsForCurrentContext(Minecraft.getInstance());
+                String title = "Waypoints (" + wps.size() + ")";
+                GuiRenderUtils.drawText(extractor, this.font, title, item.x + 8, item.y + 7, 0xFFE2E8F0);
+
+                // Action pills: "+ Here" | "+ New" | "All ✎"
+                int btnH = 14;
+                int btnY = item.y + 5;
+                int allW = 36;
+                int newW = 34;
+                int hereW = 38;
+                int allX = item.x + item.width - allW - 6;
+                int newX = allX - newW - 4;
+                int hereX = newX - hereW - 4;
+
+                boolean hereHov = isHovered(mouseX, mouseY, hereX, btnY, hereW, btnH);
+                GuiRenderUtils.fillRoundedRect(extractor, hereX, btnY, hereW, btnH, 3, hereHov ? menuAccentDark() : menuBgDark());
+                GuiRenderUtils.drawRoundedOutline(extractor, hereX, btnY, hereW, btnH, 3, hereHov ? menuAccent() : menuBorder());
+                GuiRenderUtils.drawCenteredText(extractor, this.font, "+ Here", hereX + hereW / 2, btnY + 3, 0xFF34D399);
+
+                boolean newHov = isHovered(mouseX, mouseY, newX, btnY, newW, btnH);
+                GuiRenderUtils.fillRoundedRect(extractor, newX, btnY, newW, btnH, 3, newHov ? menuAccentDark() : menuBgDark());
+                GuiRenderUtils.drawRoundedOutline(extractor, newX, btnY, newW, btnH, 3, newHov ? menuAccent() : menuBorder());
+                GuiRenderUtils.drawCenteredText(extractor, this.font, "+ New", newX + newW / 2, btnY + 3, menuAccent());
+
+                boolean allHov = isHovered(mouseX, mouseY, allX, btnY, allW, btnH);
+                GuiRenderUtils.fillRoundedRect(extractor, allX, btnY, allW, btnH, 3, allHov ? menuAccentDark() : menuBgDark());
+                GuiRenderUtils.drawRoundedOutline(extractor, allX, btnY, allW, btnH, 3, allHov ? menuAccent() : menuBorder());
+                GuiRenderUtils.drawCenteredText(extractor, this.font, "All ✎", allX + allW / 2, btnY + 3, 0xFFE2E8F0);
+
+                int rowY = item.y + 23;
+                if (wps.isEmpty()) {
+                    GuiRenderUtils.drawText(extractor, this.font, "No waypoints in this world yet", item.x + 8, rowY + 4, 0xFF64748B);
+                } else {
+                    int shown = Math.min(6, wps.size());
+                    for (int i = 0; i < shown; i++) {
+                        WaypointsState.Waypoint wp = wps.get(i);
+                        GuiRenderUtils.fillRoundedRect(extractor, item.x + 6, rowY, item.width - 12, 18, 3, menuBgDark());
+                        int dotCol = 0xFF000000 | (wp.getColor() & 0x00FFFFFF);
+                        GuiRenderUtils.fillRoundedRect(extractor, item.x + 10, rowY + 5, 8, 8, 2, dotCol);
+
+                        int delX = item.x + item.width - 22;
+                        int editX = delX - 17;
+                        int visX = editX - 17;
+
+                        String dimShort = WaypointsState.formatDimensionShort(wp.getDimension());
+                        String wpText = wp.getName() + " [" + dimShort + "] (" + wp.getX() + ", " + wp.getY() + ", " + wp.getZ() + ")";
+                        int maxLabelW = Math.max(36, visX - (item.x + 22) - 4);
+                        String clipped = GuiRenderUtils.truncate(this.font, wpText, maxLabelW);
+                        GuiRenderUtils.drawText(extractor, this.font, clipped, item.x + 22, rowY + 5,
+                                wp.isEnabled() ? 0xFFE2E8F0 : 0xFF64748B);
+
+                        boolean visHov = isHovered(mouseX, mouseY, visX, rowY + 2, 15, 14);
+                        GuiRenderUtils.fillRoundedRect(extractor, visX, rowY + 2, 15, 14, 3,
+                                wp.isEnabled() ? 0x3310B981 : (visHov ? menuBgLight() : 0x22000000));
+                        GuiRenderUtils.drawCenteredText(extractor, this.font, wp.isEnabled() ? "●" : "○",
+                                visX + 7, rowY + 5, wp.isEnabled() ? 0xFF34D399 : 0xFF94A3B8);
+
+                        boolean editHov = isHovered(mouseX, mouseY, editX, rowY + 2, 15, 14);
+                        GuiRenderUtils.fillRoundedRect(extractor, editX, rowY + 2, 15, 14, 3,
+                                editHov ? menuAccentDark() : 0x22000000);
+                        GuiRenderUtils.drawCenteredText(extractor, this.font, "✎",
+                                editX + 7, rowY + 5, editHov ? 0xFFFFFFFF : menuAccent());
+
+                        boolean delHov = isHovered(mouseX, mouseY, delX, rowY + 2, 15, 14);
+                        GuiRenderUtils.fillRoundedRect(extractor, delX, rowY + 2, 15, 14, 3,
+                                delHov ? 0x44EF4444 : 0x22000000);
+                        GuiRenderUtils.drawCenteredText(extractor, this.font, "✕",
+                                delX + 7, rowY + 5, delHov ? 0xFFF87171 : 0xFF94A3B8);
+
+                        rowY += 20;
+                    }
+                    if (wps.size() > shown) {
+                        String more = "+ " + (wps.size() - shown) + " more (click All ✎)";
+                        GuiRenderUtils.drawText(extractor, this.font, more, item.x + 10, rowY + 2, menuAccent());
+                    }
+                }
+            }
             default -> {
             }
         }
@@ -1140,6 +1232,15 @@ public class ClickGuiScreen extends Screen {
         }
         if (setting instanceof NumberSetting) {
             return 32;
+        }
+        if (setting instanceof WaypointListSetting) {
+            List<WaypointsState.Waypoint> wps = WaypointsState.getWaypointsForCurrentContext(Minecraft.getInstance());
+            if (wps.isEmpty()) {
+                return 44;
+            }
+            int shown = Math.min(6, wps.size());
+            int extra = wps.size() > shown ? 14 : 0;
+            return 26 + shown * 20 + extra;
         }
         return 24;
     }
@@ -1777,6 +1878,67 @@ public class ClickGuiScreen extends Screen {
             Minecraft.getInstance().gui.setScreen(new NickToolScreen(this));
         } else if (setting instanceof MacroListSetting) {
             Minecraft.getInstance().gui.setScreen(new QuickCommandsScreen(this));
+        } else if (setting instanceof BannedWordListSetting) {
+            Minecraft.getInstance().gui.setScreen(new BannedWordsScreen(this));
+        } else if (setting instanceof WaypointListSetting) {
+            int btnH = 14;
+            int btnY = item.y + 5;
+            int allW = 36;
+            int newW = 34;
+            int hereW = 38;
+            int allX = item.x + item.width - allW - 6;
+            int newX = allX - newW - 4;
+            int hereX = newX - hereW - 4;
+
+            if (isHovered(mouseX, mouseY, hereX, btnY, hereW, btnH)) {
+                Minecraft mc = Minecraft.getInstance();
+                if (mc.player != null && mc.level != null) {
+                    WaypointsState.addQuickWaypointHere(mc);
+                } else {
+                    mc.gui.setScreen(WaypointsScreen.openCreateAtPlayer(this));
+                }
+                return;
+            }
+            if (isHovered(mouseX, mouseY, newX, btnY, newW, btnH)) {
+                Minecraft.getInstance().gui.setScreen(WaypointsScreen.openCreateAtPlayer(this));
+                return;
+            }
+            if (isHovered(mouseX, mouseY, allX, btnY, allW, btnH)) {
+                Minecraft.getInstance().gui.setScreen(new WaypointsScreen(this));
+                return;
+            }
+
+            List<WaypointsState.Waypoint> wps = WaypointsState.getWaypointsForCurrentContext(Minecraft.getInstance());
+            int rowY = item.y + 23;
+            int shown = Math.min(6, wps.size());
+            for (int i = 0; i < shown; i++) {
+                WaypointsState.Waypoint wp = wps.get(i);
+                int delX = item.x + item.width - 22;
+                int editX = delX - 17;
+                int visX = editX - 17;
+
+                if (isHovered(mouseX, mouseY, visX, rowY + 2, 15, 14)) {
+                    wp.toggleEnabled();
+                    WaypointsState.save();
+                    return;
+                }
+                if (isHovered(mouseX, mouseY, editX, rowY + 2, 15, 14)) {
+                    Minecraft.getInstance().gui.setScreen(WaypointsScreen.openEdit(this, wp));
+                    return;
+                }
+                if (isHovered(mouseX, mouseY, delX, rowY + 2, 15, 14)) {
+                    WaypointsState.removeWaypoint(wp.getId());
+                    return;
+                }
+                if (isHovered(mouseX, mouseY, item.x + 6, rowY, item.width - 12, 18)) {
+                    Minecraft.getInstance().gui.setScreen(WaypointsScreen.openEdit(this, wp));
+                    return;
+                }
+                rowY += 20;
+            }
+            if (wps.size() > shown && mouseY >= rowY) {
+                Minecraft.getInstance().gui.setScreen(new WaypointsScreen(this));
+            }
         }
     }
 

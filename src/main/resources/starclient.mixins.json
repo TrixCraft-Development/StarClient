@@ -30,6 +30,7 @@
     "FramerateLimitTrackerMixin",
     "GameRendererFreeLookMixin",
     "GlobalPaletteMixin",
+    "GuiGraphicsExtractorMixin",
     "HudMixin",
     "IconSetMixin",
     "ItemEntityRenderStateMixin",
@@ -60,7 +61,9 @@
     "ResultSlotMixin",
     "ScreenEffectRendererMixin",
     "ScreenMixin",
+    "ScreenshotMixin",
     "SplashRendererMixin",
+    "SubmitNodeCollectionMixin",
     "TitleScreenMixin",
     "WeatherEffectRendererMixin"
   ],

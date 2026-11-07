@@ -106,6 +106,8 @@ public class StarClient implements ClientModInitializer {
             ensureConfigLoaded();
             ClientStatsManager.getInstance().onTick(client);
             net.starclient.module.AutoRespawnReconnectState.onClientTick(client);
+            net.starclient.module.WaypointsState.onClientTick(client);
+            net.starclient.module.AutoGgState.onClientTick(client);
             boolean inGame = client.player != null && client.level != null;
             if (inGame) {
                 if (client.gui.screen() == null) {

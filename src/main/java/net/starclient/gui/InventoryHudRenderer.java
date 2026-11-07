@@ -105,6 +105,8 @@ public final class InventoryHudRenderer {
         x = Math.clamp(x, 4, Math.max(4, screenW - width - 4));
         y = Math.clamp(y, 4, Math.max(4, screenH - height - 4));
 
+        boolean scaled = layout.beginScale(graphics, x, y, HudLayout.INVENTORY);
+
         boolean includeHotbar = isTrue(mod, "Include Hotbar", false);
         boolean showOffhand = isTrue(mod, "Show Offhand", true);
         boolean showArmor = isTrue(mod, "Show Armor", false);
@@ -261,6 +263,7 @@ public final class InventoryHudRenderer {
                 GuiRenderUtils.drawCenteredText(graphics, client.font, "🛡", extraX + slotSize / 2, offhandY + 4, 0x44FFFFFF);
             }
         }
+        layout.endScale(graphics, scaled);
     }
 
     private static boolean isTrue(Module mod, String settingName, boolean defaultValue) {

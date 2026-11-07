@@ -9,6 +9,7 @@ import net.minecraft.client.Minecraft;
 import net.starclient.StarClient;
 import net.starclient.changelog.ChangelogManager;
 import net.starclient.module.Module;
+import net.starclient.setting.BannedWordListSetting;
 import net.starclient.setting.BooleanSetting;
 import net.starclient.setting.MacroListSetting;
 import net.starclient.setting.ModeSetting;
@@ -169,6 +170,16 @@ public class ConfigManager {
                                             }
                                         }
                                     }
+                                    case BannedWordListSetting bwl -> {
+                                        bwl.getValue().clear();
+                                        if (settingsObj.get(bwl.getName()).isJsonArray()) {
+                                            for (var elem : settingsObj.get(bwl.getName()).getAsJsonArray()) {
+                                                if (elem.isJsonPrimitive()) {
+                                                    bwl.addWord(elem.getAsString());
+                                                }
+                                            }
+                                        }
+                                    }
                                     default -> {
                                     }
                                 }
@@ -290,6 +301,14 @@ public class ConfigManager {
                     entries.add(entryObj);
                 }
                 settingsObj.add(setting.getName(), entries);
+            } else if (setting instanceof BannedWordListSetting bwl) {
+                JsonArray words = new JsonArray();
+                for (String w : bwl.getValue()) {
+                    if (w != null && !w.isBlank()) {
+                        words.add(w);
+                    }
+                }
+                settingsObj.add(setting.getName(), words);
             }
         }
         return settingsObj;

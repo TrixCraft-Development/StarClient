@@ -11,6 +11,7 @@ import net.starclient.StarClient;
 import net.starclient.cosmetics.CapeCosmetic;
 import net.starclient.cosmetics.CosmeticManager;
 import net.starclient.cosmetics.StarCosmeticLayer;
+import net.starclient.module.NametagsPlusState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -29,7 +30,7 @@ public abstract class AvatarRendererMixin {
     private void showOwnNametag(Avatar entity, double distanceToCameraSq, CallbackInfoReturnable<Boolean> cir) {
         Minecraft client = Minecraft.getInstance();
         if (client.player != null && entity == client.player) {
-            cir.setReturnValue(true);
+            cir.setReturnValue(NametagsPlusState.shouldShowOwnNametag());
         }
     }
 

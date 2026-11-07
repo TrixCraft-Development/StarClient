@@ -58,11 +58,13 @@ public class HudOverlay {
 
             int fX = layout.effectiveX(HudLayout.FPS, screenWidth, 0);
             int fY = layout.effectiveY(HudLayout.FPS, screenHeight);
+            boolean sc = layout.beginScale(extractor, fX, fY, HudLayout.FPS);
             if (!fpsMod.isTransparentBackground()) {
                 GuiRenderUtils.fillRoundedRect(extractor, fX, fY, HudLayout.FPS_WIDTH, HudLayout.ELEMENT_HEIGHT, 4, translucentBoxColor(fpsMod));
                 GuiRenderUtils.drawRoundedOutline(extractor, fX, fY, HudLayout.FPS_WIDTH, HudLayout.ELEMENT_HEIGHT, 4, boxBorderColor());
             }
             hudText(extractor, client, stats, fX + 6, fY + 5, fpsMod.getTextColor());
+            layout.endScale(extractor, sc);
         }
 
         // 2. Ping Display (Bottom Left, toggled by "Ping Display" module)
@@ -76,11 +78,13 @@ public class HudOverlay {
 
             int pX = layout.effectiveX(HudLayout.PING, screenWidth, 0);
             int pY = layout.effectiveY(HudLayout.PING, screenHeight);
+            boolean sc = layout.beginScale(extractor, pX, pY, HudLayout.PING);
             if (!pingMod.isTransparentBackground()) {
                 GuiRenderUtils.fillRoundedRect(extractor, pX, pY, HudLayout.PING_WIDTH, HudLayout.ELEMENT_HEIGHT, 4, translucentBoxColor(pingMod));
                 GuiRenderUtils.drawRoundedOutline(extractor, pX, pY, HudLayout.PING_WIDTH, HudLayout.ELEMENT_HEIGHT, 4, boxBorderColor());
             }
             hudText(extractor, client, stats, pX + 6, pY + 5, pingMod.getTextColor());
+            layout.endScale(extractor, sc);
         }
 
         // 3. Coordinates Display (Bottom Left, toggled by "Coordinates" module)
@@ -93,11 +97,13 @@ public class HudOverlay {
 
             int cX = layout.effectiveX(HudLayout.COORDINATES, screenWidth, 0);
             int cY = layout.effectiveY(HudLayout.COORDINATES, screenHeight);
+            boolean sc = layout.beginScale(extractor, cX, cY, HudLayout.COORDINATES);
             if (!coordsMod.isTransparentBackground()) {
                 GuiRenderUtils.fillRoundedRect(extractor, cX, cY, HudLayout.COORDS_WIDTH, HudLayout.ELEMENT_HEIGHT, 4, translucentBoxColor(coordsMod));
                 GuiRenderUtils.drawRoundedOutline(extractor, cX, cY, HudLayout.COORDS_WIDTH, HudLayout.ELEMENT_HEIGHT, 4, boxBorderColor());
             }
             hudText(extractor, client, stats, cX + 6, cY + 5, coordsMod.getTextColor());
+            layout.endScale(extractor, sc);
         }
 
         // 3b. CPS Display
@@ -111,11 +117,13 @@ public class HudOverlay {
 
             int cpsX = layout.effectiveX(HudLayout.CPS, screenWidth, 0);
             int cpsY = layout.effectiveY(HudLayout.CPS, screenHeight);
+            boolean sc = layout.beginScale(extractor, cpsX, cpsY, HudLayout.CPS);
             if (!cpsMod.isTransparentBackground()) {
                 GuiRenderUtils.fillRoundedRect(extractor, cpsX, cpsY, HudLayout.STAT_WIDTH, HudLayout.ELEMENT_HEIGHT, 4, translucentBoxColor(cpsMod));
                 GuiRenderUtils.drawRoundedOutline(extractor, cpsX, cpsY, HudLayout.STAT_WIDTH, HudLayout.ELEMENT_HEIGHT, 4, boxBorderColor());
             }
             hudText(extractor, client, stats, cpsX + 6, cpsY + 5, cpsMod.getTextColor());
+            layout.endScale(extractor, sc);
         }
 
         // 3c. Reach Display
@@ -128,11 +136,13 @@ public class HudOverlay {
 
             int rX = layout.effectiveX(HudLayout.REACH, screenWidth, 0);
             int rY = layout.effectiveY(HudLayout.REACH, screenHeight);
+            boolean sc = layout.beginScale(extractor, rX, rY, HudLayout.REACH);
             if (!reachMod.isTransparentBackground()) {
                 GuiRenderUtils.fillRoundedRect(extractor, rX, rY, HudLayout.STAT_WIDTH, HudLayout.ELEMENT_HEIGHT, 4, translucentBoxColor(reachMod));
                 GuiRenderUtils.drawRoundedOutline(extractor, rX, rY, HudLayout.STAT_WIDTH, HudLayout.ELEMENT_HEIGHT, 4, boxBorderColor());
             }
             hudText(extractor, client, stats, rX + 6, rY + 5, reachMod.getTextColor());
+            layout.endScale(extractor, sc);
         }
 
         // 3d. Speedometer
@@ -148,11 +158,13 @@ public class HudOverlay {
 
             int sX = layout.effectiveX(HudLayout.SPEED, screenWidth, 0);
             int sY = layout.effectiveY(HudLayout.SPEED, screenHeight);
+            boolean sc = layout.beginScale(extractor, sX, sY, HudLayout.SPEED);
             if (!speedMod.isTransparentBackground()) {
                 GuiRenderUtils.fillRoundedRect(extractor, sX, sY, HudLayout.STAT_WIDTH, HudLayout.ELEMENT_HEIGHT, 4, translucentBoxColor(speedMod));
                 GuiRenderUtils.drawRoundedOutline(extractor, sX, sY, HudLayout.STAT_WIDTH, HudLayout.ELEMENT_HEIGHT, 4, boxBorderColor());
             }
             hudText(extractor, client, stats, sX + 6, sY + 5, speedMod.getTextColor());
+            layout.endScale(extractor, sc);
         }
 
         // 3d2. Combo Counter
@@ -165,11 +177,13 @@ public class HudOverlay {
 
             int cbX = layout.effectiveX(HudLayout.COMBO, screenWidth, 0);
             int cbY = layout.effectiveY(HudLayout.COMBO, screenHeight);
+            boolean sc = layout.beginScale(extractor, cbX, cbY, HudLayout.COMBO);
             if (!comboMod.isTransparentBackground()) {
                 GuiRenderUtils.fillRoundedRect(extractor, cbX, cbY, HudLayout.STAT_WIDTH, HudLayout.ELEMENT_HEIGHT, 4, translucentBoxColor(comboMod));
                 GuiRenderUtils.drawRoundedOutline(extractor, cbX, cbY, HudLayout.STAT_WIDTH, HudLayout.ELEMENT_HEIGHT, 4, boxBorderColor());
             }
             hudText(extractor, client, stats, cbX + 6, cbY + 5, comboMod.getTextColor());
+            layout.endScale(extractor, sc);
         }
 
         // 3d3. Real-Time Clock Display
@@ -205,41 +219,99 @@ public class HudOverlay {
 
             int clX = layout.effectiveX(HudLayout.CLOCK, screenWidth, 0);
             int clY = layout.effectiveY(HudLayout.CLOCK, screenHeight);
+            boolean sc = layout.beginScale(extractor, clX, clY, HudLayout.CLOCK);
             if (!clockMod.isTransparentBackground()) {
                 GuiRenderUtils.fillRoundedRect(extractor, clX, clY, HudLayout.STAT_WIDTH, HudLayout.ELEMENT_HEIGHT, 4, translucentBoxColor(clockMod));
                 GuiRenderUtils.drawRoundedOutline(extractor, clX, clY, HudLayout.STAT_WIDTH, HudLayout.ELEMENT_HEIGHT, 4, boxBorderColor());
             }
             hudText(extractor, client, stats, clX + 6, clY + 5, clockMod.getTextColor());
+            layout.endScale(extractor, sc);
         }
 
         // 3d4. Compass Display
         Module compassMod = StarClient.getInstance().getModuleManager().getModuleByName("Compass Display");
         if (compassMod != null && compassMod.isEnabled()) {
+            int compW = CompassRenderer.getWidth(compassMod);
+            int compX = layout.effectiveX(HudLayout.COMPASS, screenWidth, compW);
+            int compY = layout.effectiveY(HudLayout.COMPASS, screenHeight);
+            boolean sc = layout.beginScale(extractor, compX, compY, HudLayout.COMPASS);
             CompassRenderer.render(extractor, client, compassMod, layout, screenWidth, screenHeight);
+            layout.endScale(extractor, sc);
         }
 
         // 3d5. Server Info
         Module serverInfoMod = StarClient.getInstance().getModuleManager().getModuleByName("Server Info");
         if (serverInfoMod != null && serverInfoMod.isEnabled()) {
+            int srvW = ServerInfoRenderer.getWidth(client.font, client, serverInfoMod);
+            int srvX = layout.effectiveX(HudLayout.SERVER_INFO, screenWidth, srvW);
+            int srvY = layout.effectiveY(HudLayout.SERVER_INFO, screenHeight);
+            boolean sc = layout.beginScale(extractor, srvX, srvY, HudLayout.SERVER_INFO);
             ServerInfoRenderer.render(extractor, client, serverInfoMod, layout, screenWidth, screenHeight);
+            layout.endScale(extractor, sc);
         }
 
         // 3d6. Memory Display
         Module memoryMod = StarClient.getInstance().getModuleManager().getModuleByName("Memory Display");
         if (memoryMod != null && memoryMod.isEnabled()) {
+            int memW = MemoryHudRenderer.getWidth(client.font, memoryMod);
+            int memX = layout.effectiveX(HudLayout.MEMORY, screenWidth, memW);
+            int memY = layout.effectiveY(HudLayout.MEMORY, screenHeight);
+            boolean sc = layout.beginScale(extractor, memX, memY, HudLayout.MEMORY);
             MemoryHudRenderer.render(extractor, client, memoryMod, layout, screenWidth, screenHeight);
+            layout.endScale(extractor, sc);
+        }
+
+        // 3d7. Minimap
+        Module minimapMod = StarClient.getInstance().getModuleManager().getModuleByName("Minimap");
+        if (minimapMod != null && minimapMod.isEnabled()) {
+            int mapW = MinimapRenderer.getWidth(minimapMod);
+            int mapX = layout.effectiveX(HudLayout.MINIMAP, screenWidth, mapW);
+            int mapY = layout.effectiveY(HudLayout.MINIMAP, screenHeight);
+            boolean sc = layout.beginScale(extractor, mapX, mapY, HudLayout.MINIMAP);
+            MinimapRenderer.render(extractor, client, minimapMod, layout, screenWidth, screenHeight);
+            layout.endScale(extractor, sc);
+        }
+
+        // 3d8. World Info
+        Module worldInfoMod = StarClient.getInstance().getModuleManager().getModuleByName("World Info");
+        if (worldInfoMod != null && worldInfoMod.isEnabled()) {
+            int wiW = WorldInfoRenderer.getWidth(client.font, client, worldInfoMod);
+            int wiX = layout.effectiveX(HudLayout.WORLD_INFO, screenWidth, wiW);
+            int wiY = layout.effectiveY(HudLayout.WORLD_INFO, screenHeight);
+            boolean sc = layout.beginScale(extractor, wiX, wiY, HudLayout.WORLD_INFO);
+            WorldInfoRenderer.render(extractor, client, worldInfoMod, layout, screenWidth, screenHeight);
+            layout.endScale(extractor, sc);
+        }
+
+        // 3d9. Item Counter
+        Module itemCounterMod = StarClient.getInstance().getModuleManager().getModuleByName("Item Counter");
+        if (itemCounterMod != null && itemCounterMod.isEnabled()) {
+            int icW = ItemCounterRenderer.getWidth(client.font, client, itemCounterMod);
+            int icX = layout.effectiveX(HudLayout.ITEM_COUNTER, screenWidth, icW);
+            int icY = layout.effectiveY(HudLayout.ITEM_COUNTER, screenHeight);
+            boolean sc = layout.beginScale(extractor, icX, icY, HudLayout.ITEM_COUNTER);
+            ItemCounterRenderer.render(extractor, client, itemCounterMod, layout, screenWidth, screenHeight);
+            layout.endScale(extractor, sc);
         }
 
         // 3e. Potion Effects HUD
         Module potionsMod = StarClient.getInstance().getModuleManager().getModuleByName("Potion Effects");
         if (potionsMod != null && potionsMod.isEnabled()) {
+            int potX = layout.effectiveX(HudLayout.POTIONS, screenWidth, 0);
+            int potY = layout.effectiveY(HudLayout.POTIONS, screenHeight);
+            boolean sc = layout.beginScale(extractor, potX, potY, HudLayout.POTIONS);
             renderPotionEffects(extractor, client, potionsMod, layout, screenWidth, screenHeight);
+            layout.endScale(extractor, sc);
         }
 
         // 3f. Target HUD
         Module targetHudMod = StarClient.getInstance().getModuleManager().getModuleByName("Target HUD");
         if (targetHudMod != null && targetHudMod.isEnabled()) {
+            int tX = layout.effectiveX(HudLayout.TARGET_HUD, screenWidth, 0);
+            int tY = layout.effectiveY(HudLayout.TARGET_HUD, screenHeight);
+            boolean sc = layout.beginScale(extractor, tX, tY, HudLayout.TARGET_HUD);
             renderTargetHud(extractor, client, targetHudMod, layout, screenWidth, screenHeight);
+            layout.endScale(extractor, sc);
         }
 
         // 4. Active Modules Arraylist (Top Right, toggled by "Active Modules" module)
@@ -260,6 +332,7 @@ public class HudOverlay {
             boolean arrayAuto = layout.isAuto(HudLayout.ARRAYLIST);
             int arrayLeft = layout.effectiveX(HudLayout.ARRAYLIST, screenWidth, maxModWidth);
             int arrayY = layout.effectiveY(HudLayout.ARRAYLIST, screenHeight);
+            boolean sc = layout.beginScale(extractor, arrayAuto ? screenWidth - 8 : arrayLeft, arrayY, HudLayout.ARRAYLIST);
             int listTextColor = activeModsMod.getTextColor();
             for (Module module : activeModules) {
                 String name = module.getName();
@@ -274,6 +347,7 @@ public class HudOverlay {
 
                 arrayY += 16;
             }
+            layout.endScale(extractor, sc);
         }
 
         // 5. Keystrokes Overlay (Bottom Right if enabled)
@@ -281,13 +355,19 @@ public class HudOverlay {
         if (keystrokesMod != null && keystrokesMod.isEnabled()) {
             int kX = layout.effectiveX(HudLayout.KEYSTROKES, screenWidth, 0);
             int kY = layout.effectiveY(HudLayout.KEYSTROKES, screenHeight);
+            boolean sc = layout.beginScale(extractor, kX, kY, HudLayout.KEYSTROKES);
             renderKeystrokes(extractor, client, kX, kY, keystrokesMod);
+            layout.endScale(extractor, sc);
         }
 
         // 6. Armor HUD (Bottom Center, toggled by "Armor HUD" module)
         Module armorMod = StarClient.getInstance().getModuleManager().getModuleByName("Armor HUD");
         if (armorMod != null && armorMod.isEnabled()) {
+            int aX = layout.effectiveX(HudLayout.ARMOR, screenWidth, 0);
+            int aY = layout.effectiveY(HudLayout.ARMOR, screenHeight);
+            boolean sc = layout.beginScale(extractor, aX, aY, HudLayout.ARMOR);
             renderArmor(extractor, client, armorMod);
+            layout.endScale(extractor, sc);
         }
 
         // 6b. Inventory HUD (toggled by "Inventory HUD" module)
@@ -398,6 +478,11 @@ public class HudOverlay {
         Module trajMod = StarClient.getInstance().getModuleManager().getModuleByName("Trajectories");
         if (trajMod != null && trajMod.isEnabled()) {
             TrajectoryRenderer.render(extractor, client, trajMod);
+        }
+
+        // 14. 3D In-World Waypoints
+        if (!(client.gui.screen() instanceof ClickGuiScreen) && !(client.gui.screen() instanceof HudEditorScreen)) {
+            WaypointRenderer.render(extractor, client);
         }
     }
 

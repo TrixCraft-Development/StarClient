@@ -119,6 +119,7 @@ public final class BossBarRenderer {
         }
 
         // Background card
+        boolean scaled = layout.beginScale(graphics, startX, startY, HudLayout.BOSS_BAR);
         boolean transparent = mod.isTransparentBackground();
         if (!transparent) {
             int alpha = Math.clamp((int) Math.round(opacity * 2.55), 0, 255);
@@ -184,6 +185,7 @@ public final class BossBarRenderer {
                 graphics.fill(nx, currentY, nx + 1, currentY + barH, 0x88000000);
             }
         }
+        layout.endScale(graphics, scaled);
     }
 
     private static int getNotchCount(BossEvent.BossBarOverlay overlay) {

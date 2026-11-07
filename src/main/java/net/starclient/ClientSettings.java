@@ -43,6 +43,8 @@ public final class ClientSettings {
     private final BooleanSetting hudTextShadow;
     private final BooleanSetting tabIcon;
     private final BooleanSetting removeSplash;
+    private final BooleanSetting containerAnimations;
+    private final BooleanSetting containerBlur;
     private final TextSetting hypixelApiKey;
     private final ColorModeSetting menuAccentColor;
     private final ColorModeSetting menuBackgroundColor;
@@ -58,6 +60,10 @@ public final class ClientSettings {
                 "Show the Star icon next to your name in the tab list and above your head", true);
         this.removeSplash = new BooleanSetting("Remove Splash Text",
                 "Hide the random yellow splash text on the title screen", true);
+        this.containerAnimations = new BooleanSetting("Container Animations",
+                "Smooth pop-in scale and glide transition when opening inventories and containers", false);
+        this.containerBlur = new BooleanSetting("Container Background Blur",
+                "Apply Gaussian background blur behind open inventory and container screens", true);
         this.hypixelApiKey = new TextSetting("Hypixel API Key",
                 "Required by Server modules that query the Hypixel API. Create a free key at hypixel.dev", "", true);
         this.menuAccentColor = new ColorModeSetting("Client Menu Color",
@@ -81,6 +87,8 @@ public final class ClientSettings {
         settings.add(hudTextShadow);
         settings.add(tabIcon);
         settings.add(removeSplash);
+        settings.add(containerAnimations);
+        settings.add(containerBlur);
         settings.add(hypixelApiKey);
         settings.add(experimentalFeatures);
         settings.add(paletteCrashSafeguard);
@@ -106,6 +114,14 @@ public final class ClientSettings {
 
     public boolean isRemoveSplash() {
         return removeSplash.getValue();
+    }
+
+    public boolean isContainerAnimations() {
+        return containerAnimations == null || containerAnimations.getValue();
+    }
+
+    public boolean isContainerBlur() {
+        return containerBlur == null || containerBlur.getValue();
     }
 
     public String getTitleBackground() {

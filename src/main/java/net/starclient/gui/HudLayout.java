@@ -1,10 +1,14 @@
 package net.starclient.gui;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.starclient.StarClient;
 import net.starclient.module.Module;
 import net.starclient.setting.Setting;
+import org.joml.Matrix3x2fStack;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,7 +35,20 @@ public class HudLayout {
     public static final String COMPASS = "compass";
     public static final String SERVER_INFO = "server_info";
     public static final String MEMORY = "memory";
+    public static final String MINIMAP = "minimap";
+    public static final String WORLD_INFO = "world_info";
+    public static final String ITEM_COUNTER = "item_counter";
     public static final int AUTO = Integer.MIN_VALUE;
+
+    public static final float MIN_SCALE = 0.50f;
+    public static final float MAX_SCALE = 2.00f;
+
+    private static final String[] ALL_IDS = {
+            FPS, PING, COORDINATES, ARRAYLIST, KEYSTROKES, ARMOR,
+            CPS, REACH, SPEED, COMBO, CLOCK, COMPASS, SERVER_INFO,
+            MEMORY, POTIONS, TARGET_HUD, SCOREBOARD, BOSS_BAR, INVENTORY,
+            MINIMAP, WORLD_INFO, ITEM_COUNTER
+    };
 
     public static final int FPS_WIDTH = 130;
     public static final int PING_WIDTH = 130;
@@ -46,6 +63,9 @@ public class HudLayout {
     public static final int BASE_BOSS_BAR_HEIGHT = 20;
 
     private final Map<String, int[]> positions = new HashMap<>();
+    private final Map<String, Float> scales = new HashMap<>();
+    private boolean snapGuides = true;
+
     private int scoreboardWidth = 140;
     private int scoreboardHeight = 110;
     private int bossBarWidth = BASE_BOSS_BAR_WIDTH;
@@ -57,25 +77,57 @@ public class HudLayout {
 
     public void reset() {
         positions.clear();
-        positions.put(FPS, new int[]{AUTO, AUTO});
-        positions.put(PING, new int[]{AUTO, AUTO});
-        positions.put(COORDINATES, new int[]{AUTO, AUTO});
-        positions.put(ARRAYLIST, new int[]{AUTO, AUTO});
-        positions.put(KEYSTROKES, new int[]{AUTO, AUTO});
-        positions.put(ARMOR, new int[]{AUTO, AUTO});
-        positions.put(CPS, new int[]{AUTO, AUTO});
-        positions.put(REACH, new int[]{AUTO, AUTO});
-        positions.put(SPEED, new int[]{AUTO, AUTO});
-        positions.put(COMBO, new int[]{AUTO, AUTO});
-        positions.put(POTIONS, new int[]{AUTO, AUTO});
-        positions.put(TARGET_HUD, new int[]{AUTO, AUTO});
-        positions.put(SCOREBOARD, new int[]{AUTO, AUTO});
-        positions.put(BOSS_BAR, new int[]{AUTO, AUTO});
-        positions.put(INVENTORY, new int[]{AUTO, AUTO});
-        positions.put(CLOCK, new int[]{AUTO, AUTO});
-        positions.put(COMPASS, new int[]{AUTO, AUTO});
-        positions.put(SERVER_INFO, new int[]{AUTO, AUTO});
-        positions.put(MEMORY, new int[]{AUTO, AUTO});
+        scales.clear();
+        for (String id : ALL_IDS) {
+            positions.put(id, new int[]{AUTO, AUTO});
+            scales.put(id, 1.0f);
+        }
+    }
+
+    public void resetElement(String id) {
+        positions.put(id, new int[]{AUTO, AUTO});
+        scales.put(id, 1.0f);
+    }
+
+    public float getScale(String id) {
+        Float s = scales.get(id);
+        return s == null ? 1.0f : Math.clamp(s, MIN_SCALE, MAX_SCALE);
+    }
+
+    public void setScale(String id, float scale) {
+        float rounded = Math.round(Math.clamp(scale, MIN_SCALE, MAX_SCALE) * 20.0f) / 20.0f;
+        scales.put(id, rounded);
+    }
+
+    public boolean isSnapGuides() {
+        return snapGuides;
+    }
+
+    public void setSnapGuides(boolean snapGuides) {
+        this.snapGuides = snapGuides;
+    }
+
+    /**
+     * Pushes a 2D matrix scale anchored at (anchorX, anchorY) if this widget's scale != 1.0f.
+     * Returns true if a matrix was pushed and must be popped via {@link #endScale}.
+     */
+    public boolean beginScale(GuiGraphicsExtractor extractor, int anchorX, int anchorY, String id) {
+        float scale = getScale(id);
+        if (Math.abs(scale - 1.0f) < 0.001f) {
+            return false;
+        }
+        Matrix3x2fStack pose = extractor.pose();
+        pose.pushMatrix();
+        pose.translate(anchorX, anchorY);
+        pose.scale(scale, scale);
+        pose.translate(-anchorX, -anchorY);
+        return true;
+    }
+
+    public void endScale(GuiGraphicsExtractor extractor, boolean pushed) {
+        if (pushed) {
+            extractor.pose().popMatrix();
+        }
     }
 
     public void setBossBarSize(int width, int height) {
@@ -125,7 +177,12 @@ public class HudLayout {
 
     public int effectiveX(String id, int screenWidth, int maxModWidth) {
         return switch (id) {
-            case FPS, PING, COORDINATES, CPS, REACH, SPEED, COMBO, CLOCK, SERVER_INFO, MEMORY, POTIONS -> isAuto(id) ? 8 : getX(id);
+            case FPS, PING, COORDINATES, CPS, REACH, SPEED, COMBO, CLOCK, SERVER_INFO, MEMORY, POTIONS, MINIMAP, WORLD_INFO ->
+                    isAuto(id) ? 8 : getX(id);
+            case ITEM_COUNTER -> {
+                int w = maxModWidth > 0 ? maxModWidth : 110;
+                yield isAuto(id) ? (screenWidth - w) / 2 : getX(id);
+            }
             case COMPASS -> {
                 int w = maxModWidth > 0 ? maxModWidth : 210;
                 yield isAuto(id) ? (screenWidth - w) / 2 : getX(id);
@@ -163,7 +220,10 @@ public class HudLayout {
             case COMBO -> isAuto(id) ? screenHeight - 170 : getY(id);
             case CLOCK -> isAuto(id) ? screenHeight - 194 : getY(id);
             case MEMORY -> isAuto(id) ? screenHeight - 222 : getY(id);
+            case MINIMAP -> isAuto(id) ? 8 : getY(id);
+            case WORLD_INFO -> isAuto(id) ? 132 : getY(id);
             case SERVER_INFO -> isAuto(id) ? 60 : getY(id);
+            case ITEM_COUNTER -> isAuto(id) ? screenHeight - 62 : getY(id);
             case COMPASS, POTIONS, ARRAYLIST -> isAuto(id) ? 8 : getY(id);
             case KEYSTROKES -> isAuto(id) ? screenHeight - keystrokesHeight() - 8 : getY(id);
             case ARMOR -> isAuto(id) ? screenHeight - armorHeight() - 8 : getY(id);
@@ -300,23 +360,45 @@ public class HudLayout {
 
     public JsonObject toJson() {
         JsonObject obj = new JsonObject();
-        for (Map.Entry<String, int[]> entry : positions.entrySet()) {
-            int[] pos = entry.getValue();
-            if (pos[0] == AUTO) continue;
+        obj.addProperty("_snapGuides", snapGuides);
+        for (String id : ALL_IDS) {
+            int[] pos = positions.get(id);
+            float scale = getScale(id);
+            boolean hasPos = pos != null && pos[0] != AUTO;
+            boolean hasScale = Math.abs(scale - 1.0f) >= 0.001f;
+            if (!hasPos && !hasScale) continue;
+
             JsonObject o = new JsonObject();
-            o.addProperty("x", pos[0]);
-            o.addProperty("y", pos[1]);
-            obj.add(entry.getKey(), o);
+            if (hasPos) {
+                o.addProperty("x", pos[0]);
+                o.addProperty("y", pos[1]);
+            }
+            if (hasScale) {
+                o.addProperty("scale", scale);
+            }
+            obj.add(id, o);
         }
         return obj;
     }
 
     public void fromJson(JsonObject obj) {
         reset();
-        for (String id : new String[]{FPS, PING, COORDINATES, ARRAYLIST, KEYSTROKES, ARMOR, CPS, REACH, SPEED, COMBO, CLOCK, COMPASS, SERVER_INFO, MEMORY, POTIONS, TARGET_HUD, SCOREBOARD, BOSS_BAR, INVENTORY}) {
-            if (obj.has(id)) {
+        if (obj == null) return;
+        if (obj.has("_snapGuides")) {
+            JsonElement el = obj.get("_snapGuides");
+            if (el != null && el.isJsonPrimitive()) {
+                this.snapGuides = el.getAsBoolean();
+            }
+        }
+        for (String id : ALL_IDS) {
+            if (obj.has(id) && obj.get(id).isJsonObject()) {
                 JsonObject o = obj.getAsJsonObject(id);
-                setPosition(id, o.get("x").getAsInt(), o.get("y").getAsInt());
+                if (o.has("x") && o.has("y")) {
+                    setPosition(id, o.get("x").getAsInt(), o.get("y").getAsInt());
+                }
+                if (o.has("scale")) {
+                    setScale(id, o.get("scale").getAsFloat());
+                }
             }
         }
     }
@@ -327,100 +409,129 @@ public class HudLayout {
         }
     }
 
+    private static Rect makeScaledRect(HudLayout layout, String id, int x, int y, int baseW, int baseH) {
+        float s = layout.getScale(id);
+        int w = Math.max(12, Math.round(baseW * s));
+        int h = Math.max(10, Math.round(baseH * s));
+        return new Rect(id, x, y, x + w, y + h);
+    }
+
     public static List<Rect> computeRects(Font font, List<Module> activeModules, int screenWidth, int screenHeight, HudLayout layout) {
         List<Rect> rects = new ArrayList<>();
+        Minecraft mc = Minecraft.getInstance();
 
         int fpsX = layout.effectiveX(FPS, screenWidth, 0);
         int fpsY = layout.effectiveY(FPS, screenHeight);
-        rects.add(new Rect(FPS, fpsX, fpsY, fpsX + FPS_WIDTH, fpsY + ELEMENT_HEIGHT));
+        rects.add(makeScaledRect(layout, FPS, fpsX, fpsY, FPS_WIDTH, ELEMENT_HEIGHT));
 
         int pingX = layout.effectiveX(PING, screenWidth, 0);
         int pingY = layout.effectiveY(PING, screenHeight);
-        rects.add(new Rect(PING, pingX, pingY, pingX + PING_WIDTH, pingY + ELEMENT_HEIGHT));
+        rects.add(makeScaledRect(layout, PING, pingX, pingY, PING_WIDTH, ELEMENT_HEIGHT));
 
         int coordsX = layout.effectiveX(COORDINATES, screenWidth, 0);
         int coordsY = layout.effectiveY(COORDINATES, screenHeight);
-        rects.add(new Rect(COORDINATES, coordsX, coordsY, coordsX + COORDS_WIDTH, coordsY + ELEMENT_HEIGHT));
+        rects.add(makeScaledRect(layout, COORDINATES, coordsX, coordsY, COORDS_WIDTH, ELEMENT_HEIGHT));
 
         int cpsX = layout.effectiveX(CPS, screenWidth, 0);
         int cpsY = layout.effectiveY(CPS, screenHeight);
-        rects.add(new Rect(CPS, cpsX, cpsY, cpsX + STAT_WIDTH, cpsY + ELEMENT_HEIGHT));
+        rects.add(makeScaledRect(layout, CPS, cpsX, cpsY, STAT_WIDTH, ELEMENT_HEIGHT));
 
         int reachX = layout.effectiveX(REACH, screenWidth, 0);
         int reachY = layout.effectiveY(REACH, screenHeight);
-        rects.add(new Rect(REACH, reachX, reachY, reachX + STAT_WIDTH, reachY + ELEMENT_HEIGHT));
+        rects.add(makeScaledRect(layout, REACH, reachX, reachY, STAT_WIDTH, ELEMENT_HEIGHT));
 
         int speedX = layout.effectiveX(SPEED, screenWidth, 0);
         int speedY = layout.effectiveY(SPEED, screenHeight);
-        rects.add(new Rect(SPEED, speedX, speedY, speedX + STAT_WIDTH, speedY + ELEMENT_HEIGHT));
+        rects.add(makeScaledRect(layout, SPEED, speedX, speedY, STAT_WIDTH, ELEMENT_HEIGHT));
 
         int comboX = layout.effectiveX(COMBO, screenWidth, 0);
         int comboY = layout.effectiveY(COMBO, screenHeight);
-        rects.add(new Rect(COMBO, comboX, comboY, comboX + STAT_WIDTH, comboY + ELEMENT_HEIGHT));
+        rects.add(makeScaledRect(layout, COMBO, comboX, comboY, STAT_WIDTH, ELEMENT_HEIGHT));
 
         int clockX = layout.effectiveX(CLOCK, screenWidth, 0);
         int clockY = layout.effectiveY(CLOCK, screenHeight);
-        rects.add(new Rect(CLOCK, clockX, clockY, clockX + STAT_WIDTH, clockY + ELEMENT_HEIGHT));
+        rects.add(makeScaledRect(layout, CLOCK, clockX, clockY, STAT_WIDTH, ELEMENT_HEIGHT));
 
         Module compassMod = StarClient.getInstance().getModuleManager().getModuleByName("Compass Display");
         int compW = CompassRenderer.getWidth(compassMod);
         int compH = CompassRenderer.getHeight(compassMod);
         int compX = layout.effectiveX(COMPASS, screenWidth, compW);
         int compY = layout.effectiveY(COMPASS, screenHeight);
-        rects.add(new Rect(COMPASS, compX, compY, compX + compW, compY + compH));
+        rects.add(makeScaledRect(layout, COMPASS, compX, compY, compW, compH));
 
         Module srvMod = StarClient.getInstance().getModuleManager().getModuleByName("Server Info");
-        int srvW = ServerInfoRenderer.getWidth(font, net.minecraft.client.Minecraft.getInstance(), srvMod);
-        int srvH = ServerInfoRenderer.getHeight(net.minecraft.client.Minecraft.getInstance(), srvMod);
+        int srvW = ServerInfoRenderer.getWidth(font, mc, srvMod);
+        int srvH = ServerInfoRenderer.getHeight(mc, srvMod);
         int srvX = layout.effectiveX(SERVER_INFO, screenWidth, srvW);
         int srvY = layout.effectiveY(SERVER_INFO, screenHeight);
-        rects.add(new Rect(SERVER_INFO, srvX, srvY, srvX + srvW, srvY + srvH));
+        rects.add(makeScaledRect(layout, SERVER_INFO, srvX, srvY, srvW, srvH));
 
         Module memMod = StarClient.getInstance().getModuleManager().getModuleByName("Memory Display");
         int memW = MemoryHudRenderer.getWidth(font, memMod);
         int memH = MemoryHudRenderer.getHeight(memMod);
         int memX = layout.effectiveX(MEMORY, screenWidth, memW);
         int memY = layout.effectiveY(MEMORY, screenHeight);
-        rects.add(new Rect(MEMORY, memX, memY, memX + memW, memY + memH));
+        rects.add(makeScaledRect(layout, MEMORY, memX, memY, memW, memH));
+
+        Module mapMod = StarClient.getInstance().getModuleManager().getModuleByName("Minimap");
+        int mapW = MinimapRenderer.getWidth(mapMod);
+        int mapH = MinimapRenderer.getHeight(mapMod);
+        int mapX = layout.effectiveX(MINIMAP, screenWidth, mapW);
+        int mapY = layout.effectiveY(MINIMAP, screenHeight);
+        rects.add(makeScaledRect(layout, MINIMAP, mapX, mapY, mapW, mapH));
+
+        Module worldInfoMod = StarClient.getInstance().getModuleManager().getModuleByName("World Info");
+        int wiW = WorldInfoRenderer.getWidth(font, mc, worldInfoMod);
+        int wiH = WorldInfoRenderer.getHeight(mc, worldInfoMod);
+        int wiX = layout.effectiveX(WORLD_INFO, screenWidth, wiW);
+        int wiY = layout.effectiveY(WORLD_INFO, screenHeight);
+        rects.add(makeScaledRect(layout, WORLD_INFO, wiX, wiY, wiW, wiH));
+
+        Module itemCounterMod = StarClient.getInstance().getModuleManager().getModuleByName("Item Counter");
+        int icW = ItemCounterRenderer.getWidth(font, mc, itemCounterMod);
+        int icH = ItemCounterRenderer.getHeight(mc, itemCounterMod);
+        int icX = layout.effectiveX(ITEM_COUNTER, screenWidth, icW);
+        int icY = layout.effectiveY(ITEM_COUNTER, screenHeight);
+        rects.add(makeScaledRect(layout, ITEM_COUNTER, icX, icY, icW, icH));
 
         int potX = layout.effectiveX(POTIONS, screenWidth, 0);
         int potY = layout.effectiveY(POTIONS, screenHeight);
-        rects.add(new Rect(POTIONS, potX, potY, potX + POTIONS_WIDTH, potY + 48));
+        rects.add(makeScaledRect(layout, POTIONS, potX, potY, POTIONS_WIDTH, 48));
 
         int targetX = layout.effectiveX(TARGET_HUD, screenWidth, 0);
         int targetY = layout.effectiveY(TARGET_HUD, screenHeight);
-        rects.add(new Rect(TARGET_HUD, targetX, targetY, targetX + TARGET_HUD_WIDTH, targetY + TARGET_HUD_HEIGHT));
+        rects.add(makeScaledRect(layout, TARGET_HUD, targetX, targetY, TARGET_HUD_WIDTH, TARGET_HUD_HEIGHT));
 
         int maxModWidth = activeModules.stream().mapToInt(m -> font.width(m.getName()) + 12).max().orElse(0);
         int arrayLeft = layout.effectiveX(ARRAYLIST, screenWidth, maxModWidth);
         int arrayTop = layout.effectiveY(ARRAYLIST, screenHeight);
-        rects.add(new Rect(ARRAYLIST, arrayLeft, arrayTop, arrayLeft + maxModWidth + 8, arrayTop + 16 * activeModules.size()));
+        rects.add(makeScaledRect(layout, ARRAYLIST, arrayLeft, arrayTop, maxModWidth + 8, Math.max(16, 16 * activeModules.size())));
 
         int keyX = layout.effectiveX(KEYSTROKES, screenWidth, 0);
         int keyY = layout.effectiveY(KEYSTROKES, screenHeight);
-        rects.add(new Rect(KEYSTROKES, keyX, keyY, keyX + layout.keystrokesWidth(), keyY + layout.keystrokesHeight()));
+        rects.add(makeScaledRect(layout, KEYSTROKES, keyX, keyY, layout.keystrokesWidth(), layout.keystrokesHeight()));
 
         int armorX = layout.effectiveX(ARMOR, screenWidth, 0);
         int armorY = layout.effectiveY(ARMOR, screenHeight);
-        rects.add(new Rect(ARMOR, armorX, armorY, armorX + layout.armorWidth(), armorY + layout.armorHeight()));
+        rects.add(makeScaledRect(layout, ARMOR, armorX, armorY, layout.armorWidth(), layout.armorHeight()));
 
         int sbWidth = layout.scoreboardWidth();
         int sbHeight = layout.scoreboardHeight();
         int sbX = layout.effectiveX(SCOREBOARD, screenWidth, sbWidth);
         int sbY = layout.effectiveY(SCOREBOARD, screenHeight);
-        rects.add(new Rect(SCOREBOARD, sbX, sbY, sbX + sbWidth, sbY + sbHeight));
+        rects.add(makeScaledRect(layout, SCOREBOARD, sbX, sbY, sbWidth, sbHeight));
 
         int bbWidth = layout.bossBarWidth();
         int bbHeight = layout.bossBarHeight();
         int bbX = layout.effectiveX(BOSS_BAR, screenWidth, bbWidth);
         int bbY = layout.effectiveY(BOSS_BAR, screenHeight);
-        rects.add(new Rect(BOSS_BAR, bbX, bbY, bbX + bbWidth, bbY + bbHeight));
+        rects.add(makeScaledRect(layout, BOSS_BAR, bbX, bbY, bbWidth, bbHeight));
 
         int invWidth = layout.inventoryWidth();
         int invHeight = layout.inventoryHeight();
         int invX = layout.effectiveX(INVENTORY, screenWidth, invWidth);
         int invY = layout.effectiveY(INVENTORY, screenHeight);
-        rects.add(new Rect(INVENTORY, invX, invY, invX + invWidth, invY + invHeight));
+        rects.add(makeScaledRect(layout, INVENTORY, invX, invY, invWidth, invHeight));
 
         return rects;
     }

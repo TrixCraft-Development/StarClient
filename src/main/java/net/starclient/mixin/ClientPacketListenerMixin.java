@@ -15,6 +15,7 @@ import net.minecraft.world.phys.Vec3;
 import net.starclient.StarClient;
 import net.starclient.config.ProfileManager;
 import net.starclient.module.AntiKnockbackState;
+import net.starclient.module.ChatPlusState;
 import net.starclient.module.ServerSessionTracker;
 import net.starclient.stats.ClientStatsManager;
 import org.spongepowered.asm.mixin.Mixin;
@@ -71,6 +72,7 @@ public abstract class ClientPacketListenerMixin {
                 pm.onServerJoined(sd.ip, sd.name);
             }
         }
+        ChatPlusState.onSessionJoined(client);
     }
 
     @Inject(method = "handleSetTime", at = @At("HEAD"))

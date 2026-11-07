@@ -105,9 +105,11 @@ public final class ScoreboardRenderer {
 
         boolean transparent = mod.isTransparentBackground();
 
+        boolean scaled = layout.beginScale(graphics, cardX, cardY, HudLayout.SCOREBOARD);
         renderCard(graphics, font, cardX, cardY, cardWidth, cardHeight, padX, padY, headerH, lineH,
                 titleComp, titleWidth, rows, hideRedNumbers, useClientTheme, showBorder,
                 opacity, rounded, textShadow, transparent);
+        layout.endScale(graphics, scaled);
     }
 
     public static void renderPreview(GuiGraphicsExtractor graphics, Module mod) {
@@ -168,9 +170,11 @@ public final class ScoreboardRenderer {
         cardX = Math.clamp(cardX, 0, Math.max(0, screenW - cardWidth));
         cardY = Math.clamp(cardY, 0, Math.max(0, screenH - cardHeight));
 
+        boolean scaled = layout.beginScale(graphics, cardX, cardY, HudLayout.SCOREBOARD);
         renderCard(graphics, font, cardX, cardY, cardWidth, cardHeight, padX, padY, headerH, lineH,
                 titleComp, titleWidth, rows, hideRedNumbers, useClientTheme, showBorder,
                 opacity, rounded, textShadow, transparent);
+        layout.endScale(graphics, scaled);
     }
 
     private static void renderCard(GuiGraphicsExtractor graphics, Font font,

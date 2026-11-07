@@ -16,15 +16,17 @@ import org.jspecify.annotations.NonNull;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 public class HudEditorScreen extends Screen {
     private static final int SNAP_THRESHOLD = 6;
-    private static final int TOOLBAR_WIDTH = 300;
+    private static final int TOOLBAR_WIDTH = 374;
     private static final int TOOLBAR_HEIGHT = 34;
     private static final int TOOLBAR_Y = 10;
-    private static final int RESET_BTN_WIDTH = 90;
-    private static final int DONE_BTN_WIDTH = 68;
+    private static final int SNAP_BTN_WIDTH = 72;
+    private static final int RESET_BTN_WIDTH = 86;
+    private static final int DONE_BTN_WIDTH = 64;
     private static final int BTN_HEIGHT = 20;
 
     private final Screen parent;
@@ -35,6 +37,8 @@ public class HudEditorScreen extends Screen {
     private int dragRectHeight;
     private boolean snappedCenterX;
     private boolean snappedCenterY;
+    private Integer activeSnapGuideX;
+    private Integer activeSnapGuideY;
 
     private String lastClickedId;
     private long lastClickTime;
@@ -49,11 +53,11 @@ public class HudEditorScreen extends Screen {
         super.extractRenderState(extractor, mouseX, mouseY, delta);
         StarClient mod = StarClient.getInstance();
         ClientSettings cs = mod.getClientSettings();
+        HudLayout layout = mod.getHudLayout();
         int accent = cs.getMenuAccentColor();
         int accentDark = cs.getMenuAccentDarkColor();
         int bg = 0xF4000000 | (cs.getMenuBackgroundColor() & 0x00FFFFFF);
         int surface = cs.getMenuSurfaceColor();
-        int surfaceHover = cs.getMenuSurfaceHoverColor();
         int border = cs.getMenuBorderColor();
 
         // Subtle snapping crosshair lines
@@ -61,6 +65,17 @@ public class HudEditorScreen extends Screen {
         int centerY = this.height / 2;
         extractor.fill(centerX, 0, centerX + 1, this.height, snappedCenterX ? accent : 0x2264748B);
         extractor.fill(0, centerY, this.width, centerY + 1, snappedCenterY ? accent : 0x2264748B);
+
+        // Active magnetic widget-to-widget / edge alignment guide lines
+        if (this.draggingHudId != null && layout.isSnapGuides()) {
+            int guideColor = 0xCC22D3EE;
+            if (activeSnapGuideX != null) {
+                extractor.fill(activeSnapGuideX, 0, activeSnapGuideX + 1, this.height, guideColor);
+            }
+            if (activeSnapGuideY != null) {
+                extractor.fill(0, activeSnapGuideY, this.width, activeSnapGuideY + 1, guideColor);
+            }
+        }
 
         // Render actual HUD elements (drawn after blur so texts stay crisp)
         HudOverlay.render(extractor);
@@ -89,12 +104,33 @@ public class HudEditorScreen extends Screen {
 
         // Render Inventory HUD in HUD Editor preview when player is null
         Module invMod = mod.getModuleManager().getModuleByName("Inventory HUD");
-        if (invMod != null && invMod.isEnabled() && isHudElementVisible(HudLayout.INVENTORY) && Minecraft.getInstance().player == null) {
+        if (invMod != null && invMod.isEnabled() && isHudElementVisible(HudLayout.INVENTORY) && client.player == null) {
             InventoryHudRenderer.renderPreview(extractor, invMod);
         }
 
+        // Render Minimap & Item Counter previews when editing from Main Menu
+        if (!inWorld) {
+            Module minimapMod = mod.getModuleManager().getModuleByName("Minimap");
+            if (minimapMod != null && minimapMod.isEnabled()) {
+                int mapW = MinimapRenderer.getWidth(minimapMod);
+                int mapX = layout.effectiveX(HudLayout.MINIMAP, this.width, mapW);
+                int mapY = layout.effectiveY(HudLayout.MINIMAP, this.height);
+                boolean sc = layout.beginScale(extractor, mapX, mapY, HudLayout.MINIMAP);
+                MinimapRenderer.renderPreview(extractor, minimapMod);
+                layout.endScale(extractor, sc);
+            }
+            Module itemCounterMod = mod.getModuleManager().getModuleByName("Item Counter");
+            if (itemCounterMod != null && itemCounterMod.isEnabled()) {
+                int icW = ItemCounterRenderer.getWidth(this.font, client, itemCounterMod);
+                int icX = layout.effectiveX(HudLayout.ITEM_COUNTER, this.width, icW);
+                int icY = layout.effectiveY(HudLayout.ITEM_COUNTER, this.height);
+                boolean sc = layout.beginScale(extractor, icX, icY, HudLayout.ITEM_COUNTER);
+                ItemCounterRenderer.renderPreview(extractor, itemCounterMod);
+                layout.endScale(extractor, sc);
+            }
+        }
+
         // Render rounded bounding outlines, preview cards, and pill badges for all active elements
-        HudLayout layout = mod.getHudLayout();
         List<Module> activeMods = getActiveModules();
         List<HudLayout.Rect> rects = HudLayout.computeRects(this.font, activeMods, this.width, this.height, layout);
 
@@ -105,7 +141,12 @@ public class HudEditorScreen extends Screen {
             int rh = r.y2() - r.y1();
 
             // Preview card when editing HUD from the main menu (outside a world)
-            if (!inWorld && !r.id().equals(HudLayout.SCOREBOARD) && !r.id().equals(HudLayout.BOSS_BAR) && !r.id().equals(HudLayout.INVENTORY)) {
+            if (!inWorld
+                    && !r.id().equals(HudLayout.SCOREBOARD)
+                    && !r.id().equals(HudLayout.BOSS_BAR)
+                    && !r.id().equals(HudLayout.INVENTORY)
+                    && !r.id().equals(HudLayout.MINIMAP)
+                    && !r.id().equals(HudLayout.ITEM_COUNTER)) {
                 GuiRenderUtils.drawDropShadow(extractor, r.x1(), r.y1(), rw, rh, 4, 3, 80);
                 GuiRenderUtils.fillRoundedRect(extractor, r.x1(), r.y1(), rw, rh, 4, 0xCC0F172A);
                 GuiRenderUtils.drawRoundedOutline(extractor, r.x1(), r.y1(), rw, rh, 4, 0x4438BDF8);
@@ -126,9 +167,12 @@ public class HudEditorScreen extends Screen {
             int borderColor = dragging ? accent : (hovered ? accent : GuiRenderUtils.withAlpha(accent, 120));
             GuiRenderUtils.drawRoundedOutline(extractor, r.x1(), r.y1(), rw, rh, 4, borderColor);
 
-            // Floating pill badge on top of element
+            // Floating pill badge on top of element (shows scale when != 1.0x or hovered)
             String displayName = moduleDisplayNameFor(r.id());
-            String badgeText = "✥ " + displayName + (dragging ? " (moving)" : "");
+            float scale = layout.getScale(r.id());
+            boolean showScale = Math.abs(scale - 1.0f) >= 0.01f || hovered || dragging;
+            String scaleSuffix = showScale ? String.format(Locale.US, " [%.2fx]", scale) : "";
+            String badgeText = "✥ " + displayName + scaleSuffix + (dragging ? " (moving)" : "");
             int badgeW = this.font.width(badgeText) + 10;
             int badgeH = 13;
             int badgeX = Math.clamp(r.x1(), 4, Math.max(4, this.width - badgeW - 4));
@@ -165,6 +209,18 @@ public class HudEditorScreen extends Screen {
         int btnY = barY + (TOOLBAR_HEIGHT - BTN_HEIGHT) / 2;
         int doneX = barX + TOOLBAR_WIDTH - DONE_BTN_WIDTH - 7;
         int resetX = doneX - RESET_BTN_WIDTH - 6;
+        int snapX = resetX - SNAP_BTN_WIDTH - 6;
+
+        // Snap Guides Toggle Button
+        boolean snapOn = layout.isSnapGuides();
+        boolean snapHover = hovered(snapX, btnY, SNAP_BTN_WIDTH, mouseX, mouseY);
+        int snapBg = snapOn ? (snapHover ? accent : accentDark) : surface;
+        int snapBorder = snapOn ? accent : (snapHover ? 0xFF94A3B8 : border);
+        int snapTextCol = snapOn ? 0xFFFFFFFF : 0xFF94A3B8;
+        GuiRenderUtils.fillRoundedRect(extractor, snapX, btnY, SNAP_BTN_WIDTH, BTN_HEIGHT, 5, snapBg);
+        GuiRenderUtils.drawRoundedOutline(extractor, snapX, btnY, SNAP_BTN_WIDTH, BTN_HEIGHT, 5, snapBorder);
+        GuiRenderUtils.drawCenteredText(extractor, this.font, snapOn ? "Snap: ON" : "Snap: OFF",
+                snapX + SNAP_BTN_WIDTH / 2, btnY + 6, snapTextCol);
 
         // Reset Button
         boolean resetHover = hovered(resetX, btnY, RESET_BTN_WIDTH, mouseX, mouseY);
@@ -184,7 +240,7 @@ public class HudEditorScreen extends Screen {
         GuiRenderUtils.drawCenteredText(extractor, this.font, "Done", doneX + DONE_BTN_WIDTH / 2, btnY + 6, 0xFFFFFFFF);
 
         // Bottom Instruction Pill
-        String tipText = "Drag to move • Right-click element to reset • Snaps to center & edges • Esc to save";
+        String tipText = "Drag to move • Scroll wheel to scale • Right-click to reset • Magnetic snap guides";
         int tipW = this.font.width(tipText) + 20;
         int tipH = 18;
         int tipX = (this.width - tipW) / 2;
@@ -205,11 +261,19 @@ public class HudEditorScreen extends Screen {
         int btnY = TOOLBAR_Y + (TOOLBAR_HEIGHT - BTN_HEIGHT) / 2;
         int doneX = barX + TOOLBAR_WIDTH - DONE_BTN_WIDTH - 7;
         int resetX = doneX - RESET_BTN_WIDTH - 6;
+        int snapX = resetX - SNAP_BTN_WIDTH - 6;
+
+        HudLayout layout = StarClient.getInstance().getHudLayout();
 
         // Toolbar Buttons
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+            if (hovered(snapX, btnY, SNAP_BTN_WIDTH, mouseX, mouseY)) {
+                layout.setSnapGuides(!layout.isSnapGuides());
+                StarClient.getInstance().getConfigManager().saveConfig();
+                return true;
+            }
             if (hovered(resetX, btnY, RESET_BTN_WIDTH, mouseX, mouseY)) {
-                StarClient.getInstance().getHudLayout().reset();
+                layout.reset();
                 StarClient.getInstance().getConfigManager().saveConfig();
                 return true;
             }
@@ -220,15 +284,14 @@ public class HudEditorScreen extends Screen {
         }
 
         // Elements interaction
-        HudLayout layout = StarClient.getInstance().getHudLayout();
         List<HudLayout.Rect> rects = HudLayout.computeRects(this.font, getActiveModules(), this.width, this.height, layout);
 
         for (HudLayout.Rect r : rects) {
             if (!isHudElementVisible(r.id())) continue;
             if (r.contains(mouseX, mouseY)) {
-                // Right-click immediately resets this individual element to its default position
+                // Right-click immediately resets this individual element's position and scale
                 if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
-                    layout.setPosition(r.id(), HudLayout.AUTO, HudLayout.AUTO);
+                    layout.resetElement(r.id());
                     StarClient.getInstance().getConfigManager().saveConfig();
                     return true;
                 }
@@ -237,7 +300,7 @@ public class HudEditorScreen extends Screen {
                     // Double-click reset check
                     long now = System.currentTimeMillis();
                     if (r.id().equals(lastClickedId) && (now - lastClickTime) < 300) {
-                        layout.setPosition(r.id(), HudLayout.AUTO, HudLayout.AUTO);
+                        layout.resetElement(r.id());
                         StarClient.getInstance().getConfigManager().saveConfig();
                         this.lastClickedId = null;
                         this.draggingHudId = null;
@@ -260,36 +323,162 @@ public class HudEditorScreen extends Screen {
     }
 
     @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        if (Math.abs(verticalAmount) > 0.001) {
+            HudLayout layout = StarClient.getInstance().getHudLayout();
+            List<HudLayout.Rect> rects = HudLayout.computeRects(this.font, getActiveModules(), this.width, this.height, layout);
+            for (HudLayout.Rect r : rects) {
+                if (!isHudElementVisible(r.id())) continue;
+                if (r.contains(mouseX, mouseY)) {
+                    // Preserve visual top-left when scaling an AUTO element for the first time
+                    if (layout.isAuto(r.id())) {
+                        layout.setPosition(r.id(), r.x1(), r.y1());
+                    }
+                    float current = layout.getScale(r.id());
+                    float delta = verticalAmount > 0 ? 0.05f : -0.05f;
+                    layout.setScale(r.id(), current + delta);
+                    StarClient.getInstance().getConfigManager().saveConfig();
+                    return true;
+                }
+            }
+        }
+        return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+    }
+
+    @Override
     public boolean mouseDragged(@NonNull MouseButtonEvent event, double dragX, double dragY) {
         if (this.draggingHudId != null) {
+            HudLayout layout = StarClient.getInstance().getHudLayout();
             int newX = (int) event.x() - this.dragOffsetX;
             int newY = (int) event.y() - this.dragOffsetY;
 
-            // Snap to horizontal / vertical center or 8px margins
-            int centerTargetX = (this.width - this.dragRectWidth) / 2;
-            int centerTargetY = (this.height - this.dragRectHeight) / 2;
-            this.snappedCenterX = Math.abs(newX - centerTargetX) <= SNAP_THRESHOLD;
-            this.snappedCenterY = Math.abs(newY - centerTargetY) <= SNAP_THRESHOLD;
+            this.snappedCenterX = false;
+            this.snappedCenterY = false;
+            this.activeSnapGuideX = null;
+            this.activeSnapGuideY = null;
 
-            if (this.snappedCenterX) {
-                newX = centerTargetX;
-            } else if (Math.abs(newX - 8) <= SNAP_THRESHOLD) {
-                newX = 8;
-            } else if (Math.abs((newX + this.dragRectWidth) - (this.width - 8)) <= SNAP_THRESHOLD) {
-                newX = this.width - 8 - this.dragRectWidth;
-            }
+            if (layout.isSnapGuides()) {
+                // 1. Screen center & 8px margin snaps
+                int centerTargetX = (this.width - this.dragRectWidth) / 2;
+                int centerTargetY = (this.height - this.dragRectHeight) / 2;
 
-            if (this.snappedCenterY) {
-                newY = centerTargetY;
-            } else if (Math.abs(newY - 8) <= SNAP_THRESHOLD) {
-                newY = 8;
-            } else if (Math.abs((newY + this.dragRectHeight) - (this.height - 8)) <= SNAP_THRESHOLD) {
-                newY = this.height - 8 - this.dragRectHeight;
+                int bestDx = SNAP_THRESHOLD + 1;
+                Integer snapXVal = null;
+                Integer guideXVal = null;
+                boolean centerXHit = false;
+
+                if (Math.abs(newX - centerTargetX) <= SNAP_THRESHOLD) {
+                    bestDx = Math.abs(newX - centerTargetX);
+                    snapXVal = centerTargetX;
+                    centerXHit = true;
+                }
+                if (Math.abs(newX - 8) < bestDx) {
+                    bestDx = Math.abs(newX - 8);
+                    snapXVal = 8;
+                    guideXVal = 8;
+                    centerXHit = false;
+                }
+                int rightMarginX = this.width - 8 - this.dragRectWidth;
+                if (Math.abs(newX - rightMarginX) < bestDx) {
+                    bestDx = Math.abs(newX - rightMarginX);
+                    snapXVal = rightMarginX;
+                    guideXVal = this.width - 8;
+                    centerXHit = false;
+                }
+
+                int bestDy = SNAP_THRESHOLD + 1;
+                Integer snapYVal = null;
+                Integer guideYVal = null;
+                boolean centerYHit = false;
+
+                if (Math.abs(newY - centerTargetY) <= SNAP_THRESHOLD) {
+                    bestDy = Math.abs(newY - centerTargetY);
+                    snapYVal = centerTargetY;
+                    centerYHit = true;
+                }
+                if (Math.abs(newY - 8) < bestDy) {
+                    bestDy = Math.abs(newY - 8);
+                    snapYVal = 8;
+                    guideYVal = 8;
+                    centerYHit = false;
+                }
+                int bottomMarginY = this.height - 8 - this.dragRectHeight;
+                if (Math.abs(newY - bottomMarginY) < bestDy) {
+                    bestDy = Math.abs(newY - bottomMarginY);
+                    snapYVal = bottomMarginY;
+                    guideYVal = this.height - 8;
+                    centerYHit = false;
+                }
+
+                // 2. Magnetic widget-to-widget edge & center alignment
+                List<HudLayout.Rect> rects = HudLayout.computeRects(this.font, getActiveModules(), this.width, this.height, layout);
+                int myCenterOffsetX = this.dragRectWidth / 2;
+                int myCenterOffsetY = this.dragRectHeight / 2;
+
+                for (HudLayout.Rect other : rects) {
+                    if (other.id().equals(this.draggingHudId) || !isHudElementVisible(other.id())) continue;
+                    int otherCx = (other.x1() + other.x2()) / 2;
+                    int otherCy = (other.y1() + other.y2()) / 2;
+
+                    // X candidates: left->left, left->right(+4 gap or flush), right->right, right->left, center->center
+                    int[][] xCandidates = {
+                            {other.x1(), other.x1()},
+                            {other.x2() - this.dragRectWidth, other.x2()},
+                            {other.x2() + 4, other.x2()},
+                            {other.x1() - this.dragRectWidth - 4, other.x1()},
+                            {otherCx - myCenterOffsetX, otherCx}
+                    };
+                    for (int[] cand : xCandidates) {
+                        int d = Math.abs(newX - cand[0]);
+                        if (d < bestDx && d <= SNAP_THRESHOLD) {
+                            bestDx = d;
+                            snapXVal = cand[0];
+                            guideXVal = cand[1];
+                            centerXHit = false;
+                        }
+                    }
+
+                    // Y candidates: top->top, bottom->bottom, top->bottom(+4 gap), bottom->top(-4 gap), center->center
+                    int[][] yCandidates = {
+                            {other.y1(), other.y1()},
+                            {other.y2() - this.dragRectHeight, other.y2()},
+                            {other.y2() + 4, other.y2()},
+                            {other.y1() - this.dragRectHeight - 4, other.y1()},
+                            {otherCy - myCenterOffsetY, otherCy}
+                    };
+                    for (int[] cand : yCandidates) {
+                        int d = Math.abs(newY - cand[0]);
+                        if (d < bestDy && d <= SNAP_THRESHOLD) {
+                            bestDy = d;
+                            snapYVal = cand[0];
+                            guideYVal = cand[1];
+                            centerYHit = false;
+                        }
+                    }
+                }
+
+                if (snapXVal != null) {
+                    newX = snapXVal;
+                    this.snappedCenterX = centerXHit;
+                    this.activeSnapGuideX = guideXVal;
+                }
+                if (snapYVal != null) {
+                    newY = snapYVal;
+                    this.snappedCenterY = centerYHit;
+                    this.activeSnapGuideY = guideYVal;
+                }
             }
 
             newX = Math.clamp(newX, 0, Math.max(0, this.width - 20));
             newY = Math.clamp(newY, 0, Math.max(0, this.height - 16));
-            StarClient.getInstance().getHudLayout().setPosition(this.draggingHudId, newX, newY);
+
+            // Special handling for BOSS_BAR which stores anchor relative to BASE_BOSS_BAR_WIDTH center
+            if (HudLayout.BOSS_BAR.equals(this.draggingHudId)) {
+                int targetCenter = newX + this.dragRectWidth / 2;
+                layout.setPosition(this.draggingHudId, targetCenter - HudLayout.BASE_BOSS_BAR_WIDTH / 2, newY);
+            } else {
+                layout.setPosition(this.draggingHudId, newX, newY);
+            }
             return true;
         }
         return super.mouseDragged(event, dragX, dragY);
@@ -301,6 +490,8 @@ public class HudEditorScreen extends Screen {
             this.draggingHudId = null;
             this.snappedCenterX = false;
             this.snappedCenterY = false;
+            this.activeSnapGuideX = null;
+            this.activeSnapGuideY = null;
             StarClient.getInstance().getConfigManager().saveConfig();
             return true;
         }
@@ -349,6 +540,9 @@ public class HudEditorScreen extends Screen {
             case HudLayout.COMPASS -> "Compass Display";
             case HudLayout.SERVER_INFO -> "Server Info";
             case HudLayout.MEMORY -> "Memory Display";
+            case HudLayout.MINIMAP -> "Minimap";
+            case HudLayout.WORLD_INFO -> "World Info";
+            case HudLayout.ITEM_COUNTER -> "Item Counter";
             case HudLayout.POTIONS -> "Potion Effects";
             case HudLayout.TARGET_HUD -> "Target HUD";
             case HudLayout.SCOREBOARD -> "Scoreboard";
@@ -379,6 +573,7 @@ public class HudEditorScreen extends Screen {
             case HudLayout.COMPASS -> "🧭 N • 0°";
             case HudLayout.SERVER_INFO -> "Server: mc.hypixel.net";
             case HudLayout.MEMORY -> "RAM: 42%";
+            case HudLayout.WORLD_INFO -> "Biome: Plains • Day 42";
             case HudLayout.POTIONS -> "Speed II (01:30)";
             case HudLayout.TARGET_HUD -> "Target HUD";
             case HudLayout.SCOREBOARD -> "Scoreboard";

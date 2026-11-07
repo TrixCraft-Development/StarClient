@@ -7,6 +7,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.PrimedTnt;
 import net.minecraft.world.entity.player.Player;
 import net.starclient.StarClient;
+import net.starclient.module.NametagsPlusState;
 import net.starclient.module.NickToolState;
 import net.starclient.module.TntTimerState;
 import net.starclient.rank.Rank;
@@ -60,6 +61,10 @@ public abstract class NickTagMixin<T extends Entity> {
                 Component icon = Component.literal("⭐").withStyle(style -> style.withColor(rank.getRgb()));
                 cir.setReturnValue(Component.literal("").append(icon).append(Component.literal(" ")).append(display));
             }
+        }
+        Component decorated = NametagsPlusState.decoratePlayerNametag(player, cir.getReturnValue());
+        if (decorated != cir.getReturnValue()) {
+            cir.setReturnValue(decorated);
         }
     }
 }

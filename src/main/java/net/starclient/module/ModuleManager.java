@@ -39,6 +39,7 @@ import net.starclient.gui.HypixelPlayerStats;
 import net.starclient.mixin.FishingHookAccessor;
 import net.starclient.mixin.MinecraftAccessor;
 import net.starclient.mixin.MultiPlayerGameModeAccessor;
+import net.starclient.setting.BannedWordListSetting;
 import net.starclient.setting.BooleanSetting;
 import net.starclient.setting.ColorModeSetting;
 import net.starclient.setting.MacroListSetting;
@@ -47,6 +48,7 @@ import net.starclient.setting.NickEntryListSetting;
 import net.starclient.setting.NumberSetting;
 import net.starclient.setting.Setting;
 import net.starclient.setting.TextSetting;
+import net.starclient.setting.WaypointListSetting;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
@@ -2400,6 +2402,138 @@ public class ModuleManager {
                 // 7. Dynamic FPS (Unfocused Window Limiter)
                 addSetting(new BooleanSetting("Limit Unfocused FPS", "Throttle FPS when the Minecraft window is unfocused / alt-tabbed", true));
                 addSetting(new NumberSetting("Unfocused Max FPS", "Maximum FPS while the game window is unfocused", 15.0, 5.0, 60.0, 5.0));
+            }
+        });
+
+        register(new Module("Waypoints", "Custom 3D in-world waypoints per server/world with beacon beams, auto death markers, Nether 8:1 sync, and an inline overview editor.", Category.WORLD) {
+            {
+                WaypointsState.setWaypointsModule(this);
+                addSetting(new BooleanSetting("Show Beam", "Render vertical beacon beams at waypoint locations", true));
+                addSetting(new BooleanSetting("Show Distance", "Display distance in meters next to waypoint labels", true));
+                addSetting(new BooleanSetting("Auto Death Waypoint", "Automatically create or update a Last Death waypoint upon dying", true));
+                addSetting(new BooleanSetting("Cross-Dimension Sync (8:1)", "Project Overworld waypoints into the Nether (÷8) and vice versa (×8)", false));
+                addSetting(new NumberSetting("Scale", "Size multiplier of 3D in-world waypoint tags", 1.0, 0.5, 2.5, 0.1));
+                addSetting(new NumberSetting("Max Distance", "Maximum render distance in blocks for 3D waypoints", 5000.0, 100.0, 30000.0, 100.0));
+                addSetting(new ModeSetting("Quick Add Action", "Action triggered by the Quick-Add Waypoint hotkey", "Open Creator",
+                        List.of("Open Creator", "Instant Save")));
+                addSetting(new WaypointListSetting("Waypoints List", "Overview list to toggle, edit, or delete waypoints for this server/world"));
+            }
+        });
+
+        register(new Module("Minimap", "Top-down HUD minimap with terrain shading, Square/Circle modes, entity radar toggles, and Waypoint pins.", Category.UI) {
+            {
+                addSetting(new ModeSetting("Shape", "Minimap frame shape", "Square", List.of("Square", "Circle")));
+                addSetting(new NumberSetting("Size", "Minimap size on screen in pixels", 96.0, 64.0, 160.0, 4.0));
+                addSetting(new NumberSetting("Zoom", "Terrain zoom level", 1.0, 0.5, 4.0, 0.25));
+                addSetting(new BooleanSetting("Rotate with Player", "Rotate map with your camera yaw instead of locking North-Up", true));
+                addSetting(new BooleanSetting("Show Waypoints", "Render active Waypoints as pins on the minimap", true));
+                addSetting(new BooleanSetting("Show Players", "Display nearby players on the minimap radar", true));
+                addSetting(new BooleanSetting("Show Hostile Mobs", "Display nearby hostile monsters on the minimap radar", true));
+                addSetting(new BooleanSetting("Show Passive Mobs", "Display nearby passive animals & mobs on the minimap radar", false));
+                addSetting(new BooleanSetting("Show Items", "Display nearby dropped item stacks on the minimap radar", false));
+                addSetting(new BooleanSetting("Show Cardinals", "Display N / E / S / W cardinal markers around the border", true));
+                addSetting(new BooleanSetting("Show Coordinates", "Display compact X, Y, Z readout under the minimap", true));
+            }
+        });
+
+        register(new Module("World Info", "Displays current Biome, In-Game Day count, Light Level (with mob-spawn warning), Chunk coordinates, and World Seed.", Category.UI) {
+            {
+                addSetting(new BooleanSetting("Show Biome", "Display the current biome name", true));
+                addSetting(new BooleanSetting("Show Day", "Display the current world day counter", true));
+                addSetting(new BooleanSetting("Show Light Level", "Display block/sky light level with mob-spawn warning color", true));
+                addSetting(new BooleanSetting("Show Chunk", "Display chunk coordinates and intra-chunk position", false));
+                addSetting(new BooleanSetting("Show Seed", "Display the world seed", false));
+                addSetting(new BooleanSetting("Compact Mode", "Combine enabled lines into a single horizontal bar", false));
+            }
+        });
+
+        register(new Module("Item Counter", "Displays live total counts of Totems, Gapples, Pearls, Arrows, Potions, Crystals, and Blocks across your inventory.", Category.UI) {
+            {
+                addSetting(new ModeSetting("Orientation", "Widget item layout orientation", "Horizontal", List.of("Horizontal", "Vertical")));
+                addSetting(new BooleanSetting("Hide Zero", "Hide tracked items when you currently have 0 in your inventory", true));
+                addSetting(new BooleanSetting("Totems", "Count Totems of Undying", true));
+                addSetting(new BooleanSetting("Golden Apples", "Count regular Golden Apples", true));
+                addSetting(new BooleanSetting("Enchanted Gapples", "Count Enchanted Golden Apples", false));
+                addSetting(new BooleanSetting("Ender Pearls", "Count Ender Pearls", true));
+                addSetting(new BooleanSetting("Arrows", "Count all arrow types", true));
+                addSetting(new BooleanSetting("Healing Potions", "Count Instant Health & Regeneration potions", false));
+                addSetting(new BooleanSetting("XP Bottles", "Count Bottles o' Enchanting", false));
+                addSetting(new BooleanSetting("End Crystals", "Count End Crystals", false));
+                addSetting(new BooleanSetting("Building Blocks", "Count placeable building blocks", false));
+            }
+        });
+
+        register(new Module("Chat", "Upgrades chat with Timestamps, Compact anti-spam stacking, Click-to-Copy, Cross-Server History, Banned Words Filter, and Mention Highlights.", Category.UI) {
+            {
+                ChatPlusState.setModule(this);
+                addSetting(new BooleanSetting("Timestamps", "Prepend local clock timestamps to incoming chat lines", true));
+                addSetting(new ModeSetting("Time Format", "Timestamp clock format", "24h (HH:mm)",
+                        List.of("24h (HH:mm)", "24h (HH:mm:ss)", "12h (hh:mm a)")));
+                addSetting(new BooleanSetting("Compact Chat", "Stack consecutive duplicate chat messages with [x2], [x3] counters", true));
+                addSetting(new BooleanSetting("Click to Copy", "Click chat messages to copy their text to the clipboard", true));
+                addSetting(new BooleanSetting("Copy Server & Mod Info", "Also allow copying server announcements, system info, and mod chat messages", true));
+                addSetting(new BooleanSetting("Save Chat History", "Keep chat messages across servers and worlds with a server name divider", true));
+                addSetting(new NumberSetting("Extended History", "Maximum number of chat messages kept in scrollback history", 1000.0, 100.0, 5000.0, 100.0));
+                addSetting(new BooleanSetting("Word Filter", "Censor banned words in chat by replacing each letter with '*'", true));
+                addSetting(new BannedWordListSetting("Banned Words", "List of banned words or phrases to censor in chat"));
+                addSetting(new BooleanSetting("Mention Highlight", "Color your username in chat when someone mentions you", true));
+                addSetting(new ColorModeSetting("Mention Color", "Color applied to your username when someone mentions you in chat", "Yellow", ChatPlusState.MENTION_COLORS));
+                addSetting(new BooleanSetting("Mention Sound", "Play a subtle ping sound when your username is mentioned", true));
+            }
+        });
+
+        register(new Module("Scrollable Tooltips", "Scroll tall or wide item tooltips vertically and horizontally using the mouse wheel or arrow keys.", Category.UI) {
+            {
+                TooltipFeaturesState.setScrollableTooltipsModule(this);
+                addSetting(new BooleanSetting("Vertical Scroll", "Allow scrolling tooltips up and down (Mouse Wheel or Up/Down Arrows)", true));
+                addSetting(new BooleanSetting("Horizontal Scroll", "Allow scrolling tooltips left and right (Shift + Wheel or Left/Right Arrows)", true));
+                addSetting(new NumberSetting("Scroll Speed", "Pixels scrolled per wheel notch or arrow press", 14.0, 4.0, 40.0, 2.0));
+                addSetting(new BooleanSetting("Only When Overflowing", "Only scroll tooltips that exceed the screen bounds", false));
+                addSetting(new BooleanSetting("Reset on New Item", "Reset tooltip scroll offset when hovering a different slot", true));
+            }
+        });
+
+        register(new Module("Better Screenshots", "Async lag-free F2 screenshots with automatic Windows clipboard copy and clickable [Open] [Folder] [Copy] chat buttons.", Category.PLAYER) {
+            {
+                BetterScreenshotsState.setModule(this);
+                addSetting(new BooleanSetting("Auto Copy to Clipboard", "Automatically copy every F2 screenshot directly to the clipboard", true));
+                addSetting(new BooleanSetting("Chat Action Buttons", "Append clickable [Open], [Folder], and [Copy] buttons in chat", true));
+            }
+        });
+
+        register(new Module("Container Preview", "Renders an inline visual preview card when hovering Shulker Boxes, Ender Chests, or Filled Maps.", Category.PLAYER) {
+            {
+                TooltipFeaturesState.setContainerPreviewModule(this);
+                addSetting(new ModeSetting("Display Mode", "Show preview automatically or only while holding a key", "Always",
+                        List.of("Always", "Hold Key")));
+                addSetting(new ModeSetting("Preview Key", "Modifier key required when Display Mode is set to Hold Key", "Shift",
+                        List.of("Shift", "Ctrl", "Alt")));
+                addSetting(new BooleanSetting("Shulker Boxes", "Show 3×9 item grid preview for Shulker Boxes", true));
+                addSetting(new BooleanSetting("Filled Maps", "Show rendered map canvas preview for Filled Maps", true));
+                addSetting(new BooleanSetting("Ender Chest", "Show last-known contents when hovering an Ender Chest item", true));
+            }
+        });
+
+        register(new Module("Auto GG", "Automatically sends customizable GG / GLHF messages at match end or start on multiplayer servers.", Category.SERVER) {
+            {
+                AutoGgState.setModule(this);
+                addSetting(new TextSetting("GG Message", "Chat message sent when a match ends", "gg"));
+                addSetting(new NumberSetting("GG Delay", "Delay in seconds before sending GG", 1.0, 0.0, 5.0, 0.1));
+                addSetting(new BooleanSetting("Auto GLHF", "Also send a message automatically when a match starts", false));
+                addSetting(new TextSetting("GLHF Message", "Chat message sent when a match starts", "glhf"));
+                addSetting(new NumberSetting("GLHF Delay", "Delay in seconds before sending GLHF", 1.0, 0.0, 5.0, 0.1));
+                addSetting(new NumberSetting("Cooldown", "Minimum seconds between automatic triggers", 8.0, 3.0, 30.0, 1.0));
+            }
+        });
+
+        register(new Module("Nametags", "Enhances player nametags with Health & Ping readouts, 3rd-person own nametag toggle, custom scale, and transparent backdrop.", Category.RENDER) {
+            {
+                NametagsPlusState.setModule(this);
+                addSetting(new BooleanSetting("Own Nametag (3rd Person)", "Display your own nametag above your head in 3rd-person view", true));
+                addSetting(new BooleanSetting("Show Health", "Append live health hearts readout next to player nametags", true));
+                addSetting(new BooleanSetting("Show Ping", "Append network latency in ms next to player nametags", true));
+                addSetting(new NumberSetting("Scale", "Nametag size multiplier", 1.0, 0.5, 2.5, 0.1));
+                addSetting(new BooleanSetting("Distance Scale", "Automatically scale up distant nametags so they stay readable", false));
             }
         });
     }
