@@ -11,6 +11,7 @@ import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.AttackRange;
 import net.minecraft.world.level.GameType;
@@ -20,6 +21,7 @@ import net.minecraft.world.scores.Objective;
 import net.minecraft.world.scores.Scoreboard;
 import net.starclient.StarClient;
 import net.starclient.gui.BossBarRenderer;
+import net.starclient.gui.HungerOverlayRenderer;
 import net.starclient.gui.ScoreboardRenderer;
 import net.starclient.gui.TabListRenderer;
 import net.starclient.module.CustomCrosshairState;
@@ -45,6 +47,24 @@ public abstract class HudMixin {
     @Shadow
     @Final
     private BossHealthOverlay bossOverlay;
+
+    @Shadow
+    @Final
+    private static Identifier FOOD_FULL_SPRITE;
+
+    @Shadow
+    @Final
+    private static Identifier FOOD_HALF_SPRITE;
+
+    @Inject(method = "extractFood", at = @At("HEAD"))
+    private void starclient$renderExhaustionUnderlay(GuiGraphicsExtractor graphics, Player player, int y, int rightX, CallbackInfo ci) {
+        HungerOverlayRenderer.renderExhaustionUnderlay(graphics, player, y, rightX);
+    }
+
+    @Inject(method = "extractFood", at = @At("TAIL"))
+    private void starclient$renderSaturationAndFoodPreview(GuiGraphicsExtractor graphics, Player player, int y, int rightX, CallbackInfo ci) {
+        HungerOverlayRenderer.renderSaturationAndPreview(graphics, player, y, rightX, FOOD_FULL_SPRITE, FOOD_HALF_SPRITE);
+    }
 
     @Unique
     private static final Identifier CROSSHAIR_ATTACK_INDICATOR_FULL_SPRITE =

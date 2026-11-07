@@ -6,7 +6,7 @@
 ![Version](https://img.shields.io/badge/Version-v0.11-A78BFA?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-64748B?style=for-the-badge)
 
-**Star Client** is a modern, high-performance modular Minecraft client built on **Fabric** for **Minecraft 26.2 (Java 25)** by **TrixCraft Development**. It combines a sleek glassmorphic user interface, **82 customizable modules**, **20 draggable & scalable HUD widgets**, a full **3D Cosmetics Studio**, **Saved Loadout Profiles** with automatic world/server switching, an **In-Game Account Manager**, and deep **FPS / Render Optimizations** — while remaining fully compatible with standard Fabric mods.
+**Star Client** is a modern, high-performance modular Minecraft client built on **Fabric** for **Minecraft 26.2 (Java 25)** by **TrixCraft Development**. It combines a sleek glassmorphic user interface, **88 customizable modules**, **22 draggable & scalable HUD widgets**, a full **3D Cosmetics Studio**, **Saved Loadout Profiles** with automatic world/server switching, an **In-Game Account Manager**, and deep **FPS / Render Optimizations** — while remaining fully compatible with standard Fabric mods.
 
 ---
 
@@ -20,12 +20,12 @@
    - [Client Statistics Dashboard](#4-client-statistics-dashboard)
    - [Account Manager, Custom Main Menu & Mod Browser](#5-account-manager-custom-main-menu--mod-browser)
 3. [General Client Settings (`Settings` Tab)](#-general-client-settings-settings-tab)
-4. [Complete Modules & Settings Reference (82 Modules)](#-complete-modules--settings-reference-82-modules)
-   - [🎨 UI & Visuals (25 Modules)](#-ui--visuals-25-modules)
+4. [Complete Modules & Settings Reference (88 Modules)](#-complete-modules--settings-reference-88-modules)
+   - [🎨 UI & Visuals (29 Modules)](#-ui--visuals-29-modules)
    - [👁 Render (17 Modules)](#-render-17-modules)
    - [🛡 Player (15 Modules)](#-player-15-modules)
    - [🚀 Movement (3 Modules)](#-movement-3-modules)
-   - [🌍 World (3 Modules)](#-world-3-modules)
+   - [🌍 World (5 Modules)](#-world-5-modules)
    - [🖥 Server (4 Modules)](#-server-4-modules)
    - [⚔ Cheats (15 Modules)](#-cheats-15-modules)
 5. [Default Keybinds](#-default-keybinds)
@@ -36,9 +36,9 @@
 
 ## ✨ Key Highlights
 
-- **82 Built-In Modules**: Covering HUD widgets, PvP utilities, rendering upgrades, performance boosters, quality-of-life tools, server integrations, and world customization.
-- **Modern Glassmorphic UI**: Custom title screen, rounded buttons, smooth container pop-in animations, background blur, and customizable accent (`10` colors) & surface (`10` dark palettes) themes.
-- **20 Draggable & Scalable HUD Widgets**: Free-form HUD Editor with magnetic edge/center snap guides, scroll-wheel per-widget scaling (`0.50x` – `2.00x`), and per-widget background/text colors.
+- **88 Built-In Modules**: Covering HUD widgets, PvP utilities, rendering upgrades, performance boosters, quality-of-life tools, server integrations, and world customization.
+- **Modern Glassmorphic UI**: Custom title screen, rounded buttons, smooth container pop-in animations, background blur, keybind toggle toast notifications, and customizable accent (`10` colors) & surface (`10` dark palettes) themes.
+- **22 Draggable & Scalable HUD Widgets**: Free-form HUD Editor with magnetic edge/center snap guides, scroll-wheel per-widget scaling (`0.50x` – `2.00x`), and per-widget background/text colors.
 - **90+ Built-In Cosmetics**: Complete collection of **82+ official capes**, custom Star Client & animated capes, 3D wings, headwear, and particle trails with interactive 3D avatar preview and per-account loadouts.
 - **Smart Profile System**: Create unlimited profiles, bind hotkeys to switch mid-game, share profiles via `STAR-PROFILE:...` clipboard codes, and auto-activate profiles per Singleplayer world or Multiplayer server IP.
 - **FPS & Render Engine Optimizations**: Entity/block-entity distance culling, distant sign text skipping, hologram-safe armor stand culling, particle limiters, dynamic unfocused FPS throttling, and `O(1)` client lookups.
@@ -51,7 +51,7 @@
 - Open the **ClickGUI** anywhere (Main Menu or In-Game) by pressing **`Right Shift`** (configurable in Minecraft Controls).
 - **Search & Favorites**: Instantly filter modules by name or pin favorite modules (`★`) to the top.
 - **HUD Editor**:
-  - Drag and drop any of the **20 HUD widgets** anywhere on screen.
+  - Drag and drop any of the **22 HUD widgets** anywhere on screen.
   - **Scroll Wheel Scaling**: Hover any widget in the HUD Editor and scroll the mouse wheel to resize it individually (`0.50x` – `2.00x`).
   - **Magnetic Snap Guides**: Automatic horizontal, vertical, and screen-center alignment guides keep your HUD layout pixel-perfect.
   - **Shared HUD Appearance Settings**: Every HUD widget automatically includes:
@@ -104,6 +104,7 @@ Global settings that control Star Client's theme, menus, and safeguards:
 | **Modern Buttons** | Boolean | `true` / `false` | `true` | Applies Star Client's rounded glassmorphic styling to standard Minecraft UI buttons. |
 | **HUD Text Shadow** | Boolean | `true` / `false` | `true` | Draws a crisp drop shadow behind HUD widget text for readability. |
 | **Show Name Icon** | Boolean | `true` / `false` | `true` | Displays the Star Client badge next to your name in the tab list and nametag. |
+| **Keybind Notifications** | Boolean | `true` / `false` | `true` | Shows a slide-in corner toast notification exclusively when toggling modules via keybinds. |
 | **Remove Splash Text** | Boolean | `true` / `false` | `true` | Hides the yellow rotating splash text on the main menu. |
 | **Container Animations** | Boolean | `true` / `false` | `false` | Smooth cubic ease-out pop-in and glide animation when opening inventories and chests. |
 | **Container Background Blur** | Boolean | `true` / `false` | `true` | Applies Gaussian background blur behind open inventory and container screens. |
@@ -113,13 +114,13 @@ Global settings that control Star Client's theme, menus, and safeguards:
 
 ---
 
-## 📦 Complete Modules & Settings Reference (82 Modules)
+## 📦 Complete Modules & Settings Reference (88 Modules)
 
 > **Note:** Every HUD widget module (`[HUD]`) also includes **Transparent Background**, **Background Color**, and **Text Color** appearance settings in addition to the module-specific settings listed below.
 
 ---
 
-### 🎨 UI & Visuals (25 Modules)
+### 🎨 UI & Visuals (29 Modules)
 
 #### 1. **Keystrokes** `[HUD]` *(Enabled by default)*
 Displays a modern real-time WASD, Jump, and Mouse button overlay.
@@ -317,6 +318,39 @@ Scroll tall or wide item tooltips vertically and horizontally so overflowing lor
 - `Only When Overflowing` (`Boolean`, default `false`) — Only scroll tooltips that exceed screen height/width.
 - `Reset on New Item` (`Boolean`, default `true`) — Reset scroll offset when hovering a different slot.
 
+#### 26. **Block Info** `[HUD]`
+WAILA (*"What Am I Looking At"*) HUD widget showing the targeted block's 3D icon, harvestability check, optimal breaking tool & required tier, live mining duration & progress bar, and contextual block state details (crop growth `%`, redstone power, honey level, repeater delay, cauldron/composter fill).
+- `Show Icon` (`Boolean`, default `true`)
+- `Show Harvestability` (`Boolean`, default `true`) — `✔ Harvestable` / `✕ Wrong Tool` / `∞ Unbreakable`.
+- `Show Optimal Tool` (`Boolean`, default `true`) — Displays optimal tool type & required tier (e.g., `Pickaxe (Iron+)`, `Pickaxe (Diamond+)`, `Shovel`, `Axe`, `Hoe`, `Shears`).
+- `Show Break Time` (`Boolean`, default `true`) — Estimated break time (`s` / `Instant`) + live breaking `%` progress bar.
+- `Show Block Details` (`Boolean`, default `true`)
+- `Show Coordinates` (`Boolean`, default `false`)
+- `Include Fluids` (`Boolean`, default `false`)
+- `Max Distance` (`Number`: `3.0` – `20.0` blocks, step `0.5`, default `5.5`)
+
+#### 27. **Hunger & Saturation**
+AppleSkin-style golden saturation outlines on the hunger bar, pulsing held-food restoration preview, exhaustion progress bar, and food tooltip nutrition/saturation stats.
+- `Show Saturation` (`Boolean`, default `true`)
+- `Show Food Preview` (`Boolean`, default `true`) — Pulsing preview of restored hunger & saturation when holding edible food.
+- `Show Exhaustion Bar` (`Boolean`, default `true`) — Subtle exhaustion progress bar behind the hunger bar.
+- `Food Tooltip Info` (`Boolean`, default `true`) — Appends `🍖 +X Hunger • ✦ +Y.Y Saturation` to food tooltips.
+
+#### 28. **Chat Calculator**
+Live floating calculator and Nether/Overworld coordinate converter above the chat input bar when typing expressions starting or ending with `=`.
+- `Math Expressions` (`Boolean`, default `true`) — Supports `+`, `-`, `*`, `/`, `%`, `^`, parentheses, `st`/`sb`/`k`/`m` suffixes, `pi`, `e`, and math functions (`= 27*64`, `I need 27*64=`).
+- `Show Item Stacks` (`Boolean`, default `true`) — Displays `64`-stack and Shulker Box breakdown next to whole results.
+- `Coord Converter` (`Boolean`, default `true`) — `=nether [x z]`, `=ow [x z]`, or `=coords` (`÷8` / `×8` conversion).
+- `Tab to Insert` (`Boolean`, default `true`) — Press `Tab` to replace the expression in chat with the clean result.
+
+#### 29. **Pinned Notes** `[HUD]`
+Draggable HUD checklist and sticky notes card for coordinates, material goals, and reminders.
+- `Title` (`Text`, default `"Pinned Notes"`)
+- `Notes List` (`NoteListSetting`) — Opens the **Pinned Notes & Checklist** modal to add, check off (`[✓]`), or delete notes.
+- `Show Checkboxes` (`Boolean`, default `true`)
+- `Show Completed` (`Boolean`, default `true`) — Keep completed notes visible with strikethrough or hide them automatically.
+- `Hide When Empty` (`Boolean`, default `false`)
+
 ---
 
 ### 👁 Render (17 Modules)
@@ -474,11 +508,14 @@ Upgrades overhead player nametags with health, ping, 3rd-person self-tag, scalin
 ### 🛡 Player (15 Modules)
 
 #### 43. **Armor HUD** `[HUD]`
-Displays equipped armor pieces, optional held item, durability values, and low-durability alerts.
+Displays equipped armor pieces, optional held item, durability values, low-durability audio/visual alerts, and optional tool/Elytra break protection.
 - `Orientation` (`Mode`: `Horizontal`, `Vertical`, default `Vertical`)
 - `Mirror Items` (`Boolean`, default `false`) — Reverse armor display order (`Helmet ↔ Boots`).
 - `Show Held Item` (`Boolean`, default `false`)
-- `Low Durability Alert` (`Boolean`, default `true`) — Red warning flash when any armor piece drops to `≤ 15%`.
+- `Low Durability Alert` (`Boolean`, default `true`) — Red warning flash when gear drops below `Warning Threshold %`.
+- `Warning Threshold %` (`Number`: `5` – `30%`, step `1`, default `15%`)
+- `Durability Sound Ping` (`Boolean`, default `true`) — Plays an alert chime and actionbar warning when armor, Elytra, or tools drop below threshold.
+- `Prevent Tool Breaking` (`Boolean`, default `false`) — Stops mining, attacking, or right-clicking with valuable tools/weapons/Elytra at `≤ 2` durability so gear never shatters.
 - `Durability` (`Mode`: `Show current & max Durability`, `Only current`, `Hidden`, default `Show current & max Durability`)
 
 #### 44. **Inventory HUD** `[HUD]`
@@ -569,7 +606,7 @@ Tap your sneak key once to stay crouched hands-free.
 
 ---
 
-### 🌍 World (3 Modules)
+### 🌍 World (5 Modules)
 
 #### 61. **Time Changer** *(Default Key: `T`)*
 Overrides the client-side sky time and lighting without affecting the server.
@@ -590,6 +627,25 @@ Per-server and per-world 3D waypoints with vertical beacon beams, distance badge
 - `Max Distance` (`Number`: `100` – `30000` blocks, step `100`, default `5000`)
 - `Quick Add Action` (`Mode`: `Open Creator`, `Instant Save`, default `Open Creator`)
 - `Waypoints List` (`WaypointListSetting`) — Inline overview list (`[OW]` / `[Nether]` / `[End]` tags, visibility toggle, edit, delete, and `+ Add Waypoint`).
+
+#### 64. **Light Overlay**
+Renders a 3D mob-spawn grid on nearby solid surfaces: **Red** markers where hostile mobs can spawn anytime (`skyLight == 0`) and **Yellow** markers where hostile mobs can spawn at night (`skyLight > 0`).
+- `Style` (`Mode`: `Cross`, `Square`, `Diamond`, default `Cross`)
+- `Range` (`Number`: `6` – `32` blocks, step `2`, default `16`)
+- `Show Night Spawns` (`Boolean`, default `true`)
+- `Max Safe Block Light` (`Number`: `0` – `7`, step `1`, default `0`)
+- `Line Thickness` (`Number`: `1.0` – `3.5px`, step `0.5`, default `1.5`)
+
+#### 65. **Chunk Borders**
+Renders clean customizable `16×16` chunk boundary wireframes, `16`-block vertical sub-chunk rings, neighbor chunk corners, and automatic **Slime Chunk** floor highlights when the world seed is known.
+- `Use Client Color` (`Boolean`, default `false`)
+- `Border Color` (`ColorMode`, default `Yellow`)
+- `Show Sub-Chunks` (`Boolean`, default `true`)
+- `Show Wall Grid` (`Boolean`, default `true`)
+- `Show Neighbor Corners` (`Boolean`, default `true`)
+- `Highlight Slime Chunks` (`Boolean`, default `true`)
+- `Height Range` (`Number`: `16` – `96` blocks, step `16`, default `32`)
+- `Line Thickness` (`Number`: `1.0` – `4.0px`, step `0.5`, default `1.5`)
 
 ---
 

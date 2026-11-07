@@ -24,7 +24,7 @@ import java.util.Locale;
 import java.util.function.Consumer;
 
 /**
- * State & Win32 CF_DIB clipboard + async save pipeline for the "Better Screenshots" PLAYER module.
+ * State & Win32 CF_DIB clipboard + async save pipeline for the "Screenshots" PLAYER module.
  */
 public final class BetterScreenshotsState {
 

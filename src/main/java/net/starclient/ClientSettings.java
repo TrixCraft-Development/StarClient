@@ -50,6 +50,7 @@ public final class ClientSettings {
     private final ColorModeSetting menuBackgroundColor;
     private final ModeSetting titleBackground;
     private final BooleanSetting modernButtons;
+    private final BooleanSetting keybindNotifications;
     private final BooleanSetting experimentalFeatures;
     private final BooleanSetting paletteCrashSafeguard;
 
@@ -58,6 +59,8 @@ public final class ClientSettings {
                 "Draw a dark shadow behind all HUD text for better readability", true);
         this.tabIcon = new BooleanSetting("Show Name Icon",
                 "Show the Star icon next to your name in the tab list and above your head", true);
+        this.keybindNotifications = new BooleanSetting("Keybind Notifications",
+                "Show a slide-in corner notification when toggling modules via keybinds", true);
         this.removeSplash = new BooleanSetting("Remove Splash Text",
                 "Hide the random yellow splash text on the title screen", true);
         this.containerAnimations = new BooleanSetting("Container Animations",
@@ -86,6 +89,7 @@ public final class ClientSettings {
         settings.add(modernButtons);
         settings.add(hudTextShadow);
         settings.add(tabIcon);
+        settings.add(keybindNotifications);
         settings.add(removeSplash);
         settings.add(containerAnimations);
         settings.add(containerBlur);
@@ -110,6 +114,10 @@ public final class ClientSettings {
 
     public boolean isTabIcon() {
         return tabIcon.getValue();
+    }
+
+    public boolean isKeybindNotifications() {
+        return keybindNotifications == null || keybindNotifications.getValue();
     }
 
     public boolean isRemoveSplash() {

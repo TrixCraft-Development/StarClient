@@ -15,6 +15,7 @@ import net.minecraft.world.phys.EntityHitResult;
 import net.starclient.StarClient;
 import net.starclient.module.ChestEspState;
 import net.starclient.module.CombatStatsTracker;
+import net.starclient.module.DurabilityGuardState;
 import net.starclient.module.Module;
 import net.starclient.module.OreEspState;
 import net.starclient.setting.Setting;
@@ -294,6 +295,28 @@ public class HudOverlay {
             layout.endScale(extractor, sc);
         }
 
+        // 3d10. Block Info (WAILA)
+        Module blockInfoMod = StarClient.getInstance().getModuleManager().getModuleByName("Block Info");
+        if (blockInfoMod != null && blockInfoMod.isEnabled()) {
+            int biW = BlockInfoRenderer.getWidth(client.font, client, blockInfoMod);
+            int biX = layout.effectiveX(HudLayout.BLOCK_INFO, screenWidth, biW);
+            int biY = layout.effectiveY(HudLayout.BLOCK_INFO, screenHeight);
+            boolean sc = layout.beginScale(extractor, biX, biY, HudLayout.BLOCK_INFO);
+            BlockInfoRenderer.render(extractor, client, blockInfoMod, layout, screenWidth, screenHeight);
+            layout.endScale(extractor, sc);
+        }
+
+        // 3d11. Pinned Notes
+        Module pinnedNotesMod = StarClient.getInstance().getModuleManager().getModuleByName("Pinned Notes");
+        if (pinnedNotesMod != null && pinnedNotesMod.isEnabled()) {
+            int pnW = PinnedNotesRenderer.getWidth(client.font, client, pinnedNotesMod);
+            int pnX = layout.effectiveX(HudLayout.PINNED_NOTES, screenWidth, pnW);
+            int pnY = layout.effectiveY(HudLayout.PINNED_NOTES, screenHeight);
+            boolean sc = layout.beginScale(extractor, pnX, pnY, HudLayout.PINNED_NOTES);
+            PinnedNotesRenderer.render(extractor, client, pinnedNotesMod, layout, screenWidth, screenHeight);
+            layout.endScale(extractor, sc);
+        }
+
         // 3e. Potion Effects HUD
         Module potionsMod = StarClient.getInstance().getModuleManager().getModuleByName("Potion Effects");
         if (potionsMod != null && potionsMod.isEnabled()) {
@@ -480,10 +503,25 @@ public class HudOverlay {
             TrajectoryRenderer.render(extractor, client, trajMod);
         }
 
+        // 13b. Light Overlay (Mob Spawn Grid)
+        Module lightOverlayMod = StarClient.getInstance().getModuleManager().getModuleByName("Light Overlay");
+        if (lightOverlayMod != null && lightOverlayMod.isEnabled()) {
+            LightOverlayRenderer.render(extractor, client, lightOverlayMod);
+        }
+
+        // 13c. Chunk Borders (16x16 Wireframe & Slime Chunk Detector)
+        Module chunkBordersMod = StarClient.getInstance().getModuleManager().getModuleByName("Chunk Borders");
+        if (chunkBordersMod != null && chunkBordersMod.isEnabled()) {
+            ChunkBordersRenderer.render(extractor, client, chunkBordersMod);
+        }
+
         // 14. 3D In-World Waypoints
         if (!(client.gui.screen() instanceof ClickGuiScreen) && !(client.gui.screen() instanceof HudEditorScreen)) {
             WaypointRenderer.render(extractor, client);
         }
+
+        // 15. Keybind Module Toggle Corner Notifications
+        ToastNotificationManager.render(extractor, client, screenWidth, screenHeight);
     }
 
     private static void renderArmor(GuiGraphicsExtractor extractor, Minecraft client, Module module) {
@@ -553,7 +591,8 @@ public class HudOverlay {
                 int max = stack.getMaxDamage();
                 int current = Math.max(max - stack.getDamageValue(), 0);
                 float ratio = max <= 0 ? 1.0F : (float) current / max;
-                if (lowAlert && ratio <= 0.15F) {
+                float warnThreshold = DurabilityGuardState.getWarningThresholdRatio();
+                if (lowAlert && ratio <= warnThreshold) {
                     if (order[i] == EquipmentSlot.MAINHAND) {
                         anyLowHeld = true;
                     } else {

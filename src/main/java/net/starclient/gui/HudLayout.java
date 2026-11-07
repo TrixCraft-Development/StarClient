@@ -38,6 +38,8 @@ public class HudLayout {
     public static final String MINIMAP = "minimap";
     public static final String WORLD_INFO = "world_info";
     public static final String ITEM_COUNTER = "item_counter";
+    public static final String BLOCK_INFO = "block_info";
+    public static final String PINNED_NOTES = "pinned_notes";
     public static final int AUTO = Integer.MIN_VALUE;
 
     public static final float MIN_SCALE = 0.50f;
@@ -47,7 +49,7 @@ public class HudLayout {
             FPS, PING, COORDINATES, ARRAYLIST, KEYSTROKES, ARMOR,
             CPS, REACH, SPEED, COMBO, CLOCK, COMPASS, SERVER_INFO,
             MEMORY, POTIONS, TARGET_HUD, SCOREBOARD, BOSS_BAR, INVENTORY,
-            MINIMAP, WORLD_INFO, ITEM_COUNTER
+            MINIMAP, WORLD_INFO, ITEM_COUNTER, BLOCK_INFO, PINNED_NOTES
     };
 
     public static final int FPS_WIDTH = 130;
@@ -177,10 +179,14 @@ public class HudLayout {
 
     public int effectiveX(String id, int screenWidth, int maxModWidth) {
         return switch (id) {
-            case FPS, PING, COORDINATES, CPS, REACH, SPEED, COMBO, CLOCK, SERVER_INFO, MEMORY, POTIONS, MINIMAP, WORLD_INFO ->
+            case FPS, PING, COORDINATES, CPS, REACH, SPEED, COMBO, CLOCK, SERVER_INFO, MEMORY, POTIONS, MINIMAP, WORLD_INFO, PINNED_NOTES ->
                     isAuto(id) ? 8 : getX(id);
             case ITEM_COUNTER -> {
                 int w = maxModWidth > 0 ? maxModWidth : 110;
+                yield isAuto(id) ? (screenWidth - w) / 2 : getX(id);
+            }
+            case BLOCK_INFO -> {
+                int w = maxModWidth > 0 ? maxModWidth : 154;
                 yield isAuto(id) ? (screenWidth - w) / 2 : getX(id);
             }
             case COMPASS -> {
@@ -222,6 +228,8 @@ public class HudLayout {
             case MEMORY -> isAuto(id) ? screenHeight - 222 : getY(id);
             case MINIMAP -> isAuto(id) ? 8 : getY(id);
             case WORLD_INFO -> isAuto(id) ? 132 : getY(id);
+            case PINNED_NOTES -> isAuto(id) ? 206 : getY(id);
+            case BLOCK_INFO -> isAuto(id) ? 38 : getY(id);
             case SERVER_INFO -> isAuto(id) ? 60 : getY(id);
             case ITEM_COUNTER -> isAuto(id) ? screenHeight - 62 : getY(id);
             case COMPASS, POTIONS, ARRAYLIST -> isAuto(id) ? 8 : getY(id);
@@ -493,6 +501,20 @@ public class HudLayout {
         int icX = layout.effectiveX(ITEM_COUNTER, screenWidth, icW);
         int icY = layout.effectiveY(ITEM_COUNTER, screenHeight);
         rects.add(makeScaledRect(layout, ITEM_COUNTER, icX, icY, icW, icH));
+
+        Module blockInfoMod = StarClient.getInstance().getModuleManager().getModuleByName("Block Info");
+        int biW = BlockInfoRenderer.getWidth(font, mc, blockInfoMod);
+        int biH = BlockInfoRenderer.getHeight(mc, blockInfoMod);
+        int biX = layout.effectiveX(BLOCK_INFO, screenWidth, biW);
+        int biY = layout.effectiveY(BLOCK_INFO, screenHeight);
+        rects.add(makeScaledRect(layout, BLOCK_INFO, biX, biY, biW, biH));
+
+        Module pinnedNotesMod = StarClient.getInstance().getModuleManager().getModuleByName("Pinned Notes");
+        int pnW = PinnedNotesRenderer.getWidth(font, mc, pinnedNotesMod);
+        int pnH = PinnedNotesRenderer.getHeight(mc, pinnedNotesMod);
+        int pnX = layout.effectiveX(PINNED_NOTES, screenWidth, pnW);
+        int pnY = layout.effectiveY(PINNED_NOTES, screenHeight);
+        rects.add(makeScaledRect(layout, PINNED_NOTES, pnX, pnY, pnW, pnH));
 
         int potX = layout.effectiveX(POTIONS, screenWidth, 0);
         int potY = layout.effectiveY(POTIONS, screenHeight);

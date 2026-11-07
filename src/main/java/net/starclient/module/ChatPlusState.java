@@ -234,7 +234,7 @@ public final class ChatPlusState {
                 .append(Component.literal("────────── ").withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.STRIKETHROUGH))
                 .append(Component.literal(" Joined ").withStyle(ChatFormatting.GRAY))
                 .append(Component.literal(sessionLabel).withStyle(Style.EMPTY.withColor(0xF8FAFC).withBold(true)))
-                .append(Component.literal(" ").withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.STRIKETHROUGH))
+                .append(Component.literal(" ").withStyle())
                 .append(Component.literal(" ──────────").withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.STRIKETHROUGH));
 
         SESSION_DIVIDERS.add(divider);

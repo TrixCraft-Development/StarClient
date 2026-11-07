@@ -14,6 +14,7 @@ import net.starclient.setting.BooleanSetting;
 import net.starclient.setting.MacroListSetting;
 import net.starclient.setting.ModeSetting;
 import net.starclient.setting.NickEntryListSetting;
+import net.starclient.setting.NoteListSetting;
 import net.starclient.setting.NumberSetting;
 import net.starclient.setting.Setting;
 import net.starclient.setting.TextSetting;
@@ -180,6 +181,21 @@ public class ConfigManager {
                                             }
                                         }
                                     }
+                                    case NoteListSetting nls -> {
+                                        nls.getValue().clear();
+                                        if (settingsObj.get(nls.getName()).isJsonArray()) {
+                                            for (var elem : settingsObj.get(nls.getName()).getAsJsonArray()) {
+                                                if (elem.isJsonObject()) {
+                                                    JsonObject obj = elem.getAsJsonObject();
+                                                    String text = obj.has("text") ? obj.get("text").getAsString() : "";
+                                                    boolean done = obj.has("done") && obj.get("done").getAsBoolean();
+                                                    if (!text.isBlank()) {
+                                                        nls.getValue().add(new NoteListSetting.NoteEntry(text, done));
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
                                     default -> {
                                     }
                                 }
@@ -309,6 +325,17 @@ public class ConfigManager {
                     }
                 }
                 settingsObj.add(setting.getName(), words);
+            } else if (setting instanceof NoteListSetting nls) {
+                JsonArray notes = new JsonArray();
+                for (NoteListSetting.NoteEntry entry : nls.getValue()) {
+                    if (entry != null && !entry.getText().isBlank()) {
+                        JsonObject noteObj = new JsonObject();
+                        noteObj.addProperty("text", entry.getText());
+                        noteObj.addProperty("done", entry.isDone());
+                        notes.add(noteObj);
+                    }
+                }
+                settingsObj.add(setting.getName(), notes);
             }
         }
         return settingsObj;

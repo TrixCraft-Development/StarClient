@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.OptionalLong;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -81,6 +82,33 @@ public final class WorldInfoRenderer {
             if (found != null) return found;
         }
         return null;
+    }
+
+    /**
+     * Returns the known numeric world seed if playing Singleplayer or if "/seed" was captured on this server.
+     */
+    public static OptionalLong getKnownSeed(Minecraft client) {
+        if (client == null || client.level == null) {
+            return OptionalLong.empty();
+        }
+        IntegratedServer singleplayer = client.getSingleplayerServer();
+        if (singleplayer != null) {
+            ServerLevel ow = singleplayer.overworld();
+            if (ow != null) {
+                return OptionalLong.of(ow.getSeed());
+            }
+        }
+        String wk = WaypointsState.getCurrentWorldKey(client);
+        if (wk != null) {
+            String cached = CACHED_SERVER_SEEDS.get(wk);
+            if (cached != null) {
+                try {
+                    return OptionalLong.of(Long.parseLong(cached));
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        }
+        return OptionalLong.empty();
     }
 
     private static String resolveSeedText(Minecraft client) {

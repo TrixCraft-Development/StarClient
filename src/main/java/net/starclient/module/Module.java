@@ -8,6 +8,7 @@ import net.starclient.setting.BooleanSetting;
 import net.starclient.setting.ColorModeSetting;
 import net.starclient.setting.MacroListSetting;
 import net.starclient.setting.NickEntryListSetting;
+import net.starclient.setting.NoteListSetting;
 import net.starclient.setting.Setting;
 import net.starclient.setting.WaypointListSetting;
 import org.lwjgl.glfw.GLFW;
@@ -40,7 +41,9 @@ public abstract class Module {
             "Memory Display",
             "Minimap",
             "World Info",
-            "Item Counter"
+            "Item Counter",
+            "Block Info",
+            "Pinned Notes"
     );
 
     private static final Set<String> MODULES_WITH_TRANSPARENT_BG = Set.of(
@@ -284,6 +287,8 @@ public abstract class Module {
                 ml.getValue().clear();
             } else if (setting instanceof BannedWordListSetting bwl) {
                 bwl.getValue().clear();
+            } else if (setting instanceof NoteListSetting nls) {
+                nls.getValue().clear();
             }
         }
         setEnabled(this.defaultEnabled);
@@ -295,7 +300,8 @@ public abstract class Module {
             if (!(setting instanceof NickEntryListSetting)
                     && !(setting instanceof MacroListSetting)
                     && !(setting instanceof WaypointListSetting)
-                    && !(setting instanceof BannedWordListSetting)) {
+                    && !(setting instanceof BannedWordListSetting)
+                    && !(setting instanceof NoteListSetting)) {
                 setting.reset();
             }
         }

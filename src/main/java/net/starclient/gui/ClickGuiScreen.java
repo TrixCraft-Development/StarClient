@@ -18,6 +18,7 @@ import net.starclient.module.ChatPlusState;
 import net.starclient.module.Category;
 import net.starclient.module.Module;
 import net.starclient.module.NickToolState;
+import net.starclient.module.PinnedNotesState;
 import net.starclient.module.QuickCommandsState;
 import net.starclient.module.WaypointsState;
 import net.starclient.rank.Rank;
@@ -27,6 +28,7 @@ import net.starclient.setting.ColorModeSetting;
 import net.starclient.setting.MacroListSetting;
 import net.starclient.setting.ModeSetting;
 import net.starclient.setting.NickEntryListSetting;
+import net.starclient.setting.NoteListSetting;
 import net.starclient.setting.NumberSetting;
 import net.starclient.setting.Setting;
 import net.starclient.setting.TextSetting;
@@ -1082,6 +1084,16 @@ public class ClickGuiScreen extends Screen {
                 GuiRenderUtils.drawRoundedOutline(extractor, btnX, item.y + 4, btnW, 16, 4, menuBorder());
                 GuiRenderUtils.drawCenteredText(extractor, this.font, label, btnX + btnW / 2, item.y + 8, menuAccent());
             }
+            case NoteListSetting noteListSetting -> {
+                GuiRenderUtils.drawText(extractor, this.font, setting.getName(), item.x + 8, item.y + 8, 0xFFE2E8F0);
+                int count = PinnedNotesState.getNotes().size();
+                String label = (count == 0 ? "Manage (0)" : count + (count == 1 ? " note" : " notes")) + " ✎";
+                int btnW = GuiRenderUtils.textWidth(this.font, label) + 12;
+                int btnX = item.x + item.width - btnW - 6;
+                GuiRenderUtils.fillRoundedRect(extractor, btnX, item.y + 4, btnW, 16, 4, menuBgDark());
+                GuiRenderUtils.drawRoundedOutline(extractor, btnX, item.y + 4, btnW, 16, 4, menuBorder());
+                GuiRenderUtils.drawCenteredText(extractor, this.font, label, btnX + btnW / 2, item.y + 8, menuAccent());
+            }
             case WaypointListSetting waypointListSetting -> {
                 List<WaypointsState.Waypoint> wps = WaypointsState.getWaypointsForCurrentContext(Minecraft.getInstance());
                 String title = "Waypoints (" + wps.size() + ")";
@@ -1880,6 +1892,8 @@ public class ClickGuiScreen extends Screen {
             Minecraft.getInstance().gui.setScreen(new QuickCommandsScreen(this));
         } else if (setting instanceof BannedWordListSetting) {
             Minecraft.getInstance().gui.setScreen(new BannedWordsScreen(this));
+        } else if (setting instanceof NoteListSetting) {
+            Minecraft.getInstance().gui.setScreen(new PinnedNotesScreen(this));
         } else if (setting instanceof WaypointListSetting) {
             int btnH = 14;
             int btnY = item.y + 5;

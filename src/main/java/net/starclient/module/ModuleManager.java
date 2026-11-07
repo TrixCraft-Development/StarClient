@@ -36,6 +36,8 @@ import net.starclient.api.HypixelApi;
 import net.starclient.gui.EntityEsp;
 import net.starclient.gui.HypixelLevelHead;
 import net.starclient.gui.HypixelPlayerStats;
+import net.starclient.gui.LightOverlayRenderer;
+import net.starclient.gui.ToastNotificationManager;
 import net.starclient.mixin.FishingHookAccessor;
 import net.starclient.mixin.MinecraftAccessor;
 import net.starclient.mixin.MultiPlayerGameModeAccessor;
@@ -45,6 +47,7 @@ import net.starclient.setting.ColorModeSetting;
 import net.starclient.setting.MacroListSetting;
 import net.starclient.setting.ModeSetting;
 import net.starclient.setting.NickEntryListSetting;
+import net.starclient.setting.NoteListSetting;
 import net.starclient.setting.NumberSetting;
 import net.starclient.setting.Setting;
 import net.starclient.setting.TextSetting;
@@ -130,16 +133,30 @@ public class ModuleManager {
             }
         });
 
-        register(new Module("Armor HUD", "Displays held items & equipped armor durability.", Category.PLAYER) {
+        register(new Module("Armor HUD", "Displays held items & equipped armor durability with low-durability alerts and tool/Elytra break protection.", Category.PLAYER) {
             {
+                DurabilityGuardState.setModule(this);
                 setEnabled(false);
                 addSetting(new ModeSetting("Orientation", "HUD layout alignment", "Vertical", List.of("Horizontal", "Vertical")));
                 addSetting(new BooleanSetting("Mirror Items", "Reverse armor order (Helmet <-> Boots)", false));
                 addSetting(new BooleanSetting("Show Held Item", "Also display the main-hand item alongside armor", false));
-                addSetting(new BooleanSetting("Low Durability Alert", "Flash a red border and warning when any armor piece drops to <= 15%", true));
+                addSetting(new BooleanSetting("Low Durability Alert", "Flash a red border and warning when gear drops below Warning Threshold %", true));
+                addSetting(new NumberSetting("Warning Threshold %", "Durability percentage threshold for low-durability warnings", 15.0, 5.0, 30.0, 1.0));
+                addSetting(new BooleanSetting("Durability Sound Ping", "Play an alert ping and actionbar warning when armor, Elytra, or tools drop below threshold", true));
+                addSetting(new BooleanSetting("Prevent Tool Breaking", "Stop mining, attacking, or using valuable tools and Elytra at <= 2 durability so they never shatter", false));
                 addSetting(new ModeSetting("Durability", "How armor durability text is displayed",
                         "Show current & max Durability",
                         List.of("Show current & max Durability", "Only current", "Hidden")));
+            }
+
+            @Override
+            public void onTick(Minecraft client) {
+                DurabilityGuardState.onTick(client);
+            }
+
+            @Override
+            public void onDisable() {
+                DurabilityGuardState.reset();
             }
         });
 
@@ -2493,7 +2510,7 @@ public class ModuleManager {
             }
         });
 
-        register(new Module("Better Screenshots", "Async lag-free F2 screenshots with automatic Windows clipboard copy and clickable [Open] [Folder] [Copy] chat buttons.", Category.PLAYER) {
+        register(new Module("Screenshots", "Async lag-free F2 screenshots with automatic Windows clipboard copy and clickable [Open] [Folder] [Copy] chat buttons.", Category.PLAYER) {
             {
                 BetterScreenshotsState.setModule(this);
                 addSetting(new BooleanSetting("Auto Copy to Clipboard", "Automatically copy every F2 screenshot directly to the clipboard", true));
@@ -2534,6 +2551,78 @@ public class ModuleManager {
                 addSetting(new BooleanSetting("Show Ping", "Append network latency in ms next to player nametags", true));
                 addSetting(new NumberSetting("Scale", "Nametag size multiplier", 1.0, 0.5, 2.5, 0.1));
                 addSetting(new BooleanSetting("Distance Scale", "Automatically scale up distant nametags so they stay readable", false));
+            }
+        });
+
+        register(new Module("Block Info", "Displays a WAILA HUD card for the targeted block: 3D icon, harvestability, optimal tool, live break timer & progress bar, and crop/redstone states.", Category.UI) {
+            {
+                addSetting(new BooleanSetting("Show Icon", "Display the 3D block item icon next to the block name", true));
+                addSetting(new BooleanSetting("Show Harvestability", "Show whether your held tool can harvest drops from this block", true));
+                addSetting(new BooleanSetting("Show Optimal Tool", "Display the optimal tool type and minimum tier used to break this block", true));
+                addSetting(new BooleanSetting("Show Break Time", "Display estimated mining duration and live breaking percentage", true));
+                addSetting(new BooleanSetting("Show Block Details", "Show crop growth %, redstone power, honey level, repeater delay, and cauldron fill", true));
+                addSetting(new BooleanSetting("Show Coordinates", "Display the targeted block's X, Y, Z coordinates", false));
+                addSetting(new BooleanSetting("Include Fluids", "Also inspect Water and Lava source/flowing blocks", false));
+                addSetting(new NumberSetting("Max Distance", "Maximum raycast reach distance in blocks", 5.5, 3.0, 20.0, 0.5));
+            }
+        });
+
+        register(new Module("Hunger & Saturation", "AppleSkin-style golden saturation overlay, pulsing held-food restoration preview, exhaustion bar, and food tooltip stats.", Category.UI) {
+            {
+                HungerSaturationState.setModule(this);
+                addSetting(new BooleanSetting("Show Saturation", "Render golden saturation outlines over saturated hunger shanks", true));
+                addSetting(new BooleanSetting("Show Food Preview", "Flash a preview of restored hunger & saturation when holding edible food", true));
+                addSetting(new BooleanSetting("Show Exhaustion Bar", "Render a subtle exhaustion progress bar behind the hunger bar", true));
+                addSetting(new BooleanSetting("Food Tooltip Info", "Append hunger and saturation values to food item tooltips", true));
+            }
+        });
+
+        register(new Module("Chat Calculator", "Evaluates live math expressions (= 27*64, = (1200+350)/8, 27*64=) and Nether/Overworld coord helpers (=nether, =ow) in chat with Tab-to-insert.", Category.UI) {
+            {
+                ChatCalculatorState.setModule(this);
+                addSetting(new BooleanSetting("Math Expressions", "Evaluate math expressions starting or ending with '=' in chat", true));
+                addSetting(new BooleanSetting("Show Item Stacks", "Show Minecraft 64-stack and Shulker Box breakdown next to whole results", true));
+                addSetting(new BooleanSetting("Coord Converter", "Support '=nether [x z]' and '=ow [x z]' 8:1 coordinate helpers", true));
+                addSetting(new BooleanSetting("Tab to Insert", "Press Tab to replace the expression in chat with the computed answer", true));
+            }
+        });
+
+        register(new Module("Pinned Notes", "Draggable HUD checklist and sticky notes card for coordinates, build material goals, and reminders.", Category.UI) {
+            {
+                PinnedNotesState.setModule(this);
+                addSetting(new TextSetting("Title", "Custom header title displayed at the top of the Pinned Notes card", "Pinned Notes"));
+                addSetting(new NoteListSetting("Notes List", "Manage your pinned notes and to-do checklist items"));
+                addSetting(new BooleanSetting("Show Checkboxes", "Display interactive completion status boxes next to each note", true));
+                addSetting(new BooleanSetting("Show Completed", "Keep completed notes visible with strikethrough instead of hiding them", true));
+                addSetting(new BooleanSetting("Hide When Empty", "Hide the HUD card during gameplay when no notes are pinned", false));
+            }
+        });
+
+        register(new Module("Light Overlay", "Renders a 3D mob-spawn grid on nearby surfaces: Red = spawns anytime, Yellow = spawns at night.", Category.WORLD) {
+            {
+                addSetting(new ModeSetting("Style", "3D ground marker shape", "Cross", List.of("Cross", "Square", "Diamond")));
+                addSetting(new NumberSetting("Range", "Horizontal scan radius around the player in blocks", 16.0, 6.0, 32.0, 2.0));
+                addSetting(new BooleanSetting("Show Night Spawns", "Also render yellow markers where sky light prevents daytime spawns", true));
+                addSetting(new NumberSetting("Max Safe Block Light", "Maximum block light at which hostile mobs can spawn (0 in vanilla 1.18+)", 0.0, 0.0, 7.0, 1.0));
+                addSetting(new NumberSetting("Line Thickness", "3D marker line thickness in pixels", 1.5, 1.0, 3.5, 0.5));
+            }
+
+            @Override
+            public void onDisable() {
+                LightOverlayRenderer.clear();
+            }
+        });
+
+        register(new Module("Chunk Borders", "Renders clean customizable 16x16 chunk borders, sub-chunk section rings, neighbor corners, and Slime Chunk highlights.", Category.WORLD) {
+            {
+                addSetting(new BooleanSetting("Use Client Color", "Match primary chunk border color to Client Menu Color", false));
+                addSetting(new ColorModeSetting("Border Color", "Primary chunk corner/wall color when Use Client Color is off", "Yellow", BlockOutlineState.OUTLINE_COLORS));
+                addSetting(new BooleanSetting("Show Sub-Chunks", "Draw horizontal 16x16 section rings every 16 Y levels", true));
+                addSetting(new BooleanSetting("Show Wall Grid", "Draw vertical 4-block grid lines along the 4 chunk walls", true));
+                addSetting(new BooleanSetting("Show Neighbor Corners", "Draw surrounding neighbor chunk corner pillars", true));
+                addSetting(new BooleanSetting("Highlight Slime Chunks", "Highlight the chunk floor in green when standing inside an Overworld Slime Chunk (when seed is known)", true));
+                addSetting(new NumberSetting("Height Range", "Vertical render height above and below your Y position", 32.0, 16.0, 96.0, 16.0));
+                addSetting(new NumberSetting("Line Thickness", "3D wireframe line thickness in pixels", 1.5, 1.0, 4.0, 0.5));
             }
         });
     }
@@ -2608,7 +2697,11 @@ public class ModuleManager {
             if (module.isHoldKey()) {
                 module.setEnabled(down);
             } else if (pressed && module.isKeyBindToggleable()) {
+                boolean wasEnabled = module.isEnabled();
                 module.toggle();
+                if (module.isEnabled() != wasEnabled) {
+                    ToastNotificationManager.pushModuleToggle(module);
+                }
             } else if (pressed) {
                 // Action modules decide for themselves whether they can run, so a disabled one
                 // gets the chance to tell the user instead of silently eating the keypress.

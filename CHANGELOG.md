@@ -1,28 +1,20 @@
-# Star Client v0.11
+# Star Client v0.12
 
-> Welcome to Star Client **v0.11**! A high-performance, modular Fabric client for Minecraft 26.2 featuring glassmorphic UI, custom HUD widgets, and game enhancements.
+> Welcome to Star Client **v0.12**! A high-performance, modular Fabric client for Minecraft 26.2 featuring glassmorphic UI, custom HUD widgets, and game enhancements.
 
 ---
 
 ## What's New
 
 ### Render, HUD & Quality-of-Life Modules
-- [NEW] **Waypoints (`WORLD`)**: Custom 3D in-world waypoints saved per server/world & dimension with beacon beams, distance readouts, **Auto Death Waypoint**, **Nether 8:1 Sync**, Quick-Add hotkey, and an **inline Waypoints Overview List** right inside the module settings + full Waypoint Manager modal.
-- [NEW] **Minimap (`UI`)**: Draggable top-down HUD minimap with **Square / Circle** frames, zoom & size sliders, **Rotate with Player** vs **North-Up**, **Waypoints on Minimap**, and radar toggles for **Players**, **Hostile Mobs**, **Passive Mobs**, and **Dropped Items**.
-- [NEW] **World Info (`UI`)**: Draggable HUD widget showing **Biome**, **In-Game Day**, **Light Level** (with mob-spawn warning color), **Chunk** coordinates, **World Seed**, and **Compact Mode**.
-- [NEW] **Chat (`UI`)**: Upgrades chat with **Timestamps** (`24h` / `12h`), **Compact Chat** anti-spam stacking (`[x2]`, `[x3]`), **Click-to-Copy** (for both player messages and server/mod info), **Banned Words Filter** (`*` per letter with custom word list manager), **Save Chat History Across Servers / Worlds** (with automatic server/world session divider messages), **Transparent Background**, **Extended History** (`100`–`5000`), and customizable **Mention Color + Sound Ping**.
-- [NEW] **Better Screenshots (`PLAYER`)**: Async lag-free `F2` screenshot saving that automatically copies the image directly to your **Windows Clipboard** and adds clickable **`[Open]`**, **`[Folder]`**, and **`[Copy]`** chat action buttons.
-- [NEW] **Auto GG (`SERVER`)**: Automatically sends customizable **GG** / **GLHF** messages on match end or start with configurable delay timers and anti-spoof protection.
-- [NEW] **Container Preview (`PLAYER`)**: Inline visual preview cards for **Shulker Boxes** (`3×9` item grid), **Ender Chests** (cached contents), and **Filled Maps**, with **Always** vs **Hold Key** (`Shift` / `Ctrl` / `Alt`) display mode.
-- [NEW] **Item Counter (`UI`)**: Draggable HUD widget counting **Totems**, **Golden Apples**, **Enchanted Gapples**, **Ender Pearls**, **Arrows**, **Healing Potions**, **XP Bottles**, **End Crystals**, and **Building Blocks** across your inventory.
-- [NEW] **Scrollable Tooltips (`UI`)**: Scroll overflowing item tooltips **up/down** (Mouse Wheel or Up/Down Arrows) and **left/right** (`Shift` + Wheel or Left/Right Arrows).
-- [NEW] **Nametags (`RENDER`)**: Adds **Show Health** (`❤ 20`), **Show Ping** (`[24ms]`), **Own Nametag (3rd Person)** toggle, custom **Scale** + **Distance Scale**, and **Transparent Background**.
-- [NEW] **HUD Per-Widget Scale & Magnetic Snap Guides (`HUD Editor`)**: Scroll the mouse wheel over any HUD widget in the HUD Editor to scale it (`0.50x`–`2.00x`) and snap widgets cleanly with magnetic edge/center alignment guides.
-- [NEW] **Container Animations & Background Blur (`Client Settings`)**: New general toggles under *HUD & In-Game Visuals* for smooth container pop-in animations and background blur behind chests and inventories.
-
-### Inventory HUD & Search
-- [FIX] **Creative Mode Search Bar**: Relocated the Inventory Search bar below bottom creative tabs in Creative Inventory mode to eliminate tab overlap.
-
+- [NEW] **Block Info (`UI` — WAILA HUD)**: Draggable HUD card showing the targeted block's 3D icon, harvestability check (`✔ Harvestable` / `✕ Wrong Tool`), optimal breaking tool & tier, estimated break time & live mining `%` progress bar, and crop/redstone/honey/cauldron state details.
+- [NEW] **Hunger & Saturation (`UI`)**: AppleSkin-style golden saturation outlines on the hunger bar, pulsing held-food hunger & saturation restoration preview, exhaustion underlay bar, and food nutrition/saturation tooltip stats.
+- [NEW] **Chat Calculator (`UI`)**: Live floating answer pill above chat for math expressions (`= 27*64`, `27*64=`, item stack/Shulker breakdown) and `8:1` Nether/Overworld coordinate helpers (`=nether`, `=ow`) with `Tab`-to-insert.
+- [NEW] **Pinned Notes (`UI`)**: Draggable HUD checklist & sticky notes widget with interactive `[✓]` completion toggles and a dedicated Pinned Notes Manager modal.
+- [NEW] **Light Overlay (`WORLD`)**: 3D mob-spawn grid (`Cross` / `Square` / `Diamond`) marking anytime spawn spots in **Red** and night-only spawn spots in **Yellow**.
+- [NEW] **Chunk Borders (`WORLD`)**: Customizable `16×16` chunk boundary wireframe with `16`-block sub-chunk section rings, neighbor corners, and automatic **Slime Chunk** floor highlights when the seed is known.
+- [NEW] **Armor HUD Durability Guard (`PLAYER`)**: Added configurable **Warning Threshold %**, **Durability Sound Ping**, and **Prevent Tool Breaking** (`≤ 2` durability protection for tools, weapons, and Elytra) inside `Armor HUD`.
+- [NEW] **Keybind Toggle Notifications (`Client Settings`)**: Slide-in corner toast notifications triggered exclusively when toggling modules via keybinds (toggleable in General Settings).
 ---
 
 ## Shortcuts & Controls

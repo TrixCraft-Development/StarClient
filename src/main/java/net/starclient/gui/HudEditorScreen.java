@@ -128,6 +128,24 @@ public class HudEditorScreen extends Screen {
                 ItemCounterRenderer.renderPreview(extractor, itemCounterMod);
                 layout.endScale(extractor, sc);
             }
+            Module blockInfoMod = mod.getModuleManager().getModuleByName("Block Info");
+            if (blockInfoMod != null && blockInfoMod.isEnabled()) {
+                int biW = BlockInfoRenderer.getWidth(this.font, client, blockInfoMod);
+                int biX = layout.effectiveX(HudLayout.BLOCK_INFO, this.width, biW);
+                int biY = layout.effectiveY(HudLayout.BLOCK_INFO, this.height);
+                boolean sc = layout.beginScale(extractor, biX, biY, HudLayout.BLOCK_INFO);
+                BlockInfoRenderer.renderPreview(extractor, blockInfoMod);
+                layout.endScale(extractor, sc);
+            }
+            Module pinnedNotesMod = mod.getModuleManager().getModuleByName("Pinned Notes");
+            if (pinnedNotesMod != null && pinnedNotesMod.isEnabled()) {
+                int pnW = PinnedNotesRenderer.getWidth(this.font, client, pinnedNotesMod);
+                int pnX = layout.effectiveX(HudLayout.PINNED_NOTES, this.width, pnW);
+                int pnY = layout.effectiveY(HudLayout.PINNED_NOTES, this.height);
+                boolean sc = layout.beginScale(extractor, pnX, pnY, HudLayout.PINNED_NOTES);
+                PinnedNotesRenderer.renderPreview(extractor, pinnedNotesMod);
+                layout.endScale(extractor, sc);
+            }
         }
 
         // Render rounded bounding outlines, preview cards, and pill badges for all active elements
@@ -146,7 +164,9 @@ public class HudEditorScreen extends Screen {
                     && !r.id().equals(HudLayout.BOSS_BAR)
                     && !r.id().equals(HudLayout.INVENTORY)
                     && !r.id().equals(HudLayout.MINIMAP)
-                    && !r.id().equals(HudLayout.ITEM_COUNTER)) {
+                    && !r.id().equals(HudLayout.ITEM_COUNTER)
+                    && !r.id().equals(HudLayout.BLOCK_INFO)
+                    && !r.id().equals(HudLayout.PINNED_NOTES)) {
                 GuiRenderUtils.drawDropShadow(extractor, r.x1(), r.y1(), rw, rh, 4, 3, 80);
                 GuiRenderUtils.fillRoundedRect(extractor, r.x1(), r.y1(), rw, rh, 4, 0xCC0F172A);
                 GuiRenderUtils.drawRoundedOutline(extractor, r.x1(), r.y1(), rw, rh, 4, 0x4438BDF8);
@@ -543,6 +563,8 @@ public class HudEditorScreen extends Screen {
             case HudLayout.MINIMAP -> "Minimap";
             case HudLayout.WORLD_INFO -> "World Info";
             case HudLayout.ITEM_COUNTER -> "Item Counter";
+            case HudLayout.BLOCK_INFO -> "Block Info";
+            case HudLayout.PINNED_NOTES -> "Pinned Notes";
             case HudLayout.POTIONS -> "Potion Effects";
             case HudLayout.TARGET_HUD -> "Target HUD";
             case HudLayout.SCOREBOARD -> "Scoreboard";
@@ -574,6 +596,8 @@ public class HudEditorScreen extends Screen {
             case HudLayout.SERVER_INFO -> "Server: mc.hypixel.net";
             case HudLayout.MEMORY -> "RAM: 42%";
             case HudLayout.WORLD_INFO -> "Biome: Plains • Day 42";
+            case HudLayout.BLOCK_INFO -> "Grass Block • ✔ Harvestable";
+            case HudLayout.PINNED_NOTES -> "📌 Pinned Notes";
             case HudLayout.POTIONS -> "Speed II (01:30)";
             case HudLayout.TARGET_HUD -> "Target HUD";
             case HudLayout.SCOREBOARD -> "Scoreboard";
