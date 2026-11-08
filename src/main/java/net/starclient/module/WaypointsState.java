@@ -15,6 +15,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 import net.starclient.StarClient;
+import net.starclient.gui.ToastNotificationManager;
 import net.starclient.gui.WaypointsScreen;
 import net.starclient.setting.BooleanSetting;
 import net.starclient.setting.ModeSetting;
@@ -439,7 +440,17 @@ public final class WaypointsState {
         int existingInWorld = getWaypointsForCurrentContext(client).size();
         int color = PALETTE[existingInWorld % PALETTE.length];
         String name = "Waypoint #" + (existingInWorld + 1);
-        return addWaypoint(name, pos.getX(), pos.getY(), pos.getZ(), dim, wk, color);
+        Waypoint wp = addWaypoint(name, pos.getX(), pos.getY(), pos.getZ(), dim, wk, color);
+        if (wp != null) {
+            ToastNotificationManager.pushToast(
+                    "waypoint_added",
+                    "Saved " + wp.getName(),
+                    wp.getX() + ", " + wp.getY() + ", " + wp.getZ(),
+                    "WAYPOINT",
+                    color
+            );
+        }
+        return wp;
     }
 
     public static synchronized void removeWaypoint(String id) {

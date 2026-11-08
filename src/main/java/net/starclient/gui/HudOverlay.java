@@ -317,6 +317,28 @@ public class HudOverlay {
             layout.endScale(extractor, sc);
         }
 
+        // 3d12. Stopwatch & Timer
+        Module stopwatchMod = StarClient.getInstance().getModuleManager().getModuleByName("Stopwatch & Timer");
+        if (stopwatchMod != null && stopwatchMod.isEnabled()) {
+            int swW = StopwatchRenderer.getWidth(client.font, stopwatchMod);
+            int swX = layout.effectiveX(HudLayout.STOPWATCH, screenWidth, swW);
+            int swY = layout.effectiveY(HudLayout.STOPWATCH, screenHeight);
+            boolean sc = layout.beginScale(extractor, swX, swY, HudLayout.STOPWATCH);
+            StopwatchRenderer.render(extractor, client, stopwatchMod, layout, screenWidth, screenHeight);
+            layout.endScale(extractor, sc);
+        }
+
+        // 3d13. Sound Radar
+        Module soundRadarMod = StarClient.getInstance().getModuleManager().getModuleByName("Sound Radar");
+        if (soundRadarMod != null && soundRadarMod.isEnabled()) {
+            int srW = SoundRadarRenderer.RADAR_SIZE;
+            int srX = layout.effectiveX(HudLayout.SOUND_RADAR, screenWidth, srW);
+            int srY = layout.effectiveY(HudLayout.SOUND_RADAR, screenHeight);
+            boolean sc = layout.beginScale(extractor, srX, srY, HudLayout.SOUND_RADAR);
+            SoundRadarRenderer.render(extractor, client, soundRadarMod, layout, screenWidth, screenHeight);
+            layout.endScale(extractor, sc);
+        }
+
         // 3e. Potion Effects HUD
         Module potionsMod = StarClient.getInstance().getModuleManager().getModuleByName("Potion Effects");
         if (potionsMod != null && potionsMod.isEnabled()) {
@@ -325,6 +347,22 @@ public class HudOverlay {
             boolean sc = layout.beginScale(extractor, potX, potY, HudLayout.POTIONS);
             renderPotionEffects(extractor, client, potionsMod, layout, screenWidth, screenHeight);
             layout.endScale(extractor, sc);
+        }
+
+        // 3e2. Potion Debuff Cure Indicator
+        if (net.starclient.module.PotionAlertsState.isActive() && net.starclient.module.PotionAlertsState.isShowCureIndicator()) {
+            String cureMsg = net.starclient.module.PotionAlertsState.getActiveDebuffCureMessage();
+            if (!cureMsg.isEmpty()) {
+                int msgW = client.font.width(cureMsg) + 16;
+                int pillX = (screenWidth - msgW) / 2;
+                int pillY = screenHeight / 2 + 36;
+                float pulse = (float) (0.5 + 0.5 * Math.sin(System.currentTimeMillis() / 160.0));
+                int bgAlpha = Math.round(0x80 + 0x40 * pulse);
+                GuiRenderUtils.drawDropShadow(extractor, pillX, pillY, msgW, 16, 4, 3, 90);
+                GuiRenderUtils.fillRoundedRect(extractor, pillX, pillY, msgW, 16, 4, (bgAlpha << 24) | 0x00EF4444);
+                GuiRenderUtils.drawRoundedOutline(extractor, pillX, pillY, msgW, 16, 4, 0xCCFFFFFF);
+                hudText(extractor, client, cureMsg, pillX + 8, pillY + 4, 0xFFFFFFFF);
+            }
         }
 
         // 3f. Target HUD
@@ -402,16 +440,13 @@ public class HudOverlay {
         // 7. Entity ESP (Tracer lines & highlights)
         Module espMod = StarClient.getInstance().getModuleManager().getModuleByName("Entity ESP");
         if (espMod != null && espMod.isEnabled()) {
-            boolean playersOnly = true;
-            String style = "Glowing";
-            double maxRange = 100.0;
-            Setting<?> playersSetting = espMod.getSetting("Players Only");
-            Setting<?> styleSetting = espMod.getSetting("Style");
-            Setting<?> rangeSetting = espMod.getSetting("Range");
-            if (playersSetting != null) playersOnly = (boolean) playersSetting.getValue();
-            if (styleSetting != null) style = (String) styleSetting.getValue();
-            if (rangeSetting != null) maxRange = (double) rangeSetting.getValue();
-            EntityEsp.render(extractor, client, playersOnly, maxRange, style);
+            EntityEsp.render(extractor, client, espMod);
+        }
+
+        // 7b. Item ESP (Dropped items highlighted with box/lines/labels)
+        Module itemEspMod = StarClient.getInstance().getModuleManager().getModuleByName("Item ESP");
+        if (itemEspMod != null && itemEspMod.isEnabled()) {
+            ItemEsp.render(extractor, client, itemEspMod);
         }
 
         // 8. Chest ESP (storage blocks highlighted through walls)
@@ -515,12 +550,44 @@ public class HudOverlay {
             ChunkBordersRenderer.render(extractor, client, chunkBordersMod);
         }
 
+        // 13d. Spawner Overlay (Mob Spawners, Trial Spawners & 16m Activation Radius)
+        Module spawnerOverlayMod = StarClient.getInstance().getModuleManager().getModuleByName("Spawner Overlay");
+        if (spawnerOverlayMod != null && spawnerOverlayMod.isEnabled()) {
+            SpawnerOverlayRenderer.render(extractor, client, spawnerOverlayMod);
+        }
+
+        // 13e. Bed Defense Inspector (Bedwars defense layers above beds)
+        Module bedDefenseMod = StarClient.getInstance().getModuleManager().getModuleByName("Bed Defense");
+        if (bedDefenseMod != null && bedDefenseMod.isEnabled()) {
+            BedDefenseRenderer.render(extractor, client, bedDefenseMod);
+        }
+
+        // 13f. Fireball Alert (Incoming fireball warnings, 3D tracers & chimes)
+        Module fireballAlertMod = StarClient.getInstance().getModuleManager().getModuleByName("Fireball Alert");
+        if (fireballAlertMod != null && fireballAlertMod.isEnabled()) {
+            FireballAlertRenderer.render(extractor, client, fireballAlertMod);
+        }
+
+        // 13g. Base Alert (Bedwars enemy proximity alerts around your team's bed)
+        Module baseAlertMod = StarClient.getInstance().getModuleManager().getModuleByName("Base Alert");
+        if (baseAlertMod != null && baseAlertMod.isEnabled()) {
+            BaseAlertRenderer.render(extractor, client, baseAlertMod);
+        }
+
         // 14. 3D In-World Waypoints
         if (!(client.gui.screen() instanceof ClickGuiScreen) && !(client.gui.screen() instanceof HudEditorScreen)) {
             WaypointRenderer.render(extractor, client);
         }
 
-        // 15. Keybind Module Toggle Corner Notifications
+        // 14b. Low Health Vignette
+        Module lowHealthMod = StarClient.getInstance().getModuleManager().getModuleByName("Low Health Vignette");
+        if (lowHealthMod != null && lowHealthMod.isEnabled()
+                && !(client.gui.screen() instanceof ClickGuiScreen)
+                && !(client.gui.screen() instanceof HudEditorScreen)) {
+            LowHealthVignetteRenderer.render(extractor, client, lowHealthMod, screenWidth, screenHeight);
+        }
+
+        // 15. Keybind & Client Corner Toast Notifications
         ToastNotificationManager.render(extractor, client, screenWidth, screenHeight);
     }
 
@@ -745,14 +812,44 @@ public class HudOverlay {
         // Name & Distance
         int infoX = avatarX + avatarSize + 6;
         String name = target.getName().getString();
-        if (client.font.width(name) > 78) {
-            name = client.font.plainSubstrByWidth(name, 74) + "..";
-        }
-        hudText(extractor, client, name, infoX, tY + 6, module.getTextColor());
-
+        boolean isFriend = net.starclient.friend.FriendManager.isFriend(target);
         double dist = target == client.player ? 0.0 : client.player.distanceTo(target);
         String distText = String.format(Locale.US, "%.1fm", dist);
-        hudText(extractor, client, distText, tX + w - client.font.width(distText) - 5, tY + 6, 0xFF94A3B8);
+
+        if (isFriend) {
+            int friendCol = net.starclient.friend.FriendManager.getFriendColor();
+            int friendRgb = net.starclient.friend.FriendManager.getFriendRgb();
+            String pillText = net.starclient.friend.FriendManager.getFriendBadgeSymbol() + " FRIEND";
+            int pillW = client.font.width(pillText) + 8;
+            int pillH = 10;
+            int pillX = tX + w - pillW - 5;
+            int pillY = tY + 5;
+            GuiRenderUtils.fillRoundedRect(extractor, pillX, pillY, pillW, pillH, 3, (0x33 << 24) | friendRgb);
+            GuiRenderUtils.drawRoundedOutline(extractor, pillX, pillY, pillW, pillH, 3, (0x88 << 24) | friendRgb);
+            hudText(extractor, client, pillText, pillX + 4, pillY + 1, friendCol);
+
+            int distW = client.font.width(distText);
+            int maxNameW = pillX - infoX - distW - 8;
+            if (maxNameW < 40) {
+                maxNameW = pillX - infoX - 4;
+                if (client.font.width(name) > maxNameW) {
+                    name = client.font.plainSubstrByWidth(name, maxNameW - 6) + "..";
+                }
+                hudText(extractor, client, name, infoX, tY + 6, module.getTextColor());
+            } else {
+                if (client.font.width(name) > maxNameW) {
+                    name = client.font.plainSubstrByWidth(name, maxNameW - 6) + "..";
+                }
+                hudText(extractor, client, name, infoX, tY + 6, module.getTextColor());
+                hudText(extractor, client, distText, infoX + client.font.width(name) + 4, tY + 6, 0xFF94A3B8);
+            }
+        } else {
+            if (client.font.width(name) > 78) {
+                name = client.font.plainSubstrByWidth(name, 74) + "..";
+            }
+            hudText(extractor, client, name, infoX, tY + 6, module.getTextColor());
+            hudText(extractor, client, distText, tX + w - client.font.width(distText) - 5, tY + 6, 0xFF94A3B8);
+        }
 
         // Health text & bar
         float hp = Math.max(0.0F, target.getHealth() + target.getAbsorptionAmount());

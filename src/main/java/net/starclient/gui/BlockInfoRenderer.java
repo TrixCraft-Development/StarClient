@@ -3,20 +3,41 @@ package net.starclient.gui;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.core.BlockPos;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.animal.bee.Bee;
+import net.minecraft.world.entity.animal.equine.AbstractHorse;
+import net.minecraft.world.entity.animal.equine.Llama;
+import net.minecraft.world.entity.animal.sheep.Sheep;
+import net.minecraft.world.entity.decoration.ArmorStand;
+import net.minecraft.world.entity.decoration.ItemFrame;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.monster.Creeper;
+import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.ProjectileUtil;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CropBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 import net.starclient.StarClient;
+import net.starclient.friend.FriendManager;
 import net.starclient.mixin.MultiPlayerGameModeAccessor;
 import net.starclient.module.Module;
 import net.starclient.setting.BooleanSetting;
@@ -29,26 +50,30 @@ import java.util.Locale;
 
 /**
  * Renders the draggable "Block Info" (WAILA / What Am I Looking At) HUD widget:
- * 3D block icon, block name, harvestability badge, estimated break timer,
- * live mining progress bar, and contextual block state details (crop growth %, redstone power, honey, etc.).
+ * inspects both targeted blocks (3D icon, harvestability, optimal tool, break time, block states)
+ * and targeted entities (health bar, horse speed/jump stats, villager profession/tier, tame state, etc.).
  */
 public final class BlockInfoRenderer {
 
     private BlockInfoRenderer() {
     }
 
-    private record BlockSnapshot(
+    private record InfoSnapshot(
             ItemStack iconStack,
             String title,
             String subtitle,
             int subtitleColor,
             List<String> extraLines,
-            float miningProgress,
+            float barProgress,
+            int barColor,
             boolean preview
     ) {
     }
 
-    private static BlockSnapshot capture(Minecraft client, Module mod, boolean allowEditorPreview) {
+    private static InfoSnapshot capture(Minecraft client, Module mod, boolean allowEditorPreview) {
+        boolean showEntities = getBool(mod, "Show Entities", true);
+        boolean showEntityHealth = getBool(mod, "Show Entity Health", true);
+        boolean showEntityStats = getBool(mod, "Show Entity Stats", true);
         boolean showHarvest = getBool(mod, "Show Harvestability", true);
         boolean showOptimalTool = getBool(mod, "Show Optimal Tool", true);
         boolean showBreakTime = getBool(mod, "Show Break Time", true);
@@ -61,15 +86,28 @@ public final class BlockInfoRenderer {
             Level level = client.level;
             Player player = client.player;
 
-            HitResult hit = player.pick(maxDist, 1.0f, includeFluids);
-            if (hit instanceof BlockHitResult bhr && hit.getType() == HitResult.Type.BLOCK) {
+            HitResult blockHit = player.pick(maxDist, 1.0f, includeFluids);
+            double maxEntityDistSq = maxDist * maxDist;
+            if (blockHit != null && blockHit.getType() != HitResult.Type.MISS) {
+                maxEntityDistSq = blockHit.getLocation().distanceToSqr(player.getEyePosition());
+            }
+
+            // 1. Check targeted Entity first if closer than the block hit
+            if (showEntities) {
+                Entity targetEntity = resolveTargetEntity(player, maxDist, maxEntityDistSq);
+                if (targetEntity != null) {
+                    return buildEntitySnapshot(client, player, targetEntity, showEntityHealth, showEntityStats, showCoords);
+                }
+            }
+
+            // 2. Otherwise inspect targeted Block
+            if (blockHit instanceof BlockHitResult bhr && blockHit.getType() == HitResult.Type.BLOCK) {
                 BlockPos pos = bhr.getBlockPos();
                 BlockState state = level.getBlockState(pos);
                 if (!state.isAir() && (includeFluids || state.getFluidState().isEmpty() || !state.getCollisionShape(level, pos).isEmpty())) {
                     ItemStack icon = resolveBlockIcon(level, pos, state);
                     String blockName = state.getBlock().getName().getString();
 
-                    // Harvestability & Break Time
                     float destroySpeedPerTick = state.getDestroyProgress(player, level, pos);
                     float destroyHardness = state.getDestroySpeed(level, pos);
                     boolean unbreakable = destroyHardness < 0.0f;
@@ -111,7 +149,6 @@ public final class BlockInfoRenderer {
                         }
                     }
 
-                    // Live mining progress
                     float miningProg = 0.0f;
                     if (client.gameMode != null && client.gameMode.isDestroying()) {
                         MultiPlayerGameModeAccessor acc = (MultiPlayerGameModeAccessor) client.gameMode;
@@ -140,7 +177,10 @@ public final class BlockInfoRenderer {
                         extras.add("XYZ: " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ());
                     }
 
-                    return new BlockSnapshot(icon, blockName, sub.toString(), subCol, extras, miningProg, false);
+                    int accent = StarClient.getInstance() != null && StarClient.getInstance().getClientSettings() != null
+                            ? StarClient.getInstance().getClientSettings().getMenuAccentColor()
+                            : 0xFF38BDF8;
+                    return new InfoSnapshot(icon, blockName, sub.toString(), subCol, extras, miningProg, accent, false);
                 }
             }
         }
@@ -153,10 +193,188 @@ public final class BlockInfoRenderer {
             String sub = (showHarvest ? "✔ Harvestable" : "")
                     + (showHarvest && showBreakTime ? " • " : "")
                     + (showBreakTime ? "0.45s" : "");
-            return new BlockSnapshot(new ItemStack(Items.GRASS_BLOCK), "Grass Block", sub, 0xFF34D399, extras, 0.35f, true);
+            int accent = StarClient.getInstance() != null && StarClient.getInstance().getClientSettings() != null
+                    ? StarClient.getInstance().getClientSettings().getMenuAccentColor()
+                    : 0xFF38BDF8;
+            return new InfoSnapshot(new ItemStack(Items.GRASS_BLOCK), "Grass Block", sub, 0xFF34D399, extras, 0.35f, accent, true);
         }
 
         return null;
+    }
+
+    private static Entity resolveTargetEntity(Player player, double maxDist, double maxDistSq) {
+        Vec3 eyePos = player.getEyePosition(1.0f);
+        Vec3 lookVec = player.getViewVector(1.0f);
+        Vec3 endPos = eyePos.add(lookVec.scale(maxDist));
+        AABB searchBox = player.getBoundingBox().expandTowards(lookVec.scale(maxDist)).inflate(1.0);
+
+        EntityHitResult ehr = ProjectileUtil.getEntityHitResult(
+                player,
+                eyePos,
+                endPos,
+                searchBox,
+                e -> !e.isSpectator() && (e.isPickable() || e instanceof ItemEntity),
+                maxDistSq
+        );
+        return ehr != null ? ehr.getEntity() : null;
+    }
+
+    private static InfoSnapshot buildEntitySnapshot(Minecraft client, Player viewer, Entity entity,
+                                                    boolean showHealth, boolean showStats, boolean showCoords) {
+        ItemStack icon = resolveEntityIcon(entity);
+        boolean isFriend = FriendManager.isFriend(entity);
+        String title = (isFriend ? "♥ " : "") + entity.getName().getString();
+        if (entity instanceof LivingEntity living && living.isBaby()) {
+            title += " (Baby)";
+        }
+
+        StringBuilder sub = new StringBuilder();
+        int subCol = 0xFFCBD5E1;
+        float barProg = 0.0f;
+        int barCol = 0xFF34D399;
+
+        double dist = viewer.distanceTo(entity);
+        if (entity instanceof LivingEntity living && showHealth) {
+            float hp = Math.max(0.0f, living.getHealth() + living.getAbsorptionAmount());
+            float maxHp = Math.max(1.0f, living.getMaxHealth());
+            float ratio = Math.clamp(hp / maxHp, 0.0f, 1.0f);
+            barProg = Math.max(0.01f, ratio);
+            barCol = ratio > 0.5f ? 0xFF34D399 : (ratio > 0.25f ? 0xFFF59E0B : 0xFFEF4444);
+            subCol = barCol;
+
+            sub.append(String.format(Locale.US, "❤ %.1f / %.1f HP", hp, maxHp));
+            int armor = living.getArmorValue();
+            if (armor > 0) {
+                sub.append(" • 🛡 ").append(armor);
+            }
+            sub.append(String.format(Locale.US, " • %.1fm", dist));
+        } else {
+            sub.append(String.format(Locale.US, "Entity • %.1fm", dist));
+        }
+
+        List<String> extras = new ArrayList<>(4);
+        if (showStats) {
+            collectEntityDetails(client, entity, isFriend, extras);
+        }
+        if (showCoords) {
+            BlockPos bp = entity.blockPosition();
+            extras.add("XYZ: " + bp.getX() + ", " + bp.getY() + ", " + bp.getZ());
+        }
+
+        return new InfoSnapshot(icon, title, sub.toString(), subCol, extras, barProg, barCol, false);
+    }
+
+    private static void collectEntityDetails(Minecraft client, Entity entity, boolean isFriend, List<String> out) {
+        if (entity instanceof AbstractHorse horse) {
+            double rawSpeed = horse.getAttributeValue(Attributes.MOVEMENT_SPEED);
+            double blocksPerSec = rawSpeed * 42.157787;
+            double jumpStrength = horse.getAttributeValue(Attributes.JUMP_STRENGTH);
+            double jumpBlocks = -0.1817584952 * jumpStrength * jumpStrength * jumpStrength
+                    + 3.689713992 * jumpStrength * jumpStrength
+                    + 2.128599134 * jumpStrength
+                    - 0.343930367;
+            out.add(String.format(Locale.US, "Speed: %.2f m/s • Jump: %.2f blk", blocksPerSec, Math.max(0.0, jumpBlocks)));
+            if (horse instanceof Llama llama) {
+                out.add("Strength: " + llama.getStrength() + " cols • " + (horse.isTamed() ? "✔ Tamed" : "Wild"));
+            } else {
+                out.add(horse.isTamed() ? "Status: ✔ Tamed" : "Status: Wild");
+            }
+        } else if (entity instanceof Villager villager) {
+            var data = villager.getVillagerData();
+            String prof = data.profession().unwrapKey()
+                    .map(k -> capitalizeWords(k.identifier().getPath()))
+                    .orElse("None");
+            int lvl = data.level();
+            String tier = switch (lvl) {
+                case 1 -> "Novice";
+                case 2 -> "Apprentice";
+                case 3 -> "Journeyman";
+                case 4 -> "Expert";
+                case 5 -> "Master";
+                default -> "Lv." + lvl;
+            };
+            out.add("Profession: " + prof + " (" + tier + ")");
+        } else if (entity instanceof TamableAnimal pet) {
+            String state = pet.isTame() ? "✔ Tamed" : "Wild";
+            if (pet.isInSittingPose()) {
+                state += " • Sitting";
+            }
+            out.add("Pet: " + state);
+        } else if (entity instanceof Sheep sheep) {
+            String color = capitalizeWords(sheep.getColor().getName());
+            out.add("Wool: " + color + (sheep.isSheared() ? " (Sheared)" : " (Ready ✔)"));
+        } else if (entity instanceof Bee bee) {
+            out.add("Nectar: " + (bee.hasNectar() ? "Yes ✔" : "No") + (bee.isAngry() ? " • ⚠ Angry" : ""));
+        } else if (entity instanceof Creeper creeper && creeper.isPowered()) {
+            out.add("⚡ Charged Creeper");
+        } else if (entity instanceof Player targetPlayer) {
+            StringBuilder line = new StringBuilder();
+            if (isFriend) {
+                line.append("♥ Client Friend");
+            }
+            if (client.player != null && client.player.connection != null) {
+                PlayerInfo info = client.player.connection.getPlayerInfo(targetPlayer.getUUID());
+                if (info != null && info.getLatency() >= 0) {
+                    if (!line.isEmpty()) line.append(" • ");
+                    line.append(info.getLatency()).append("ms");
+                }
+            }
+            if (!line.isEmpty()) {
+                out.add(line.toString());
+            }
+            ItemStack held = targetPlayer.getMainHandItem();
+            if (!held.isEmpty()) {
+                out.add("Holding: " + held.getHoverName().getString());
+            }
+        } else if (entity instanceof ItemEntity itemEntity) {
+            ItemStack st = itemEntity.getItem();
+            out.add("Stack Count: x" + st.getCount());
+        } else if (entity instanceof ItemFrame frame) {
+            ItemStack framed = frame.getItem();
+            if (!framed.isEmpty()) {
+                out.add("Displayed: " + framed.getHoverName().getString());
+            }
+        }
+    }
+
+    private static ItemStack resolveEntityIcon(Entity entity) {
+        if (entity instanceof ItemEntity itemEntity && !itemEntity.getItem().isEmpty()) {
+            return itemEntity.getItem();
+        }
+        if (entity instanceof ItemFrame frame && !frame.getItem().isEmpty()) {
+            return frame.getItem();
+        }
+        if (entity instanceof Player player) {
+            if (!player.getMainHandItem().isEmpty()) {
+                return player.getMainHandItem();
+            }
+            return new ItemStack(Items.PLAYER_HEAD);
+        }
+        if (entity instanceof ArmorStand stand) {
+            if (!stand.getMainHandItem().isEmpty()) return stand.getMainHandItem();
+            return new ItemStack(Items.ARMOR_STAND);
+        }
+        var eggHolder = SpawnEggItem.byId(entity.getType());
+        if (eggHolder.isPresent()) {
+            return new ItemStack(eggHolder.get());
+        }
+        if (entity instanceof AbstractHorse) {
+            return new ItemStack(Items.SADDLE);
+        }
+        return new ItemStack(Items.NAME_TAG);
+    }
+
+    private static String capitalizeWords(String raw) {
+        if (raw == null || raw.isEmpty()) return "";
+        String[] parts = raw.replace('_', ' ').split("\\s+");
+        StringBuilder sb = new StringBuilder();
+        for (String p : parts) {
+            if (p.isEmpty()) continue;
+            if (!sb.isEmpty()) sb.append(' ');
+            sb.append(Character.toUpperCase(p.charAt(0)));
+            if (p.length() > 1) sb.append(p.substring(1).toLowerCase(Locale.ROOT));
+        }
+        return sb.toString();
     }
 
     private static String resolveOptimalTool(BlockState state, boolean unbreakable, float destroyHardness) {
@@ -198,7 +416,6 @@ public final class BlockInfoRenderer {
             return "Sword";
         }
 
-        // Fallback speed & drop probe for special or modded blocks
         ItemStack[] probes = {
                 new ItemStack(Items.NETHERITE_PICKAXE),
                 new ItemStack(Items.NETHERITE_AXE),
@@ -316,7 +533,7 @@ public final class BlockInfoRenderer {
         boolean editorMode = client == null || client.player == null
                 || client.gui.screen() instanceof ClickGuiScreen
                 || client.gui.screen() instanceof HudEditorScreen;
-        BlockSnapshot snap = capture(client, mod, editorMode);
+        InfoSnapshot snap = capture(client, mod, editorMode);
         if (snap == null) return 154;
         return computeWidth(font, mod, snap);
     }
@@ -325,12 +542,12 @@ public final class BlockInfoRenderer {
         boolean editorMode = client == null || client.player == null
                 || client.gui.screen() instanceof ClickGuiScreen
                 || client.gui.screen() instanceof HudEditorScreen;
-        BlockSnapshot snap = capture(client, mod, editorMode);
+        InfoSnapshot snap = capture(client, mod, editorMode);
         if (snap == null) return 32;
         return computeHeight(mod, snap);
     }
 
-    private static int computeWidth(Font font, Module mod, BlockSnapshot snap) {
+    private static int computeWidth(Font font, Module mod, InfoSnapshot snap) {
         boolean showIcon = getBool(mod, "Show Icon", true) && !snap.iconStack().isEmpty();
         int textLeft = showIcon ? 28 : 8;
         int maxTextW = font.width(snap.title());
@@ -343,14 +560,14 @@ public final class BlockInfoRenderer {
         return Math.max(124, textLeft + maxTextW + 10);
     }
 
-    private static int computeHeight(Module mod, BlockSnapshot snap) {
+    private static int computeHeight(Module mod, InfoSnapshot snap) {
         boolean showIcon = getBool(mod, "Show Icon", true) && !snap.iconStack().isEmpty();
         int lines = 1 + (snap.subtitle().isEmpty() ? 0 : 1) + snap.extraLines().size();
         int h = 8 + lines * 10;
         if (showIcon) {
             h = Math.max(26, h);
         }
-        if (snap.miningProgress() > 0.005f) {
+        if (snap.barProgress() > 0.005f) {
             h += 5;
         }
         return h;
@@ -361,7 +578,7 @@ public final class BlockInfoRenderer {
         if (mod == null || client == null || client.font == null) return;
         boolean editorMode = client.gui.screen() instanceof ClickGuiScreen
                 || client.gui.screen() instanceof HudEditorScreen;
-        BlockSnapshot snap = capture(client, mod, editorMode);
+        InfoSnapshot snap = capture(client, mod, editorMode);
         if (snap == null) return;
 
         renderSnapshot(extractor, client, mod, layout, screenWidth, screenHeight, snap);
@@ -370,14 +587,14 @@ public final class BlockInfoRenderer {
     public static void renderPreview(GuiGraphicsExtractor extractor, Module mod) {
         Minecraft client = Minecraft.getInstance();
         if (mod == null || client.font == null) return;
-        BlockSnapshot snap = capture(client, mod, true);
+        InfoSnapshot snap = capture(client, mod, true);
         if (snap == null) return;
         HudLayout layout = StarClient.getInstance().getHudLayout();
         renderSnapshot(extractor, client, mod, layout, extractor.guiWidth(), extractor.guiHeight(), snap);
     }
 
     private static void renderSnapshot(GuiGraphicsExtractor extractor, Minecraft client, Module mod,
-                                       HudLayout layout, int screenWidth, int screenHeight, BlockSnapshot snap) {
+                                       HudLayout layout, int screenWidth, int screenHeight, InfoSnapshot snap) {
         int width = computeWidth(client.font, mod, snap);
         int height = computeHeight(mod, snap);
 
@@ -386,7 +603,6 @@ public final class BlockInfoRenderer {
         x = Math.clamp(x, 2, Math.max(2, screenWidth - width - 2));
         y = Math.clamp(y, 2, Math.max(2, screenHeight - height - 2));
 
-        int accent = StarClient.getInstance().getClientSettings().getMenuAccentColor();
         boolean shadow = StarClient.getInstance().getClientSettings().isHudTextShadow();
 
         if (!mod.isTransparentBackground()) {
@@ -420,13 +636,13 @@ public final class BlockInfoRenderer {
             curY += 10;
         }
 
-        if (snap.miningProgress() > 0.005f) {
+        if (snap.barProgress() > 0.005f) {
             int barX = x + 6;
             int barY = y + height - 6;
             int barW = width - 12;
             GuiRenderUtils.fillRoundedRect(extractor, barX, barY, barW, 3, 1, 0x881E293B);
-            int fillW = Math.max(2, Math.round(barW * snap.miningProgress()));
-            GuiRenderUtils.fillRoundedRect(extractor, barX, barY, fillW, 3, 1, accent);
+            int fillW = Math.max(2, Math.round(barW * snap.barProgress()));
+            GuiRenderUtils.fillRoundedRect(extractor, barX, barY, fillW, 3, 1, snap.barColor());
         }
     }
 

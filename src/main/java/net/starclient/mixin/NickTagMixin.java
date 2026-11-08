@@ -7,6 +7,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.PrimedTnt;
 import net.minecraft.world.entity.player.Player;
 import net.starclient.StarClient;
+import net.starclient.friend.FriendManager;
 import net.starclient.module.NametagsPlusState;
 import net.starclient.module.NickToolState;
 import net.starclient.module.TntTimerState;
@@ -61,6 +62,12 @@ public abstract class NickTagMixin<T extends Entity> {
                 Component icon = Component.literal("⭐").withStyle(style -> style.withColor(rank.getRgb()));
                 cir.setReturnValue(Component.literal("").append(icon).append(Component.literal(" ")).append(display));
             }
+        }
+        if (FriendManager.isShowFriendBadge() && FriendManager.isFriend(player)) {
+            int fRgb = FriendManager.getFriendRgb();
+            Component badge = Component.literal(FriendManager.getFriendBadgePrefix()).withStyle(style -> style.withColor(fRgb));
+            Component base = cir.getReturnValue() != null ? cir.getReturnValue() : display;
+            cir.setReturnValue(Component.literal("").append(badge).append(base));
         }
         Component decorated = NametagsPlusState.decoratePlayerNametag(player, cir.getReturnValue());
         if (decorated != cir.getReturnValue()) {

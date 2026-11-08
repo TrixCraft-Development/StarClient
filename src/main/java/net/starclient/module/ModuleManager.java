@@ -33,10 +33,16 @@ import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
 import net.starclient.StarClient;
 import net.starclient.api.HypixelApi;
+import net.starclient.friend.FriendManager;
+import net.starclient.gui.BaseAlertRenderer;
+import net.starclient.gui.BedDefenseRenderer;
 import net.starclient.gui.EntityEsp;
+import net.starclient.gui.FireballAlertRenderer;
 import net.starclient.gui.HypixelLevelHead;
 import net.starclient.gui.HypixelPlayerStats;
+import net.starclient.gui.ItemEsp;
 import net.starclient.gui.LightOverlayRenderer;
+import net.starclient.gui.SpawnerOverlayRenderer;
 import net.starclient.gui.ToastNotificationManager;
 import net.starclient.mixin.FishingHookAccessor;
 import net.starclient.mixin.MinecraftAccessor;
@@ -299,11 +305,17 @@ public class ModuleManager {
             }
         });
 
-        register(new Module("Entity ESP", "Draws tracer lines & highlights around entities.", Category.CHEATS, GLFW.GLFW_KEY_Y) {
+        register(new Module("Entity ESP", "Draws boxes, Chams, tracer lines & labels around entities.", Category.CHEATS, GLFW.GLFW_KEY_Y) {
             {
                 addSetting(new BooleanSetting("Players Only", "Highlight only players", true));
-                addSetting(new ModeSetting("Style", "ESP render style", "Glowing", List.of("Glowing", "Box 2D", "Chams")));
-                addSetting(new NumberSetting("Range", "Max ESP range in blocks", 15.0, 1.0, 100.0, 1.0));
+                addSetting(new ModeSetting("Style", "ESP render style", "Glowing", List.of("Glowing", "Box 2D", "Box 3D", "Chams")));
+                addSetting(new BooleanSetting("Boxes", "Draw bounding boxes around entities", true));
+                addSetting(new BooleanSetting("Tracers", "Draw tracer lines from crosshair to entities", true));
+                addSetting(new BooleanSetting("Labels", "Show entity names and distances", true));
+                addSetting(new BooleanSetting("Use Client Colors", "Match box/tracer lines to Client Menu Color and fill to Client Menu Background", true));
+                addSetting(new ColorModeSetting("Line Color", "Custom box outline and tracer line color when Use Client Colors is off", "Sky Blue", BlockOutlineState.OUTLINE_COLORS));
+                addSetting(new ColorModeSetting("Fill Color", "Custom box interior and label plate color when Use Client Colors is off", "Slate", EntityEsp.ESP_FILL_COLORS));
+                addSetting(new NumberSetting("Range", "Max ESP range in blocks", 32.0, 1.0, 100.0, 1.0));
             }
 
             @Override
@@ -320,9 +332,7 @@ public class ModuleManager {
 
             @Override
             public void onTick(Minecraft client) {
-                if ("Glowing".equals(getStyle())) {
-                    EntityEsp.applyGlow(client, isPlayersOnly(), getMaxRange(), true);
-                }
+                EntityEsp.applyGlow(client, isPlayersOnly(), getMaxRange(), "Glowing".equals(getStyle()));
             }
 
             private boolean isPlayersOnly() {
@@ -706,6 +716,7 @@ public class ModuleManager {
                         client.player.getBoundingBox().inflate(maxRange),
                         entity -> {
                             if (entity == client.player || !entity.isAlive()) return false;
+                            if (FriendManager.shouldProtectInCombat(entity)) return false;
                             boolean isPlayer = entity instanceof Player;
                             boolean isMob = entity instanceof Mob;
                             return switch (targets) {
@@ -815,6 +826,7 @@ public class ModuleManager {
                         client.player.getBoundingBox().inflate(range),
                         entity -> {
                             if (entity == client.player || !entity.isAlive()) return false;
+                            if (FriendManager.shouldProtectInCombat(entity)) return false;
                             boolean isPlayer = entity instanceof Player;
                             if (playersOnly) return isPlayer;
                             return isPlayer || entity instanceof Mob;
@@ -889,6 +901,7 @@ public class ModuleManager {
                 if (!(hit instanceof EntityHitResult entityHit)) return;
                 Entity target = entityHit.getEntity();
                 if (target == player || !target.isAlive() || !(target instanceof LivingEntity)) return;
+                if (FriendManager.shouldProtectInCombat(target)) return;
 
                 double reach = player.getAttributeValue(Attributes.ENTITY_INTERACTION_RANGE);
                 if (player.distanceToSqr(target) > reach * reach) return;
@@ -1838,13 +1851,28 @@ public class ModuleManager {
             }
         });
 
+        register(new Module("Potion Alerts", "Audio notify pings and actionbar alerts when positive potion buffs expire and when dangerous debuffs strike.", Category.UI) {
+            {
+                setEnabled(true);
+                PotionAlertsState.setModule(this);
+                addSetting(new BooleanSetting("Expiry Warning", "Notify when beneficial potion buffs are about to expire", true));
+                addSetting(new NumberSetting("Expiry Threshold (s)", "Seconds remaining to trigger expiry warning", 10.0, 3.0, 30.0, 1.0));
+                addSetting(new BooleanSetting("Expiry Sound Ping", "Play a crisp note block ping when a potion buff is expiring", true));
+                addSetting(new BooleanSetting("Debuff Alert", "Alert when afflicted with harmful debuffs (Poison, Wither, Darkness, Bad Omen)", true));
+                addSetting(new BooleanSetting("Debuff Sound Ping", "Play a bass alert tone when afflicted with a debuff", true));
+                addSetting(new BooleanSetting("Show Cure Indicator", "Display an on-screen cure reminder badge while afflicted with a debuff", true));
+                addSetting(new BooleanSetting("Actionbar Warning", "Display overlay warnings on the in-game actionbar", true));
+                addSetting(new BooleanSetting("Toast Notifications", "Push slide-in corner toast notifications for potion alerts", true));
+            }
+        });
+
         register(new Module("CPS Display", "Displays your left and right clicks per second.", Category.UI) {
             {
                 addSetting(new BooleanSetting("Show Right Click", "Display both LMB and RMB CPS", true));
             }
         });
 
-        register(new Module("Reach Display", "Displays the distance of your last melee hit.", Category.UI) {
+        register(new Module("Reach Display", "Displays the distance of your last melee hit.", Category.COMBAT) {
             {
                 addSetting(new NumberSetting("Reset Time", "Seconds before reach resets to 0.00", 5.0, 1.0, 15.0, 1.0));
             }
@@ -1867,6 +1895,7 @@ public class ModuleManager {
                 addSetting(new BooleanSetting("Dynamic", "Expand gap when moving or attacking", true));
                 addSetting(new BooleanSetting("Cooldown Indicator", "Show 1.9+ PVP weapon cooldown attack indicator", true));
                 addSetting(new BooleanSetting("Always Show Cooldown", "Show cooldown bar even if Minecraft setting is not set to Crosshair", false));
+                addSetting(new BooleanSetting("Friend Tint", "Tint crosshair emerald green when aiming at a friend", true));
                 addSetting(new NumberSetting("Size", "Arm length or radius in pixels", 4.0, 1.0, 12.0, 1.0));
                 addSetting(new NumberSetting("Gap", "Distance from center in pixels", 2.0, 0.0, 10.0, 1.0));
                 addSetting(new NumberSetting("Thickness", "Line thickness in pixels", 1.0, 1.0, 4.0, 1.0));
@@ -1929,7 +1958,7 @@ public class ModuleManager {
             }
         });
 
-        register(new Module("Hit Color", "Customizes the damage flash color and opacity on hit entities.", Category.RENDER) {
+        register(new Module("Hit Color", "Customizes the damage flash color and opacity on hit entities.", Category.COMBAT) {
             {
                 addSetting(new BooleanSetting("Use Client Color", "Match hit tint to Client Menu Color", false));
                 addSetting(new ColorModeSetting("Tint Color", "Damage overlay color", "Crimson Red", HitColorState.HIT_COLORS));
@@ -2005,7 +2034,7 @@ public class ModuleManager {
             }
         });
 
-        register(new Module("Low Fire", "Lowers the first-person fire overlay so it does not block your view.", Category.RENDER) {
+        register(new Module("Low Fire", "Lowers the first-person fire overlay so it does not block your view.", Category.COMBAT) {
             {
                 addSetting(new NumberSetting("Height Offset", "How far to lower the fire overlay", -0.25, -0.5, 0.0, 0.05));
             }
@@ -2033,7 +2062,7 @@ public class ModuleManager {
             }
         });
 
-        register(new Module("Low Shield", "Lowers the first-person shield model so it does not block your view.", Category.RENDER) {
+        register(new Module("Low Shield", "Lowers the first-person shield model so it does not block your view.", Category.COMBAT) {
             {
                 addSetting(new NumberSetting("Height Offset", "How far to lower the shield (Y offset)", -0.25, -0.6, 0.0, 0.05));
                 addSetting(new NumberSetting("Side Offset", "Horizontal shift (X offset)", 0.0, -0.3, 0.3, 0.05));
@@ -2070,7 +2099,60 @@ public class ModuleManager {
             }
         });
 
-        register(new Module("Combo Counter", "Displays your consecutive melee hit combo without taking damage.", Category.UI) {
+        register(new Module("1.8 Module", "Authentic 1.8.9 PvP combat mechanics, block-hitting animations, instant swap, red armor flash, and classic sounds.", Category.COMBAT) {
+            {
+                addSetting(new BooleanSetting("Block-Hitting", "Classic 1.8 sword blocking and block-hit chop animations", true));
+                addSetting(new BooleanSetting("Old Swing", "Snappy 1.8 arm swing trajectory without modern weapon tilt", true));
+                addSetting(new BooleanSetting("Old Re-equip", "Instant item swap without 1.9+ item lowering dip delay", true));
+                addSetting(new BooleanSetting("Old Rod & Bow", "Classic 1.8 fishing rod upright angle and centered bow draw", true));
+                addSetting(new BooleanSetting("Old Eating & Drinking", "Bouncy mouth-bobbing eating animation without modern hand tilt", true));
+                addSetting(new BooleanSetting("Red Armor Flash", "Flashes entire equipped armor bright red when taking damage", true));
+                addSetting(new BooleanSetting("Hide Modern Cooldown", "Hides modern crosshair attack indicator and hotbar weapon cooldown bar", true));
+                addSetting(new BooleanSetting("Disable Sweep Effects", "Disables modern sword sweep attack particle waves and sweep sound", true));
+                addSetting(new BooleanSetting("Hide Offhand (1st Person)", "Hides offhand item in first person for classic single-item view", true));
+                addSetting(new BooleanSetting("Instant 1.8 Sneaking", "Snappy sneak transition without camera glide, snapping eye height instantly", false));
+                addSetting(new BooleanSetting("Old Hit Sounds", "Classic punch impact hit sounds instead of modern swooshes", true));
+                addSetting(new BooleanSetting("Bow Ding", "Plays classic high-pitched chime ding when hitting players with arrows", true));
+            }
+
+            @Override
+            public void onEnable() {
+                OldAnimationsState.setActive(true);
+                sync();
+            }
+
+            @Override
+            public void onTick(Minecraft client) {
+                OldAnimationsState.setActive(true);
+                sync();
+            }
+
+            @Override
+            public void onDisable() {
+                OldAnimationsState.setActive(false);
+            }
+
+            private void sync() {
+                OldAnimationsState.setBlockHitting(getBool("Block-Hitting", true));
+                OldAnimationsState.setOldSwing(getBool("Old Swing", true));
+                OldAnimationsState.setOldReequip(getBool("Old Re-equip", true));
+                OldAnimationsState.setOldRodAndBow(getBool("Old Rod & Bow", true));
+                OldAnimationsState.setOldEating(getBool("Old Eating & Drinking", true));
+                OldAnimationsState.setRedArmorFlash(getBool("Red Armor Flash", true));
+                OldAnimationsState.setHideCooldown(getBool("Hide Modern Cooldown", true));
+                OldAnimationsState.setDisableSweep(getBool("Disable Sweep Effects", true));
+                OldAnimationsState.setHideOffhand(getBool("Hide Offhand (1st Person)", true));
+                OldAnimationsState.setOldSneak(getBool("Instant 1.8 Sneaking", false));
+                OldAnimationsState.setOldHitSounds(getBool("Old Hit Sounds", true));
+                OldAnimationsState.setBowDing(getBool("Bow Ding", true));
+            }
+
+            private boolean getBool(String name, boolean fallback) {
+                return getSetting(name) instanceof BooleanSetting bs ? bs.getValue() : fallback;
+            }
+        });
+
+        register(new Module("Combo Counter", "Displays your consecutive melee hit combo without taking damage.", Category.COMBAT) {
             {
                 addSetting(new NumberSetting("Reset Time", "Seconds without hitting before the combo resets", 4.0, 1.0, 10.0, 0.5));
             }
@@ -2132,7 +2214,7 @@ public class ModuleManager {
             }
         });
 
-        register(new Module("Hit Particles", "Spawns extra customizable particles when hitting entities.", Category.RENDER) {
+        register(new Module("Hit Particles", "Spawns extra customizable particles when hitting entities.", Category.COMBAT) {
             {
                 addSetting(new BooleanSetting("Always Crit", "Always spawn crit particles on every melee hit", true));
                 addSetting(new ModeSetting("Particle Type", "Which particle effect to spawn on hits",
@@ -2363,6 +2445,15 @@ public class ModuleManager {
             }
         });
 
+        register(new Module("Death Recap", "Comprehensive post-death summary card: killer name & skin avatar, weapon, lost XP, and one-click death waypoint / coords.", Category.PLAYER) {
+            {
+                setEnabled(true);
+                DeathRecapState.setModule(this);
+                addSetting(new BooleanSetting("Show Killer Avatar", "Display the killer's Minecraft face avatar on the recap card", true));
+                addSetting(new BooleanSetting("Auto Death Waypoint", "Automatically create a death waypoint when killed", true));
+            }
+        });
+
         register(new Module("Auto Respawn", "Automatically respawns you when dying, with a configurable delay timer.", Category.PLAYER) {
             {
                 AutoRespawnReconnectState.setAutoRespawnModule(this);
@@ -2375,6 +2466,27 @@ public class ModuleManager {
             {
                 AutoRespawnReconnectState.setAutoReconnectModule(this);
                 addSetting(new NumberSetting("Reconnect Delay", "Delay in seconds before automatically reconnecting", 5.0, 1.0, 60.0, 0.5));
+            }
+        });
+
+        register(new Module("Radial Quick-Swap", "Glassmorphic 8-slice circular wheel to quickly equip tools, pearls, water, or food without scrolling.", Category.PLAYER) {
+            {
+                setKeyBind(org.lwjgl.glfw.GLFW.GLFW_KEY_R);
+                RadialMenuState.setModule(this);
+                addSetting(new ModeSetting("Mode", "Selection layout mapping", "Smart Survival", List.of("Smart Survival", "Hotbar Slots (1-8)")));
+                addSetting(new NumberSetting("Radius", "Circular wheel distance in pixels", 85.0, 60.0, 130.0, 5.0));
+                addSetting(new BooleanSetting("Show Item Count", "Display item stack count on wheel slots", true));
+                addSetting(new BooleanSetting("Play Sound", "Play an equipment click sound when selecting an item", true));
+            }
+
+            @Override
+            public boolean isKeyBindToggleable() {
+                return false;
+            }
+
+            @Override
+            public void onKeyPress(Minecraft client) {
+                RadialMenuState.openScreen(client);
             }
         });
 
@@ -2510,9 +2622,14 @@ public class ModuleManager {
             }
         });
 
-        register(new Module("Screenshots", "Async lag-free F2 screenshots with automatic Windows clipboard copy and clickable [Open] [Folder] [Copy] chat buttons.", Category.PLAYER) {
+        register(new Module("Screenshots", "Async lag-free F2 screenshots with automatic Windows clipboard copy, custom resolutions (720p, 1080p, 1440p, 4K, 8K, Custom), and clickable chat buttons.", Category.PLAYER) {
             {
                 BetterScreenshotsState.setModule(this);
+                addSetting(new ModeSetting("Resolution", "Output resolution for screenshots (scales automatically from any window size)", "Native",
+                        List.of("Native", "720p", "1080p", "1440p", "4K", "8K", "Custom")));
+                addSetting(new BooleanSetting("Keep Aspect Ratio", "Preserve screen aspect ratio so images never stretch or squish", true));
+                addSetting(new NumberSetting("Custom Width", "Custom screenshot width in pixels (when Resolution is Custom)", 1920.0, 320.0, 7680.0, 10.0));
+                addSetting(new NumberSetting("Custom Height", "Custom screenshot height in pixels (when Resolution is Custom)", 1080.0, 240.0, 4320.0, 10.0));
                 addSetting(new BooleanSetting("Auto Copy to Clipboard", "Automatically copy every F2 screenshot directly to the clipboard", true));
                 addSetting(new BooleanSetting("Chat Action Buttons", "Append clickable [Open], [Folder], and [Copy] buttons in chat", true));
             }
@@ -2554,14 +2671,17 @@ public class ModuleManager {
             }
         });
 
-        register(new Module("Block Info", "Displays a WAILA HUD card for the targeted block: 3D icon, harvestability, optimal tool, live break timer & progress bar, and crop/redstone states.", Category.UI) {
+        register(new Module("Block Info", "Displays a WAILA HUD card for targeted blocks and entities: 3D icon, harvestability, optimal tool, break timer, and entity stats.", Category.UI) {
             {
-                addSetting(new BooleanSetting("Show Icon", "Display the 3D block item icon next to the block name", true));
+                addSetting(new BooleanSetting("Show Icon", "Display the 3D block or entity icon next to the title", true));
+                addSetting(new BooleanSetting("Show Entities", "Inspect targeted players, mobs, horses, and villagers when looking at an entity", true));
+                addSetting(new BooleanSetting("Show Entity Health", "Display live health hearts and health bar on targeted living entities", true));
+                addSetting(new BooleanSetting("Show Entity Stats", "Display horse speed/jump height, villager profession/tier, and pet tame status", true));
                 addSetting(new BooleanSetting("Show Harvestability", "Show whether your held tool can harvest drops from this block", true));
                 addSetting(new BooleanSetting("Show Optimal Tool", "Display the optimal tool type and minimum tier used to break this block", true));
                 addSetting(new BooleanSetting("Show Break Time", "Display estimated mining duration and live breaking percentage", true));
                 addSetting(new BooleanSetting("Show Block Details", "Show crop growth %, redstone power, honey level, repeater delay, and cauldron fill", true));
-                addSetting(new BooleanSetting("Show Coordinates", "Display the targeted block's X, Y, Z coordinates", false));
+                addSetting(new BooleanSetting("Show Coordinates", "Display the targeted block or entity X, Y, Z coordinates", false));
                 addSetting(new BooleanSetting("Include Fluids", "Also inspect Water and Lava source/flowing blocks", false));
                 addSetting(new NumberSetting("Max Distance", "Maximum raycast reach distance in blocks", 5.5, 3.0, 20.0, 0.5));
             }
@@ -2623,6 +2743,174 @@ public class ModuleManager {
                 addSetting(new BooleanSetting("Highlight Slime Chunks", "Highlight the chunk floor in green when standing inside an Overworld Slime Chunk (when seed is known)", true));
                 addSetting(new NumberSetting("Height Range", "Vertical render height above and below your Y position", 32.0, 16.0, 96.0, 16.0));
                 addSetting(new NumberSetting("Line Thickness", "3D wireframe line thickness in pixels", 1.5, 1.0, 4.0, 0.5));
+            }
+        });
+
+        register(new Module("Stopwatch & Timer", "Draggable HUD stopwatch and countdown timer with start/pause/reset keybind controls.", Category.UI) {
+            {
+                StopwatchTimerState.setModule(this);
+                addSetting(new ModeSetting("Mode", "Count up as a stopwatch or count down from Countdown Minutes", "Stopwatch", List.of("Stopwatch", "Countdown")));
+                addSetting(new BooleanSetting("Running", "Start or pause the active stopwatch/timer", false));
+                addSetting(new BooleanSetting("Reset Timer", "Click to immediately reset the stopwatch/timer back to zero", false));
+                addSetting(new ModeSetting("Keybind Action", "What pressing this module's hotkey does in-game", "Start / Pause", List.of("Start / Pause", "Toggle Module")));
+                addSetting(new BooleanSetting("Double-Tap Reset", "Double-press the hotkey quickly to reset the timer", true));
+                addSetting(new NumberSetting("Countdown Minutes", "Target duration in minutes when Mode is set to Countdown", 5.0, 0.5, 120.0, 0.5));
+                addSetting(new BooleanSetting("Show Milliseconds", "Display tenths of a second (.0) on the timer", true));
+                addSetting(new BooleanSetting("Alert Sound", "Play a level-up chime when the countdown finishes", true));
+            }
+
+            @Override
+            public boolean isKeyBindToggleable() {
+                return !StopwatchTimerState.isKeybindStartPause();
+            }
+
+            @Override
+            public void onKeyPress(Minecraft client) {
+                StopwatchTimerState.onKeyPress(client);
+            }
+        });
+
+        register(new Module("Sound Radar", "Directional audio compass & HUD radar visualizing 3D in-game sounds (footsteps, explosions, chests, mobs).", Category.UI) {
+            {
+                SoundRadarState.setModule(this);
+                addSetting(new ModeSetting("Display Mode", "How sound pings are presented", "Radar Card", List.of("Radar Card", "Crosshair Indicators", "Both")));
+                addSetting(new NumberSetting("Range", "Maximum sound detection radius in blocks", 32.0, 8.0, 64.0, 4.0));
+                addSetting(new NumberSetting("Fade Time (s)", "Seconds before sound pings disappear", 2.5, 1.0, 5.0, 0.5));
+                addSetting(new BooleanSetting("Track Players", "Detect footsteps, swimming, pearls, and eating", true));
+                addSetting(new BooleanSetting("Track Explosions", "Detect TNT, Creeper hisses, and explosions", true));
+                addSetting(new BooleanSetting("Track Projectiles", "Detect bows, crossbows, and arrows", true));
+                addSetting(new BooleanSetting("Track Chests & Blocks", "Detect chests, doors, and pistons", true));
+                addSetting(new BooleanSetting("Track Mobs", "Detect hostile mob sounds", true));
+                addSetting(new BooleanSetting("Show Distance", "Display distance in blocks next to sound pings", true));
+                addSetting(new BooleanSetting("Show Sound Name", "Display sound type label", true));
+            }
+        });
+
+        register(new Module("Item ESP", "Highlights dropped items with 2D/3D boxes, Chams, tracer lines, and item stack labels.", Category.CHEATS) {
+            {
+                addSetting(new ModeSetting("Style", "Item ESP render style", "Box 2D", List.of("Box 2D", "Box 3D", "Chams", "Glowing")));
+                addSetting(new BooleanSetting("Boxes", "Draw bounding boxes around dropped items", true));
+                addSetting(new BooleanSetting("Tracers", "Draw tracer lines from crosshair to dropped items", true));
+                addSetting(new BooleanSetting("Labels", "Show item names, stack counts, and distances", true));
+                addSetting(new BooleanSetting("Show Item Icon", "Render the item icon next to the floating label", true));
+                addSetting(new BooleanSetting("Use Client Colors", "Match box/tracer lines to Client Menu Color and fill to Client Menu Background", true));
+                addSetting(new ColorModeSetting("Line Color", "Custom box outline and tracer line color when Use Client Colors is off", "Sky Blue", BlockOutlineState.OUTLINE_COLORS));
+                addSetting(new ColorModeSetting("Fill Color", "Custom box interior and label plate color when Use Client Colors is off", "Slate", EntityEsp.ESP_FILL_COLORS));
+                addSetting(new NumberSetting("Range", "Max Item ESP range in blocks", 32.0, 4.0, 100.0, 1.0));
+            }
+
+            @Override
+            public void onEnable() {
+                if ("Glowing".equals(getStyle())) {
+                    ItemEsp.applyGlow(mc, getRange(), true);
+                }
+            }
+
+            @Override
+            public void onDisable() {
+                ItemEsp.applyGlow(mc, 100.0, false);
+            }
+
+            @Override
+            public void onTick(Minecraft client) {
+                ItemEsp.applyGlow(client, getRange(), "Glowing".equals(getStyle()));
+            }
+
+            private String getStyle() {
+                Setting<?> s = getSetting("Style");
+                return s instanceof ModeSetting ms ? ms.getValue() : "Box 2D";
+            }
+
+            private double getRange() {
+                Setting<?> s = getSetting("Range");
+                return s instanceof NumberSetting ns ? ns.getValue() : 32.0;
+            }
+        });
+
+        register(new Module("Spawner Overlay", "Highlights Mob Spawners, Trial Spawners, and Vaults with 3D boxes, mob type labels, and a 16-block activation radius ring.", Category.WORLD) {
+            {
+                addSetting(new BooleanSetting("Highlight Box", "Draw a 3D box around spawners and vaults", true));
+                addSetting(new BooleanSetting("Activation Radius (16m)", "Draw the 16-block player activation radius ring around mob spawners", true));
+                addSetting(new BooleanSetting("Show Info Label", "Display mob type, Active/Standby status, and distance above spawners", true));
+                addSetting(new BooleanSetting("Include Trial & Vaults", "Also highlight Trial Spawners and Trial Vaults", true));
+                addSetting(new BooleanSetting("Tracers", "Draw tracer lines to nearby spawners", false));
+                addSetting(new BooleanSetting("Use Client Color", "Match spawner box color to Client Menu Color", false));
+                addSetting(new ColorModeSetting("Color", "Custom spawner highlight color when Use Client Color is off", "Gold", BlockOutlineState.OUTLINE_COLORS));
+                addSetting(new NumberSetting("Range", "Maximum scan distance in blocks", 48.0, 16.0, 96.0, 8.0));
+                addSetting(new NumberSetting("Line Thickness", "3D line thickness in pixels", 1.5, 1.0, 4.0, 0.5));
+            }
+
+            @Override
+            public void onDisable() {
+                SpawnerOverlayRenderer.clear();
+            }
+        });
+
+        register(new Module("Low Health Vignette", "Renders a smooth pulsing vignette around the screen edges when your health drops low.", Category.RENDER) {
+            {
+                addSetting(new NumberSetting("Health Threshold", "Trigger vignette when health is at or below this HP (20 HP = 10 hearts)", 8.0, 2.0, 16.0, 1.0));
+                addSetting(new NumberSetting("Max Opacity %", "Maximum vignette edge intensity at critical health", 55.0, 15.0, 90.0, 5.0));
+                addSetting(new NumberSetting("Pulse Speed", "Heartbeat pulse animation speed multiplier", 2.0, 0.5, 5.0, 0.5));
+                addSetting(new BooleanSetting("Use Client Color", "Use Client Menu Color instead of custom vignette color", false));
+                addSetting(new ColorModeSetting("Color", "Vignette color when Use Client Color is off", "Crimson", BlockOutlineState.OUTLINE_COLORS));
+            }
+        });
+
+        register(new Module("Bed Defense", "Scans nearby beds and displays their surrounding Bedwars defense block layers and exposed status.", Category.SERVER) {
+            {
+                addSetting(new BooleanSetting("Highlight Bed", "Draw a 3D outline box around detected beds", true));
+                addSetting(new BooleanSetting("Show Block Icons", "Render 3D item icons for each detected defense layer", true));
+                addSetting(new BooleanSetting("Show Layer Names", "Display the text order of defense layers (e.g. End Stone → Wood → Wool)", true));
+                addSetting(new BooleanSetting("Show Exposed Alert", "Show a warning when any side of the bed is uncovered", true));
+                addSetting(new NumberSetting("Max Layers", "Maximum number of defense block shells to inspect around each bed", 3.0, 1.0, 4.0, 1.0));
+                addSetting(new NumberSetting("Range", "Maximum bed scan distance in blocks", 48.0, 8.0, 96.0, 8.0));
+            }
+
+            @Override
+            public void onDisable() {
+                BedDefenseRenderer.clear();
+            }
+        });
+
+        register(new Module("Fireball Alert", "Alerts you with on-screen banners, 3D tracers, and warning chimes when fireballs fly towards you.", Category.SERVER) {
+            {
+                addSetting(new BooleanSetting("Sound Alert", "Play a warning chime when an incoming fireball is detected", true));
+                addSetting(new ModeSetting("Sound Type", "Audio sound effect for the warning chime",
+                        "Bell", List.of("Bell", "Pling", "Ding", "Anvil", "Bass")));
+                addSetting(new BooleanSetting("Screen Warning", "Display a high-visibility warning card on screen with distance & ETA", true));
+                addSetting(new BooleanSetting("Direction Arrow", "Show directional pointers (◀ Left, ▶ Right, ▲ Ahead, ▼ Behind) showing where the fireball is coming from", true));
+                addSetting(new BooleanSetting("World Box", "Draw a 3D glowing box around the fireball in the world", true));
+                addSetting(new BooleanSetting("Tracer Line", "Draw a tracer line from screen center towards the incoming fireball", true));
+                addSetting(new NumberSetting("Detection Range", "Maximum block distance to track fireballs", 60.0, 20.0, 100.0, 5.0));
+                addSetting(new BooleanSetting("Direct Threat Only", "Only trigger alerts for fireballs moving towards your position", true));
+                addSetting(new BooleanSetting("Toast Alert", "Show a slide-in corner toast notification upon detection", false));
+            }
+
+            @Override
+            public void onDisable() {
+                FireballAlertRenderer.clear();
+            }
+        });
+
+        register(new Module("Base Alert", "Auto-detects your team's bed in Bedwars and alerts you when enemy players approach your base.", Category.SERVER) {
+            {
+                addSetting(new NumberSetting("Alert Radius", "Block radius around your bed to trigger base alerts", 25.0, 10.0, 50.0, 1.0));
+                addSetting(new BooleanSetting("Ignore NPCs", "Ignore Hypixel Shopkeepers, Upgrades NPCs, and server Citizens bots", true));
+                addSetting(new BooleanSetting("Sound Alert", "Play an alarm sound when an enemy enters your base", true));
+                addSetting(new ModeSetting("Sound Type", "Alarm sound effect", "Anvil", List.of("Anvil", "Bell", "Pling", "Bass", "Ding")));
+                addSetting(new BooleanSetting("Screen Warning", "Display a high-visibility warning card on screen with enemy info & distance", true));
+                addSetting(new BooleanSetting("Show Held Item", "Show what weapon, tool, or TNT the enemy is holding", true));
+                addSetting(new BooleanSetting("Tracer to Enemy", "Draw a 3D tracer line towards enemies near your bed", true));
+                addSetting(new BooleanSetting("Highlight Enemy", "Render a 3D glowing highlight box around enemies near your bed", true));
+                addSetting(new BooleanSetting("Perimeter Ring", "Render a 3D circle on the ground showing your bed defense radius", true));
+                addSetting(new BooleanSetting("Bed Status Tag", "Display a floating status tag above your bed (Safe / Under Attack / Destroyed)", true));
+                addSetting(new BooleanSetting("Toast Notification", "Show slide-in corner toast notification when an enemy enters your base", false));
+                addSetting(new BooleanSetting("Auto-Detect Bed", "Automatically detect and lock onto your team's bed at match start", true));
+            }
+
+            @Override
+            public void onDisable() {
+                BaseAlertRenderer.clear();
             }
         });
     }

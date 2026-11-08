@@ -11,6 +11,7 @@ import net.starclient.changelog.ChangelogManager;
 import net.starclient.module.Module;
 import net.starclient.setting.BannedWordListSetting;
 import net.starclient.setting.BooleanSetting;
+import net.starclient.setting.FriendListSetting;
 import net.starclient.setting.MacroListSetting;
 import net.starclient.setting.ModeSetting;
 import net.starclient.setting.NickEntryListSetting;
@@ -111,6 +112,9 @@ public class ConfigManager {
                                 ms.setValue(settingsObj.get(setting.getName()).getAsString());
                         case TextSetting ts ->
                                 ts.setValue(settingsObj.get(setting.getName()).getAsString());
+                        case FriendListSetting fls -> {
+                            // Friends are stored client-wide globally in friends.json and never wiped per profile
+                        }
                         default -> {
                         }
                     }
@@ -262,6 +266,7 @@ public class ConfigManager {
             try (FileWriter writer = new FileWriter(configFile)) {
                 gson.toJson(root, writer);
             }
+            net.starclient.friend.FriendManager.save();
             StarClient.LOGGER.info("Client configuration saved successfully.");
         } catch (Exception e) {
             StarClient.LOGGER.error("Failed to save client configuration!", e);
@@ -352,6 +357,14 @@ public class ConfigManager {
                 settingsObj.addProperty(setting.getName(), ms.getValue());
             } else if (setting instanceof TextSetting ts) {
                 settingsObj.addProperty(setting.getName(), ts.getValue());
+            } else if (setting instanceof FriendListSetting fls) {
+                JsonArray friends = new JsonArray();
+                for (String f : fls.getValue()) {
+                    if (f != null && !f.isBlank()) {
+                        friends.add(f);
+                    }
+                }
+                settingsObj.add(setting.getName(), friends);
             }
         }
         return settingsObj;

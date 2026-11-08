@@ -43,7 +43,10 @@ public abstract class Module {
             "World Info",
             "Item Counter",
             "Block Info",
-            "Pinned Notes"
+            "Pinned Notes",
+            "Stopwatch & Timer",
+            "Sound Radar",
+            "Death Recap"
     );
 
     private static final Set<String> MODULES_WITH_TRANSPARENT_BG = Set.of(

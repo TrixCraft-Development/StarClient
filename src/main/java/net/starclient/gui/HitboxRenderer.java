@@ -12,6 +12,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.starclient.StarClient;
+import net.starclient.friend.FriendManager;
 import net.starclient.module.BlockOutlineState;
 import net.starclient.module.Module;
 import net.starclient.setting.BooleanSetting;
@@ -80,7 +81,14 @@ public final class HitboxRenderer {
             Vec3 delta = lerpedPos.subtract(entity.position());
             AABB box = entity.getBoundingBox().move(delta);
 
-            int col = (highlightTarget && entity == crosshairEntity) ? targetColor : boxColor;
+            int col;
+            if (highlightTarget && entity == crosshairEntity) {
+                col = targetColor;
+            } else if (FriendManager.isHighlightFriendsInEsp() && FriendManager.isFriend(entity)) {
+                col = (alpha << 24) | (FriendManager.getFriendColor() & 0x00FFFFFF);
+            } else {
+                col = boxColor;
+            }
             EspRenderUtil.drawBox3D(extractor, gameRenderer, box, screenW, screenH, thickness, col);
 
             if (entity instanceof LivingEntity) {

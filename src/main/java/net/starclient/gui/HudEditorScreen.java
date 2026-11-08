@@ -146,6 +146,34 @@ public class HudEditorScreen extends Screen {
                 PinnedNotesRenderer.renderPreview(extractor, pinnedNotesMod);
                 layout.endScale(extractor, sc);
             }
+            Module stopwatchMod = mod.getModuleManager().getModuleByName("Stopwatch & Timer");
+            if (stopwatchMod != null && stopwatchMod.isEnabled()) {
+                int swW = StopwatchRenderer.getWidth(this.font, stopwatchMod);
+                int swX = layout.effectiveX(HudLayout.STOPWATCH, this.width, swW);
+                int swY = layout.effectiveY(HudLayout.STOPWATCH, this.height);
+                boolean sc = layout.beginScale(extractor, swX, swY, HudLayout.STOPWATCH);
+                StopwatchRenderer.renderPreview(extractor, stopwatchMod);
+                layout.endScale(extractor, sc);
+            }
+            Module soundRadarMod = mod.getModuleManager().getModuleByName("Sound Radar");
+            if (soundRadarMod != null && soundRadarMod.isEnabled()) {
+                int srW = SoundRadarRenderer.RADAR_SIZE;
+                int srX = layout.effectiveX(HudLayout.SOUND_RADAR, this.width, srW);
+                int srY = layout.effectiveY(HudLayout.SOUND_RADAR, this.height);
+                boolean sc = layout.beginScale(extractor, srX, srY, HudLayout.SOUND_RADAR);
+                SoundRadarRenderer.renderPreview(extractor, soundRadarMod);
+                layout.endScale(extractor, sc);
+            }
+        }
+
+        Module deathRecapMod = mod.getModuleManager().getModuleByName("Death Recap");
+        if (deathRecapMod != null && deathRecapMod.isEnabled() && isHudElementVisible(HudLayout.DEATH_RECAP)) {
+            int drW = HudLayout.DEATH_RECAP_WIDTH;
+            int drX = layout.effectiveX(HudLayout.DEATH_RECAP, this.width, drW);
+            int drY = layout.effectiveY(HudLayout.DEATH_RECAP, this.height);
+            boolean sc = layout.beginScale(extractor, drX, drY, HudLayout.DEATH_RECAP);
+            DeathRecapRenderer.renderPreview(extractor, drX, drY);
+            layout.endScale(extractor, sc);
         }
 
         // Render rounded bounding outlines, preview cards, and pill badges for all active elements
@@ -166,7 +194,10 @@ public class HudEditorScreen extends Screen {
                     && !r.id().equals(HudLayout.MINIMAP)
                     && !r.id().equals(HudLayout.ITEM_COUNTER)
                     && !r.id().equals(HudLayout.BLOCK_INFO)
-                    && !r.id().equals(HudLayout.PINNED_NOTES)) {
+                    && !r.id().equals(HudLayout.PINNED_NOTES)
+                    && !r.id().equals(HudLayout.STOPWATCH)
+                    && !r.id().equals(HudLayout.SOUND_RADAR)
+                    && !r.id().equals(HudLayout.DEATH_RECAP)) {
                 GuiRenderUtils.drawDropShadow(extractor, r.x1(), r.y1(), rw, rh, 4, 3, 80);
                 GuiRenderUtils.fillRoundedRect(extractor, r.x1(), r.y1(), rw, rh, 4, 0xCC0F172A);
                 GuiRenderUtils.drawRoundedOutline(extractor, r.x1(), r.y1(), rw, rh, 4, 0x4438BDF8);
@@ -565,11 +596,14 @@ public class HudEditorScreen extends Screen {
             case HudLayout.ITEM_COUNTER -> "Item Counter";
             case HudLayout.BLOCK_INFO -> "Block Info";
             case HudLayout.PINNED_NOTES -> "Pinned Notes";
+            case HudLayout.STOPWATCH -> "Stopwatch & Timer";
+            case HudLayout.SOUND_RADAR -> "Sound Radar";
             case HudLayout.POTIONS -> "Potion Effects";
             case HudLayout.TARGET_HUD -> "Target HUD";
             case HudLayout.SCOREBOARD -> "Scoreboard";
             case HudLayout.BOSS_BAR -> "Boss Bar";
             case HudLayout.INVENTORY -> "Inventory HUD";
+            case HudLayout.DEATH_RECAP -> "Death Recap";
             default -> "";
         };
     }
@@ -598,11 +632,14 @@ public class HudEditorScreen extends Screen {
             case HudLayout.WORLD_INFO -> "Biome: Plains • Day 42";
             case HudLayout.BLOCK_INFO -> "Grass Block • ✔ Harvestable";
             case HudLayout.PINNED_NOTES -> "📌 Pinned Notes";
+            case HudLayout.STOPWATCH -> "⏱ 00:00.0";
+            case HudLayout.SOUND_RADAR -> "🔊 Sound Radar";
             case HudLayout.POTIONS -> "Speed II (01:30)";
             case HudLayout.TARGET_HUD -> "Target HUD";
             case HudLayout.SCOREBOARD -> "Scoreboard";
             case HudLayout.BOSS_BAR -> "Boss Bar";
             case HudLayout.INVENTORY -> "Inventory HUD";
+            case HudLayout.DEATH_RECAP -> "💀 Death Recap";
             default -> id;
         };
     }

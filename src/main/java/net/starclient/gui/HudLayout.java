@@ -40,6 +40,9 @@ public class HudLayout {
     public static final String ITEM_COUNTER = "item_counter";
     public static final String BLOCK_INFO = "block_info";
     public static final String PINNED_NOTES = "pinned_notes";
+    public static final String STOPWATCH = "stopwatch";
+    public static final String SOUND_RADAR = "sound_radar";
+    public static final String DEATH_RECAP = "death_recap";
     public static final int AUTO = Integer.MIN_VALUE;
 
     public static final float MIN_SCALE = 0.50f;
@@ -49,7 +52,8 @@ public class HudLayout {
             FPS, PING, COORDINATES, ARRAYLIST, KEYSTROKES, ARMOR,
             CPS, REACH, SPEED, COMBO, CLOCK, COMPASS, SERVER_INFO,
             MEMORY, POTIONS, TARGET_HUD, SCOREBOARD, BOSS_BAR, INVENTORY,
-            MINIMAP, WORLD_INFO, ITEM_COUNTER, BLOCK_INFO, PINNED_NOTES
+            MINIMAP, WORLD_INFO, ITEM_COUNTER, BLOCK_INFO, PINNED_NOTES, STOPWATCH,
+            SOUND_RADAR, DEATH_RECAP
     };
 
     public static final int FPS_WIDTH = 130;
@@ -59,6 +63,8 @@ public class HudLayout {
     public static final int POTIONS_WIDTH = 140;
     public static final int TARGET_HUD_WIDTH = 152;
     public static final int TARGET_HUD_HEIGHT = 48;
+    public static final int DEATH_RECAP_WIDTH = 260;
+    public static final int DEATH_RECAP_HEIGHT = 92;
     public static final int ELEMENT_HEIGHT = 18;
 
     public static final int BASE_BOSS_BAR_WIDTH = 162;
@@ -179,7 +185,7 @@ public class HudLayout {
 
     public int effectiveX(String id, int screenWidth, int maxModWidth) {
         return switch (id) {
-            case FPS, PING, COORDINATES, CPS, REACH, SPEED, COMBO, CLOCK, SERVER_INFO, MEMORY, POTIONS, MINIMAP, WORLD_INFO, PINNED_NOTES ->
+            case FPS, PING, COORDINATES, CPS, REACH, SPEED, COMBO, CLOCK, SERVER_INFO, MEMORY, POTIONS, MINIMAP, WORLD_INFO, PINNED_NOTES, STOPWATCH, SOUND_RADAR ->
                     isAuto(id) ? 8 : getX(id);
             case ITEM_COUNTER -> {
                 int w = maxModWidth > 0 ? maxModWidth : 110;
@@ -211,6 +217,7 @@ public class HudLayout {
                 yield anchorCenterX - w / 2;
             }
             case INVENTORY -> isAuto(id) ? screenWidth - inventoryWidth() - 8 : getX(id);
+            case DEATH_RECAP -> isAuto(id) ? (screenWidth - DEATH_RECAP_WIDTH) / 2 : getX(id);
             default -> getX(id);
         };
     }
@@ -229,6 +236,9 @@ public class HudLayout {
             case MINIMAP -> isAuto(id) ? 8 : getY(id);
             case WORLD_INFO -> isAuto(id) ? 132 : getY(id);
             case PINNED_NOTES -> isAuto(id) ? 206 : getY(id);
+            case STOPWATCH -> isAuto(id) ? screenHeight - 246 : getY(id);
+            case SOUND_RADAR -> isAuto(id) ? 140 : getY(id);
+            case DEATH_RECAP -> isAuto(id) ? Math.max(14, screenHeight / 4 - 44) : getY(id);
             case BLOCK_INFO -> isAuto(id) ? 38 : getY(id);
             case SERVER_INFO -> isAuto(id) ? 60 : getY(id);
             case ITEM_COUNTER -> isAuto(id) ? screenHeight - 62 : getY(id);
@@ -515,6 +525,28 @@ public class HudLayout {
         int pnX = layout.effectiveX(PINNED_NOTES, screenWidth, pnW);
         int pnY = layout.effectiveY(PINNED_NOTES, screenHeight);
         rects.add(makeScaledRect(layout, PINNED_NOTES, pnX, pnY, pnW, pnH));
+
+        Module stopwatchMod = StarClient.getInstance().getModuleManager().getModuleByName("Stopwatch & Timer");
+        int swW = StopwatchRenderer.getWidth(font, stopwatchMod);
+        int swH = StopwatchRenderer.getHeight();
+        int swX = layout.effectiveX(STOPWATCH, screenWidth, swW);
+        int swY = layout.effectiveY(STOPWATCH, screenHeight);
+        rects.add(makeScaledRect(layout, STOPWATCH, swX, swY, swW, swH));
+
+        int srW = SoundRadarRenderer.RADAR_SIZE;
+        int srH = SoundRadarRenderer.RADAR_SIZE;
+        int srX = layout.effectiveX(SOUND_RADAR, screenWidth, srW);
+        int srY = layout.effectiveY(SOUND_RADAR, screenHeight);
+        rects.add(makeScaledRect(layout, SOUND_RADAR, srX, srY, srW, srH));
+
+        Module deathRecapMod = StarClient.getInstance().getModuleManager().getModuleByName("Death Recap");
+        if (deathRecapMod != null && deathRecapMod.isEnabled()) {
+            int drW = DEATH_RECAP_WIDTH;
+            int drH = DEATH_RECAP_HEIGHT;
+            int drX = layout.effectiveX(DEATH_RECAP, screenWidth, drW);
+            int drY = layout.effectiveY(DEATH_RECAP, screenHeight);
+            rects.add(makeScaledRect(layout, DEATH_RECAP, drX, drY, drW, drH));
+        }
 
         int potX = layout.effectiveX(POTIONS, screenWidth, 0);
         int potY = layout.effectiveY(POTIONS, screenHeight);

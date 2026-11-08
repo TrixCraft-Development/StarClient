@@ -187,6 +187,7 @@ public abstract class ChatMessageMixin {
     private static Component rewriteChat(Component message) {
         if (message == null || ChatPlusState.isSessionDivider(message)) return message;
         Component rewritten = NickToolState.rewriteNames(message);
+        rewritten = net.starclient.friend.FriendManager.decorateChat(rewritten);
         if (!rewritten.getString().equals(message.getString())) {
             NickToolState.debug("chat \"" + message.getString() + "\" -> \"" + rewritten.getString() + "\"");
         }

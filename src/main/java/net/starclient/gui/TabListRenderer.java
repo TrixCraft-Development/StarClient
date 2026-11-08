@@ -169,6 +169,9 @@ public final class TabListRenderer {
             int ph = rowHeight;
 
             boolean isSelf = client.player != null && player.getProfile().id().equals(client.player.getUUID());
+            boolean isFriend = !isSelf
+                    && net.starclient.friend.FriendManager.isShowFriendBadge()
+                    && net.starclient.friend.FriendManager.isFriend(player.getProfile().name());
 
             // Row background
             if (isSelf && highlightSelf) {
@@ -176,6 +179,10 @@ public final class TabListRenderer {
                 GuiRenderUtils.fillRoundedRect(graphics, px, py, pw, ph, 3, selfFill);
                 int selfBorder = useClientTheme ? ((0x55 << 24) | (accent & 0x00FFFFFF)) : 0x4438BDF8;
                 GuiRenderUtils.drawRoundedOutline(graphics, px, py, pw, ph, 3, selfBorder);
+            } else if (isFriend) {
+                int fRgb = net.starclient.friend.FriendManager.getFriendRgb();
+                GuiRenderUtils.fillRoundedRect(graphics, px, py, pw, ph, 3, (0x24 << 24) | fRgb);
+                GuiRenderUtils.drawRoundedOutline(graphics, px, py, pw, ph, 3, (0x48 << 24) | fRgb);
             } else if (!transparent) {
                 GuiRenderUtils.fillRoundedRect(graphics, px, py, pw, ph, 3, 0x0AFFFFFF);
             }

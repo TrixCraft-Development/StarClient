@@ -13,6 +13,10 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.util.Util;
 import net.starclient.StarClient;
+import net.starclient.gui.ToastNotificationManager;
+import net.starclient.setting.BooleanSetting;
+import net.starclient.setting.ModeSetting;
+import net.starclient.setting.NumberSetting;
 import net.starclient.setting.Setting;
 
 import java.io.File;
@@ -81,6 +85,81 @@ public final class BetterScreenshotsState {
         return isEnabled() && getBool("Chat Action Buttons");
     }
 
+    public record TargetDimensions(int width, int height, String label) {
+    }
+
+    public static TargetDimensions getTargetDimensions(int srcWidth, int srcHeight) {
+        if (module == null || !isEnabled()) {
+            return new TargetDimensions(srcWidth, srcHeight, "F2");
+        }
+
+        Setting<?> resSetting = module.getSetting("Resolution");
+        String mode = resSetting instanceof ModeSetting ms ? ms.getValue() : "Native";
+        if ("Native".equalsIgnoreCase(mode)) {
+            return new TargetDimensions(srcWidth, srcHeight, "F2");
+        }
+
+        boolean keepAspect = true;
+        Setting<?> aspectSetting = module.getSetting("Keep Aspect Ratio");
+        if (aspectSetting instanceof BooleanSetting bs) {
+            keepAspect = bs.getValue();
+        }
+
+        int baseW;
+        int baseH;
+        String badge = mode;
+
+        switch (mode) {
+            case "720p" -> {
+                baseW = 1280;
+                baseH = 720;
+            }
+            case "1080p" -> {
+                baseW = 1920;
+                baseH = 1080;
+            }
+            case "1440p" -> {
+                baseW = 2560;
+                baseH = 1440;
+            }
+            case "4K" -> {
+                baseW = 3840;
+                baseH = 2160;
+            }
+            case "8K" -> {
+                baseW = 7680;
+                baseH = 4320;
+            }
+            case "Custom" -> {
+                Setting<?> cw = module.getSetting("Custom Width");
+                Setting<?> ch = module.getSetting("Custom Height");
+                baseW = cw instanceof NumberSetting ns ? (int) Math.round(ns.getValue()) : 1920;
+                baseH = ch instanceof NumberSetting ns ? (int) Math.round(ns.getValue()) : 1080;
+                badge = baseW + "×" + baseH;
+            }
+            default -> {
+                return new TargetDimensions(srcWidth, srcHeight, "F2");
+            }
+        }
+
+        if (!keepAspect) {
+            int w = Math.max(2, baseW);
+            int h = Math.max(2, baseH);
+            if ((w & 1) != 0) w++;
+            if ((h & 1) != 0) h++;
+            return new TargetDimensions(w, h, badge);
+        }
+
+        // Calculate aspect ratio preserving screen perspective
+        double aspect = srcWidth / (double) Math.max(1, srcHeight);
+        int finalH = Math.max(2, baseH);
+        int finalW = (int) Math.round(finalH * aspect);
+        if ((finalW & 1) != 0) finalW++;
+        if ((finalH & 1) != 0) finalH++;
+
+        return new TargetDimensions(finalW, finalH, badge);
+    }
+
     public static void handleCapturedScreenshot(File gameDir, String customName,
                                                 NativeImage image, Consumer<Component> callback) {
         File screenshotsDir = new File(gameDir, "screenshots");
@@ -92,14 +171,50 @@ public final class BetterScreenshotsState {
                 : new File(screenshotsDir, customName);
 
         Util.ioPool().execute(() -> {
-            try (NativeImage img = image) {
-                boolean copied = false;
-                if (isAutoCopy()) {
-                    copied = copyNativeImageToClipboard(img);
+            try (NativeImage raw = image) {
+                int srcW = raw.getWidth();
+                int srcH = raw.getHeight();
+                TargetDimensions dims = getTargetDimensions(srcW, srcH);
+
+                NativeImage finalImg = raw;
+                boolean isScaled = (dims.width() != srcW || dims.height() != srcH);
+                if (isScaled) {
+                    try {
+                        NativeImage scaled = new NativeImage(raw.format(), dims.width(), dims.height(), false);
+                        raw.resizeSubRectTo(0, 0, srcW, srcH, scaled);
+                        finalImg = scaled;
+                    } catch (Throwable t) {
+                        StarClient.LOGGER.warn("Failed to scale screenshot to " + dims.width() + "x" + dims.height() + ", saving native", t);
+                        finalImg = raw;
+                        isScaled = false;
+                    }
                 }
-                img.writeToFile(targetFile);
-                Component chatMsg = buildChatNotification(targetFile, copied);
-                callback.accept(chatMsg);
+
+                try {
+                    boolean copied = false;
+                    if (isAutoCopy()) {
+                        copied = copyNativeImageToClipboard(finalImg);
+                    }
+                    finalImg.writeToFile(targetFile);
+
+                    String badge = isScaled ? dims.label() : "F2";
+                    String resInfo = finalImg.getWidth() + "×" + finalImg.getHeight();
+                    String subtitle = targetFile.getName() + " (" + resInfo + ")";
+
+                    ToastNotificationManager.pushToast(
+                            "screenshot_capture",
+                            copied ? "Screenshot Copied & Saved" : "Screenshot Saved",
+                            subtitle,
+                            copied ? "COPIED" : badge,
+                            copied ? 0xFF34D399 : 0xFF38BDF8
+                    );
+                    Component chatMsg = buildChatNotification(targetFile, copied, finalImg.getWidth(), finalImg.getHeight(), isScaled ? dims.label() : null);
+                    callback.accept(chatMsg);
+                } finally {
+                    if (finalImg != raw) {
+                        finalImg.close();
+                    }
+                }
             } catch (Exception e) {
                 StarClient.LOGGER.warn("Failed to save screenshot", e);
                 callback.accept(Component.translatable("screenshot.failure", e.getMessage()));
@@ -136,13 +251,22 @@ public final class BetterScreenshotsState {
                             .append(Component.literal(" to clipboard!").withStyle(ChatFormatting.GREEN))
                             : Component.literal("⚠ Could not copy screenshot to clipboard.")
                             .withStyle(ChatFormatting.RED);
+                    if (success) {
+                        ToastNotificationManager.pushToast(
+                                "screenshot_copy",
+                                "Screenshot Copied",
+                                file.getName(),
+                                "CLIPBOARD",
+                                0xFF34D399
+                        );
+                    }
                     client.gui.hud.getChat().addClientSystemMessage(feedback);
                 });
             }
         });
     }
 
-    private static Component buildChatNotification(File targetFile, boolean autoCopied) {
+    private static Component buildChatNotification(File targetFile, boolean autoCopied, int width, int height, String presetLabel) {
         File absFile = targetFile.getAbsoluteFile();
         File parentDir = absFile.getParentFile() != null ? absFile.getParentFile() : absFile;
 
@@ -152,9 +276,15 @@ public final class BetterScreenshotsState {
                         .withColor(ChatFormatting.WHITE)
                         .withClickEvent(new ClickEvent.OpenFile(absFile))
                         .withHoverEvent(new HoverEvent.ShowText(
-                                Component.literal("Click to open screenshot").withStyle(ChatFormatting.GRAY))));
+                                Component.literal("Click to open screenshot (" + width + "×" + height + ")").withStyle(ChatFormatting.GRAY))));
 
         MutableComponent root = Component.translatable("screenshot.success", fileLink);
+
+        // Resolution badge
+        String resText = (presetLabel != null && !presetLabel.isEmpty())
+                ? " [" + presetLabel + " • " + width + "×" + height + "]"
+                : " [" + width + "×" + height + "]";
+        root.append(Component.literal(resText).withStyle(ChatFormatting.DARK_GRAY));
 
         if (autoCopied) {
             root.append(Component.literal(" (Copied)").withStyle(ChatFormatting.GREEN));

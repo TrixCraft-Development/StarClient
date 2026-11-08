@@ -3,10 +3,10 @@
 ![Minecraft 26.2](https://img.shields.io/badge/Minecraft-26.2-34D399?style=for-the-badge&logo=minecraft&logoColor=white)
 ![Fabric](https://img.shields.io/badge/Mod%20Loader-Fabric%200.19.5%2B-38BDF8?style=for-the-badge)
 ![Java 25](https://img.shields.io/badge/Java-25-F59E0B?style=for-the-badge&logo=openjdk&logoColor=white)
-![Version](https://img.shields.io/badge/Version-v0.11-A78BFA?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-v0.13-A78BFA?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-64748B?style=for-the-badge)
 
-**Star Client** is a modern, high-performance modular Minecraft client built on **Fabric** for **Minecraft 26.2 (Java 25)** by **TrixCraft Development**. It combines a sleek glassmorphic user interface, **88 customizable modules**, **22 draggable & scalable HUD widgets**, a full **3D Cosmetics Studio**, **Saved Loadout Profiles** with automatic world/server switching, an **In-Game Account Manager**, and deep **FPS / Render Optimizations** — while remaining fully compatible with standard Fabric mods.
+**Star Client** is a modern, high-performance modular Minecraft client built on **Fabric** for **Minecraft 26.2 (Java 25)** by **TrixCraft Development**. It combines a sleek glassmorphic user interface, **100 customizable modules**, **27 draggable & scalable HUD widgets**, a full **3D Cosmetics Studio**, **Saved Loadout Profiles** with automatic world/server switching, a **Client Friends System**, an **In-Game Account Manager**, and deep **FPS / Render Optimizations** — while remaining fully compatible with standard Fabric mods.
 
 ---
 
@@ -20,13 +20,14 @@
    - [Client Statistics Dashboard](#4-client-statistics-dashboard)
    - [Account Manager, Custom Main Menu & Mod Browser](#5-account-manager-custom-main-menu--mod-browser)
 3. [General Client Settings (`Settings` Tab)](#-general-client-settings-settings-tab)
-4. [Complete Modules & Settings Reference (88 Modules)](#-complete-modules--settings-reference-88-modules)
-   - [🎨 UI & Visuals (29 Modules)](#-ui--visuals-29-modules)
-   - [👁 Render (17 Modules)](#-render-17-modules)
-   - [🛡 Player (15 Modules)](#-player-15-modules)
+4. [Complete Modules & Settings Reference (100 Modules)](#-complete-modules--settings-reference-100-modules)
+   - [🗡 Combat (7 Modules)](#-combat-7-modules)
+   - [🎨 UI & Visuals (30 Modules)](#-ui--visuals-30-modules)
+   - [👁 Render (15 Modules)](#-render-15-modules)
+   - [🛡 Player (17 Modules)](#-player-17-modules)
    - [🚀 Movement (3 Modules)](#-movement-3-modules)
-   - [🌍 World (5 Modules)](#-world-5-modules)
-   - [🖥 Server (4 Modules)](#-server-4-modules)
+   - [🌍 World (6 Modules)](#-world-6-modules)
+   - [🖥 Server (7 Modules)](#-server-7-modules)
    - [⚔ Cheats (15 Modules)](#-cheats-15-modules)
 5. [Default Keybinds](#-default-keybinds)
 6. [Installation & Building from Source](#-installation--building-from-source)
@@ -36,9 +37,9 @@
 
 ## ✨ Key Highlights
 
-- **88 Built-In Modules**: Covering HUD widgets, PvP utilities, rendering upgrades, performance boosters, quality-of-life tools, server integrations, and world customization.
-- **Modern Glassmorphic UI**: Custom title screen, rounded buttons, smooth container pop-in animations, background blur, keybind toggle toast notifications, and customizable accent (`10` colors) & surface (`10` dark palettes) themes.
-- **22 Draggable & Scalable HUD Widgets**: Free-form HUD Editor with magnetic edge/center snap guides, scroll-wheel per-widget scaling (`0.50x` – `2.00x`), and per-widget background/text colors.
+- **100 Built-In Modules**: Covering Combat enhancements, HUD widgets, rendering upgrades, performance boosters, quality-of-life tools, server integrations, and world customization.
+- **Modern Glassmorphic UI**: Custom title screen, rounded buttons, smooth container pop-in animations, background blur, unified slide-in corner toast notifications, and customizable accent (`10` colors) & surface (`10` dark palettes) themes.
+- **27 Draggable & Scalable HUD Widgets**: Free-form HUD Editor with magnetic edge/center snap guides, scroll-wheel per-widget scaling (`0.50x` – `2.00x`), and per-widget background/text colors.
 - **90+ Built-In Cosmetics**: Complete collection of **82+ official capes**, custom Star Client & animated capes, 3D wings, headwear, and particle trails with interactive 3D avatar preview and per-account loadouts.
 - **Smart Profile System**: Create unlimited profiles, bind hotkeys to switch mid-game, share profiles via `STAR-PROFILE:...` clipboard codes, and auto-activate profiles per Singleplayer world or Multiplayer server IP.
 - **FPS & Render Engine Optimizations**: Entity/block-entity distance culling, distant sign text skipping, hologram-safe armor stand culling, particle limiters, dynamic unfocused FPS throttling, and `O(1)` client lookups.
@@ -51,7 +52,7 @@
 - Open the **ClickGUI** anywhere (Main Menu or In-Game) by pressing **`Right Shift`** (configurable in Minecraft Controls).
 - **Search & Favorites**: Instantly filter modules by name or pin favorite modules (`★`) to the top.
 - **HUD Editor**:
-  - Drag and drop any of the **22 HUD widgets** anywhere on screen.
+  - Drag and drop any of the **27 HUD widgets** anywhere on screen.
   - **Scroll Wheel Scaling**: Hover any widget in the HUD Editor and scroll the mouse wheel to resize it individually (`0.50x` – `2.00x`).
   - **Magnetic Snap Guides**: Automatic horizontal, vertical, and screen-center alignment guides keep your HUD layout pixel-perfect.
   - **Shared HUD Appearance Settings**: Every HUD widget automatically includes:
@@ -104,23 +105,84 @@ Global settings that control Star Client's theme, menus, and safeguards:
 | **Modern Buttons** | Boolean | `true` / `false` | `true` | Applies Star Client's rounded glassmorphic styling to standard Minecraft UI buttons. |
 | **HUD Text Shadow** | Boolean | `true` / `false` | `true` | Draws a crisp drop shadow behind HUD widget text for readability. |
 | **Show Name Icon** | Boolean | `true` / `false` | `true` | Displays the Star Client badge next to your name in the tab list and nametag. |
-| **Keybind Notifications** | Boolean | `true` / `false` | `true` | Shows a slide-in corner toast notification exclusively when toggling modules via keybinds. |
+| **Keybind Notifications** | Boolean | `true` / `false` | `true` | Shows a slide-in corner toast notification when toggling modules via keybinds. |
+| **Toast Notifications** | Boolean | `true` / `false` | `true` | Shows slide-in corner toast notifications for profile switches, screenshots, friends, waypoints, durability alerts, and timers. |
 | **Remove Splash Text** | Boolean | `true` / `false` | `true` | Hides the yellow rotating splash text on the main menu. |
 | **Container Animations** | Boolean | `true` / `false` | `false` | Smooth cubic ease-out pop-in and glide animation when opening inventories and chests. |
 | **Container Background Blur** | Boolean | `true` / `false` | `true` | Applies Gaussian background blur behind open inventory and container screens. |
+| **Friend List** | Modal List | Opens **Friends Manager** | `[]` | Manage global client friends with face avatars, custom note/role tags, and one-click online player suggestions. |
+| **Show Friend Badge** | Boolean | `true` / `false` | `true` | Shows a friend badge next to friends' names in overhead nametags and the multiplayer Tab list. |
+| **Friend Badge Style** | Mode | `♥ Heart`, `★ Star`, `🛡 Ally`, `✦ Sparkle`, `[FRIEND]` | `♥ Heart` | Customizable badge icon displayed next to friends' names. |
+| **Friend Color** | Color | `Sky Blue`, `Blue`, `Cyan`, `Green`, `Lime`, `Yellow`, `Orange`, `Red`, `Pink`, `Purple` | `Green` | Highlight color used for friend badges, Tab rows, Entity ESP, Hitboxes, and Minimap blips. |
+| **Friend Chat Badges** | Boolean | `true` / `false` | `true` | Displays friend badge in front of friends' names in chat messages. |
+| **Friend Notifications** | Boolean | `true` / `false` | `true` | Pushes slide-in corner toast notifications whenever a friend joins or leaves your server. |
+| **Friend Notification Sound** | Boolean | `true` / `false` | `true` | Plays a subtle chime sound on friend join or leave. |
+| **Middle Click Friend** | Boolean | `true` / `false` | `true` | Middle-click any player in-game to quickly add or remove them as a friend. |
+| **Protect Friends in Combat** | Boolean | `true` / `false` | `true` | Prevents `Aimbot`, `Kill Aura`, and `Auto Clicker` from targeting your friends. |
+| **Highlight Friends in ESP** | Boolean | `true` / `false` | `true` | Highlights friends using your `Friend Color` in `Entity ESP`, `Hitboxes`, and `Minimap`. |
 | **Hypixel API Key** | Secret Text | API key from `hypixel.dev` | `""` | API key used by Hypixel server integration modules. |
 | **Experimental Features** | Boolean | `true` / `false` | `false` | Unlocks experimental modules currently in active development. |
 | **Palette Crash Safeguard** | Boolean | `true` / `false` | `true` | Protects against client crashes caused by malformed server chunk palette IDs. |
 
 ---
 
-## 📦 Complete Modules & Settings Reference (88 Modules)
+## 📦 Complete Modules & Settings Reference (93 Modules)
 
 > **Note:** Every HUD widget module (`[HUD]`) also includes **Transparent Background**, **Background Color**, and **Text Color** appearance settings in addition to the module-specific settings listed below.
 
 ---
 
-### 🎨 UI & Visuals (29 Modules)
+### 🗡 Combat (7 Modules)
+
+#### 1. **Reach Display** `[HUD]`
+Displays the exact block distance of your most recent melee hit.
+- `Reset Time` (`Number`: `1.0` – `15.0s`, step `1.0`, default `5.0`) — Seconds before resetting back to `0.00`.
+
+#### 2. **Combo Counter** `[HUD]`
+Tracks consecutive melee hits landed without taking damage.
+- `Reset Time` (`Number`: `1.0` – `10.0s`, step `0.5`, default `4.0`) — Inactivity timeout before resetting the combo.
+
+#### 3. **Hit Color**
+Customizes the damage flash tint color and opacity rendered on hurt entities.
+- `Use Client Color` (`Boolean`, default `false`)
+- `Tint Color` (`ColorMode`, default `Crimson Red`)
+- `Opacity` (`Number`: `0.10` – `1.00`, step `0.05`, default `0.60`)
+
+#### 4. **Hit Particles**
+Spawns extra customizable particle bursts when attacking entities.
+- `Always Crit` (`Boolean`, default `true`)
+- `Particle Type` (`Mode`: `Crit`, `Enchanted`, `Both`, `Heart`, `Flame`, default `Crit`)
+- `Multiplier` (`Number`: `1` – `10x`, step `1`, default `2`)
+
+#### 5. **Low Fire**
+Lowers the first-person burning fire overlay so your screen stays clear in combat.
+- `Height Offset` (`Number`: `-0.50` – `0.00`, step `0.05`, default `-0.25`)
+
+#### 6. **Low Shield**
+Repositions and scales the first-person shield model for unobstructed visibility.
+- `Height Offset` (`Number`: `-0.60` – `0.00`, step `0.05`, default `-0.25`)
+- `Side Offset` (`Number`: `-0.30` – `0.30`, step `0.05`, default `0.00`)
+- `Scale` (`Number`: `0.50` – `1.20x`, step `0.05`, default `1.00`)
+- `Lower When Blocking` (`Boolean`, default `true`) — Keep shield lowered while actively blocking.
+
+#### 7. **1.8 Module**
+Authentic Minecraft 1.8.9 mechanics, block-hitting animations, instant swap, red armor damage flash, and classic sounds.
+- `Block-Hitting` (`Boolean`, default `true`) — Classic 45° sword blocking pose and authentic block-hit swing chops.
+- `Old Swing` (`Boolean`, default `true`) — Snappy 1.8 arm swing trajectory without modern weapon tilt.
+- `Old Re-equip` (`Boolean`, default `true`) — Instant item swap without 1.9+ item lowering dip delay.
+- `Old Rod & Bow` (`Boolean`, default `true`) — Classic 1.8 upright fishing rod stance and centered bow draw angle.
+- `Old Eating & Drinking` (`Boolean`, default `true`) — Bouncy mouth-bobbing eating animation without sideways hand tilt.
+- `Red Armor Flash` (`Boolean`, default `true`) — Flashes entire equipped armor bright red when taking damage.
+- `Hide Modern Cooldown` (`Boolean`, default `true`) — Hides modern crosshair attack indicator and hotbar weapon cooldown bar.
+- `Disable Sweep Effects` (`Boolean`, default `true`) — Disables modern sword sweep attack particle waves and sweep sound.
+- `Hide Offhand (1st Person)` (`Boolean`, default `true`) — Hides offhand item in first person for classic single-item view.
+- `Instant 1.8 Sneaking` (`Boolean`, default `true`) — Snappy sneak transition without camera glide, snapping eye height instantly to `1.54`.
+- `Old Hit Sounds` (`Boolean`, default `true`) — Classic punch impact hit sounds instead of modern swooshes.
+- `Bow Ding` (`Boolean`, default `true`) — Plays classic high-pitched chime ding when hitting players with arrows.
+
+---
+
+### 🎨 UI & Visuals (30 Modules)
 
 #### 1. **Keystrokes** `[HUD]` *(Enabled by default)*
 Displays a modern real-time WASD, Jump, and Mouse button overlay.
@@ -149,7 +211,7 @@ Hold to zoom in smoothly with scroll-wheel magnification and proportional sensit
 - `Reset on Release` (`Boolean`, default `false`) — Reset zoom back to `30.0` FOV after releasing the zoom key.
 
 #### 7. **Target HUD** `[HUD]`
-Displays a combat info card showing your target's 3D head/avatar, health bar, distance, and equipped gear.
+Displays a combat info card showing your target's 3D head/avatar, health bar, distance, and equipped gear (renders a `♥ FRIEND` pill when targeting friends).
 - `Target Mode` (`Mode`: `Crosshair & Attack`, `Attack Only`, `Crosshair Only`, default `Crosshair & Attack`)
 - `Players Only` (`Boolean`, default `false`) — Only show Target HUD for players.
 - `Show Armor` (`Boolean`, default `true`) — Render the target's equipped armor and held items.
@@ -162,10 +224,6 @@ Displays active status effects with icons, amplifiers, and live countdown timers
 #### 9. **CPS Display** `[HUD]`
 Displays your real-time clicks per second.
 - `Show Right Click` (`Boolean`, default `true`) — Show both LMB and RMB CPS (`LMB | RMB`).
-
-#### 10. **Reach Display** `[HUD]`
-Displays the exact block distance of your most recent melee hit.
-- `Reset Time` (`Number`: `1.0` – `15.0s`, step `1.0`, default `5.0`) — Seconds before resetting back to `0.00`.
 
 #### 11. **Speedometer** `[HUD]`
 Displays your live horizontal movement speed.
@@ -181,6 +239,7 @@ Replaces the vanilla crosshair with a customizable geometric reticle.
 - `Dynamic` (`Boolean`, default `true`) — Expand crosshair gap dynamically when moving or attacking.
 - `Cooldown Indicator` (`Boolean`, default `true`) — Render 1.9+ weapon attack cooldown bar below the crosshair.
 - `Always Show Cooldown` (`Boolean`, default `false`) — Show cooldown bar regardless of vanilla attack indicator setting.
+- `Friend Tint` (`Boolean`, default `true`) — Tint crosshair emerald green when aiming at a friend so you immediately know not to attack.
 - `Size` (`Number`: `1` – `12px`, step `1`, default `4`) — Arm length or circle radius.
 - `Gap` (`Number`: `0` – `10px`, step `1`, default `2`) — Inner gap from center.
 - `Thickness` (`Number`: `1` – `4px`, step `1`, default `1`) — Line thickness.
@@ -221,10 +280,6 @@ Sleek customizable boss health bar with dynamic width expansion and health perce
 - `Bar Height` (`Number`: `3` – `14px`, step `1`, default `5`)
 - `Background Opacity` (`Number`: `10` – `100%`, step `5`, default `70`)
 - `Text Shadow` (`Boolean`, default `true`)
-
-#### 16. **Combo Counter** `[HUD]`
-Tracks consecutive melee hits landed without taking damage.
-- `Reset Time` (`Number`: `1.0` – `10.0s`, step `0.5`, default `4.0`) — Inactivity timeout before resetting the combo.
 
 #### 17. **Clock Display** `[HUD]`
 Displays real-world local system time on the HUD.
@@ -319,8 +374,11 @@ Scroll tall or wide item tooltips vertically and horizontally so overflowing lor
 - `Reset on New Item` (`Boolean`, default `true`) — Reset scroll offset when hovering a different slot.
 
 #### 26. **Block Info** `[HUD]`
-WAILA (*"What Am I Looking At"*) HUD widget showing the targeted block's 3D icon, harvestability check, optimal breaking tool & required tier, live mining duration & progress bar, and contextual block state details (crop growth `%`, redstone power, honey level, repeater delay, cauldron/composter fill).
+WAILA (*"What Am I Looking At"*) HUD widget showing the targeted block or entity's 3D icon, harvestability check, optimal breaking tool & required tier, live mining duration & progress bar, contextual block state details (crop growth `%`, redstone power, honey level, repeater delay, cauldron/composter fill), and **Entity Info** (live health/armor bars, Horse/Camel speed & jump height, Villager profession & tier, pet tame state, and player ping/friend tags).
 - `Show Icon` (`Boolean`, default `true`)
+- `Show Entities` (`Boolean`, default `true`) — Inspect targeted players, mobs, mounts, and villagers when looking at an entity.
+- `Show Entity Health` (`Boolean`, default `true`) — Display live health hearts, armor points, and a bottom health progress bar on living entities.
+- `Show Entity Stats` (`Boolean`, default `true`) — Display mount speed (`m/s`) & jump height (`blocks`), Villager profession/tier, pet tame/sitting status, and player ping/friend tags.
 - `Show Harvestability` (`Boolean`, default `true`) — `✔ Harvestable` / `✕ Wrong Tool` / `∞ Unbreakable`.
 - `Show Optimal Tool` (`Boolean`, default `true`) — Displays optimal tool type & required tier (e.g., `Pickaxe (Iron+)`, `Pickaxe (Diamond+)`, `Shovel`, `Axe`, `Hoe`, `Shears`).
 - `Show Break Time` (`Boolean`, default `true`) — Estimated break time (`s` / `Instant`) + live breaking `%` progress bar.
@@ -351,9 +409,44 @@ Draggable HUD checklist and sticky notes card for coordinates, material goals, a
 - `Show Completed` (`Boolean`, default `true`) — Keep completed notes visible with strikethrough or hide them automatically.
 - `Hide When Empty` (`Boolean`, default `false`)
 
+#### 30. **Stopwatch & Timer** `[HUD]`
+Draggable HUD stopwatch and countdown timer with start/pause/reset hotkey controls and completion alerts.
+- `Mode` (`Mode`: `Stopwatch`, `Countdown`, default `Stopwatch`)
+- `Running` (`Boolean`, default `false`) — Start or pause the active timer.
+- `Reset Timer` (`Boolean`, default `false`) — Immediately resets the timer back to `00:00.0`.
+- `Keybind Action` (`Mode`: `Start / Pause`, `Toggle Module`, default `Start / Pause`)
+- `Double-Tap Reset` (`Boolean`, default `true`) — Double-press the hotkey within `350ms` to reset.
+- `Countdown Minutes` (`Number`: `0.5` – `120.0` min, step `0.5`, default `5.0`)
+- `Show Milliseconds` (`Boolean`, default `true`) — Display tenths of a second (`.0`).
+- `Alert Sound` (`Boolean`, default `true`) — Play a chime and corner toast notification when the countdown finishes.
+
+#### 31. **Sound Radar** `[HUD]`
+Directional audio compass and circular HUD radar card visualizing 3D in-game sounds (footsteps, explosions, projectiles, chests/blocks, mobs) with distance readouts and optional crosshair directional chevrons.
+- `Display Mode` (`Mode`: `Radar Card`, `Crosshair Indicators`, `Both`, default `Radar Card`)
+- `Range` (`Number`: `8.0` – `64.0` blocks, step `4.0`, default `32.0`)
+- `Fade Time (s)` (`Number`: `1.0` – `5.0s`, step `0.5`, default `2.5`)
+- `Track Players` (`Boolean`, default `true`) — Detect footsteps, swimming, pearls, and eating.
+- `Track Explosions` (`Boolean`, default `true`) — Detect TNT, Creeper hisses, and explosions.
+- `Track Projectiles` (`Boolean`, default `true`) — Detect bows, crossbows, and arrows.
+- `Track Chests & Blocks` (`Boolean`, default `true`) — Detect chests, doors, and pistons.
+- `Track Mobs` (`Boolean`, default `true`) — Detect hostile mob sounds.
+- `Show Distance` (`Boolean`, default `true`) — Display distance in blocks next to sound pings.
+- `Show Sound Name` (`Boolean`, default `true`) — Display sound type label.
+
+#### 32. **Potion Alerts**
+Audio note block pling and bass notify pings, actionbar alerts, and corner toasts when positive potion buffs are about to expire or when harmful debuffs strike.
+- `Expiry Warning` (`Boolean`, default `true`) — Notify when beneficial potion buffs are about to expire.
+- `Expiry Threshold (s)` (`Number`: `3.0` – `30.0s`, step `1.0`, default `10.0`)
+- `Expiry Sound Ping` (`Boolean`, default `true`) — Play a crisp note block pling when a potion buff is expiring.
+- `Debuff Alert` (`Boolean`, default `true`) — Alert when afflicted with harmful debuffs (Poison, Wither, Darkness, Bad Omen, Slowness, Mining Fatigue).
+- `Debuff Sound Ping` (`Boolean`, default `true`) — Play a bass alert tone when afflicted with a debuff.
+- `Show Cure Indicator` (`Boolean`, default `true`) — Display an on-screen cure reminder badge (`🥛 Drink Milk to Cure!`) while afflicted with a debuff.
+- `Actionbar Warning` (`Boolean`, default `true`) — Display overlay warnings on the in-game actionbar.
+- `Toast Notifications` (`Boolean`, default `true`) — Push slide-in corner toast notifications for potion alerts.
+
 ---
 
-### 👁 Render (17 Modules)
+### 👁 Render (15 Modules)
 
 #### 26. **Fullbright** *(Default Key: `B`)*
 Grants maximum visibility in dark caves, dimensions, and underwater.
@@ -369,12 +462,6 @@ Spawns RPG-style floating damage numbers and critical-hit callouts above hurt en
 - `Duration` (`Number`: `0.5` – `3.0s`, step `0.1`, default `1.2`)
 - `Movement` (`Mode`: `Bounce Up`, `Float Up`, `Static`, default `Bounce Up`)
 
-#### 28. **Hit Color**
-Customizes the damage flash tint color and opacity rendered on hurt entities.
-- `Use Client Color` (`Boolean`, default `false`)
-- `Tint Color` (`ColorMode`, default `Crimson Red`)
-- `Opacity` (`Number`: `0.10` – `1.00`, step `0.05`, default `0.60`)
-
 #### 29. **Block Outline**
 Customizes the targeted block wireframe outline color, thickness, and opacity.
 - `Use Client Color` (`Boolean`, default `true`)
@@ -386,26 +473,9 @@ Customizes the targeted block wireframe outline color, thickness, and opacity.
 Reduces or eliminates camera tilt shake when taking damage.
 - `Hurt Shake %` (`Number`: `0` – `100%`, step `5`, default `0%`)
 
-#### 31. **Low Fire**
-Lowers the first-person burning fire overlay so your screen stays clear in combat.
-- `Height Offset` (`Number`: `-0.50` – `0.00`, step `0.05`, default `-0.25`)
-
-#### 32. **Low Shield**
-Repositions and scales the first-person shield model for unobstructed visibility.
-- `Height Offset` (`Number`: `-0.60` – `0.00`, step `0.05`, default `-0.25`)
-- `Side Offset` (`Number`: `-0.30` – `0.30`, step `0.05`, default `0.00`)
-- `Scale` (`Number`: `0.50` – `1.20x`, step `0.05`, default `1.00`)
-- `Lower When Blocking` (`Boolean`, default `true`) — Keep shield lowered while actively blocking.
-
 #### 33. **Item Physics**
 Dropped items tumble realistically through the air and rest flat on the ground.
 - `Rotation Speed` (`Number`: `0.5` – `5.0`, step `0.5`, default `2.0`)
-
-#### 34. **Hit Particles**
-Spawns extra customizable particle bursts when attacking entities.
-- `Always Crit` (`Boolean`, default `true`)
-- `Particle Type` (`Mode`: `Crit`, `Enchanted`, `Both`, `Heart`, `Flame`, default `Crit`)
-- `Multiplier` (`Number`: `1` – `10x`, step `1`, default `2`)
 
 #### 35. **Motion Blur**
 Applies a smooth directional camera-rotation motion blur post-processing shader.
@@ -503,9 +573,29 @@ Upgrades overhead player nametags with health, ping, 3rd-person self-tag, scalin
 - `Scale` (`Number`: `0.5` – `2.5x`, step `0.1`, default `1.0`)
 - `Distance Scale` (`Boolean`, default `false`) — Scale up distant nametags so they stay legible.
 
+#### 43. **Item ESP**
+Highlights dropped items on the ground with 2D/3D boxes, Chams fills, tracer lines, item icons, and stack count labels.
+- `Style` (`Mode`: `Box 2D`, `Box 3D`, `Chams`, `Glowing`, default `Box 2D`)
+- `Boxes` (`Boolean`, default `true`)
+- `Tracers` (`Boolean`, default `true`)
+- `Labels` (`Boolean`, default `true`) — Shows item name, stack count (`x64`), and distance (`m`).
+- `Show Item Icon` (`Boolean`, default `true`)
+- `Use Client Colors` (`Boolean`, default `true`) — Syncs box outlines & tracer lines to `Client Menu Color` and box/label fills to `Client Menu Background`.
+- `Line Color` (`ColorMode`, default `Sky Blue`) — Custom box/tracer color when `Use Client Colors` is off.
+- `Fill Color` (`ColorMode`, default `Slate`) — Custom box/label fill color when `Use Client Colors` is off.
+- `Range` (`Number`: `4` – `100` blocks, step `1`, default `32`)
+
+#### 44. **Low Health Vignette**
+Renders a smooth heartbeat-pulsing vignette around the screen edges when your health drops at or below a configurable threshold.
+- `Health Threshold` (`Number`: `2.0` – `16.0` HP, step `1.0`, default `8.0`)
+- `Max Opacity %` (`Number`: `15` – `90%`, step `5`, default `55%`)
+- `Pulse Speed` (`Number`: `0.5` – `5.0x`, step `0.5`, default `2.0`)
+- `Use Client Color` (`Boolean`, default `false`)
+- `Color` (`ColorMode`, default `Crimson`)
+
 ---
 
-### 🛡 Player (15 Modules)
+### 🛡 Player (17 Modules)
 
 #### 43. **Armor HUD** `[HUD]`
 Displays equipped armor pieces, optional held item, durability values, low-durability audio/visual alerts, and optional tool/Elytra break protection.
@@ -578,7 +668,11 @@ Automatically reconnects to your last multiplayer server when disconnected, disp
 - `Reconnect Delay` (`Number`: `1.0` – `60.0s`, step `0.5`, default `5.0`)
 
 #### 56. **Better Screenshots**
-Asynchronous lag-free `F2` screenshot saving with automatic Windows clipboard image copy and interactive chat action buttons.
+Asynchronous lag-free `F2` screenshot saving with automatic Windows clipboard image copy, interactive chat action buttons, and custom output resolutions (`720p`, `1080p`, `1440p`, `4K`, `8K`, or `Custom`).
+- `Resolution` (`Mode`: `Native`, `720p`, `1080p`, `1440p`, `4K`, `8K`, `Custom`, default `Native`) — Output resolution for screenshots (resamples seamlessly from any window or monitor size).
+- `Keep Aspect Ratio` (`Boolean`, default `true`) — Preserves your display's perspective ratio (16:9, 16:10, 21:9 ultrawide) so blocks and geometry never stretch or squish.
+- `Custom Width` (`Number`: `320` – `7680px`, step `10`, default `1920`) — Custom horizontal resolution when `Resolution` is set to `Custom`.
+- `Custom Height` (`Number`: `240` – `4320px`, step `10`, default `1080`) — Custom vertical resolution when `Resolution` is set to `Custom`.
 - `Auto Copy to Clipboard` (`Boolean`, default `true`) — Copies the captured PNG image directly to your system clipboard.
 - `Chat Action Buttons` (`Boolean`, default `true`) — Appends clickable `[Open]`, `[Folder]`, and `[Copy]` chips in chat.
 
@@ -590,34 +684,47 @@ Renders an inline glassmorphic preview card anchored cleanly outside the item to
 - `Filled Maps` (`Boolean`, default `true`)
 - `Ender Chest` (`Boolean`, default `true`)
 
+#### 58. **Death Recap** `[HUD]`
+Comprehensive post-death summary card on the Death Screen displaying killer name & 3D skin avatar, weapon used, lost XP levels, coordinates, and dimension, with one-click `[📌 Set Waypoint]` and `[📋 Copy Coords]` buttons. Fully draggable and resizable in the HUD Editor with custom background/text theme colors.
+- `Auto Death Waypoint` (`Boolean`, default `true`) — Automatically registers a red death waypoint at your death coordinates.
+- `Show Killer Avatar` (`Boolean`, default `true`) — Render the killer's 3D skin face avatar when slain by a player.
+- `Auto Open Waypoint Screen` (`Boolean`, default `false`) — Immediately open the Waypoint Manager upon death.
+
+#### 59. **Radial Quick-Swap** *(Hold Key: `R`)*
+Glassmorphic 8-slice circular wheel centered on your crosshair while holding a hotkey to instantly equip weapons, tools, water buckets, pearls, and food without scrolling the hotbar.
+- `Mode` (`Mode`: `Smart Survival`, `Hotbar Slots (1-8)`, default `Smart Survival`) — `Smart Survival` automatically finds your best Sword, Pickaxe, Axe, Shovel, Water Bucket, Ender Pearl, Food/Gapple, and Blocks/Bow; `Hotbar Slots (1-8)` maps directly to slots 1–8.
+- `Radius` (`Number`: `60` – `130px`, step `5`, default `85`) — Circular wheel distance from crosshair.
+- `Show Item Count` (`Boolean`, default `true`) — Display item stack counts on wheel slices.
+- `Play Sound` (`Boolean`, default `true`) — Plays an equipment click sound when releasing on a slot.
+
 ---
 
 ### 🚀 Movement (3 Modules)
 
-#### 58. **Toggle Sprint** *(Default Key: `V`)*
+#### 60. **Toggle Sprint** *(Default Key: `V`)*
 Automatically engages sprinting whenever moving forward.
 
-#### 59. **Safe Walk**
+#### 61. **Safe Walk**
 Prevents you from accidentally walking off block edges without needing to hold sneak.
 
-#### 60. **Toggle Sneak**
+#### 62. **Toggle Sneak**
 Tap your sneak key once to stay crouched hands-free.
 - `Unsneak in Containers` (`Boolean`, default `true`) — Temporarily release sneak when opening inventories/chests.
 
 ---
 
-### 🌍 World (5 Modules)
+### 🌍 World (6 Modules)
 
-#### 61. **Time Changer** *(Default Key: `T`)*
+#### 63. **Time Changer** *(Default Key: `T`)*
 Overrides the client-side sky time and lighting without affecting the server.
 - `Preset` (`Mode`: `Custom`, `Sunrise`, `Morning`, `Noon`, `Afternoon`, `Sunset`, `Night`, `Midnight`, default `Noon`)
 - `Time` (`Number`: `0` – `24000` ticks, step `100`, default `6000`) — Used when `Preset` is set to `Custom`.
 
-#### 62. **Weather Changer**
+#### 64. **Weather Changer**
 Overrides client-side weather rendering independently of server weather.
 - `Weather` (`Mode`: `Clear`, `Rain`, `Thunder`, default `Clear`)
 
-#### 63. **Waypoints**
+#### 65. **Waypoints**
 Per-server and per-world 3D waypoints with vertical beacon beams, distance badges, dimension isolation, optional Nether `8:1` coordinate projection, automatic death markers, and an inline ClickGUI overview list + full Waypoint Manager modal.
 - `Show Beam` (`Boolean`, default `true`)
 - `Show Distance` (`Boolean`, default `true`)
@@ -628,7 +735,7 @@ Per-server and per-world 3D waypoints with vertical beacon beams, distance badge
 - `Quick Add Action` (`Mode`: `Open Creator`, `Instant Save`, default `Open Creator`)
 - `Waypoints List` (`WaypointListSetting`) — Inline overview list (`[OW]` / `[Nether]` / `[End]` tags, visibility toggle, edit, delete, and `+ Add Waypoint`).
 
-#### 64. **Light Overlay**
+#### 66. **Light Overlay**
 Renders a 3D mob-spawn grid on nearby solid surfaces: **Red** markers where hostile mobs can spawn anytime (`skyLight == 0`) and **Yellow** markers where hostile mobs can spawn at night (`skyLight > 0`).
 - `Style` (`Mode`: `Cross`, `Square`, `Diamond`, default `Cross`)
 - `Range` (`Number`: `6` – `32` blocks, step `2`, default `16`)
@@ -636,7 +743,7 @@ Renders a 3D mob-spawn grid on nearby solid surfaces: **Red** markers where host
 - `Max Safe Block Light` (`Number`: `0` – `7`, step `1`, default `0`)
 - `Line Thickness` (`Number`: `1.0` – `3.5px`, step `0.5`, default `1.5`)
 
-#### 65. **Chunk Borders**
+#### 67. **Chunk Borders**
 Renders clean customizable `16×16` chunk boundary wireframes, `16`-block vertical sub-chunk rings, neighbor chunk corners, and automatic **Slime Chunk** floor highlights when the world seed is known.
 - `Use Client Color` (`Boolean`, default `false`)
 - `Border Color` (`ColorMode`, default `Yellow`)
@@ -647,11 +754,23 @@ Renders clean customizable `16×16` chunk boundary wireframes, `16`-block vertic
 - `Height Range` (`Number`: `16` – `96` blocks, step `16`, default `32`)
 - `Line Thickness` (`Number`: `1.0` – `4.0px`, step `0.5`, default `1.5`)
 
+#### 68. **Spawner Overlay**
+Highlights nearby **Mob Spawners**, **Trial Spawners**, and **Vaults** with 3D bounding boxes, mob type & `● Active` / `○ Standby` badges, and a 3D `16`-block player activation radius ring.
+- `Highlight Box` (`Boolean`, default `true`)
+- `Activation Radius (16m)` (`Boolean`, default `true`) — Renders a 16-block activation ring (Green when inside `≤ 16m`, Red when outside).
+- `Show Info Label` (`Boolean`, default `true`)
+- `Include Trial & Vaults` (`Boolean`, default `true`)
+- `Tracers` (`Boolean`, default `false`)
+- `Use Client Color` (`Boolean`, default `false`)
+- `Color` (`ColorMode`, default `Gold`)
+- `Range` (`Number`: `16` – `96` blocks, step `8`, default `48`)
+- `Line Thickness` (`Number`: `1.0` – `4.0px`, step `0.5`, default `1.5`)
+
 ---
 
-### 🖥 Server (4 Modules)
+### 🖥 Server (7 Modules)
 
-#### 64. **Hypixel Level Head**
+#### 69. **Hypixel Level Head**
 Displays players' Hypixel Network, Bedwars, or SkyWars level badges above their heads *(requires `Hypixel API Key` in Client Settings)*.
 - `Level Type` (`Mode`: `Network`, `Bedwars`, `Skywars`, default `Network`)
 - `Level Color` (`ColorMode`, default `Gold`)
@@ -663,7 +782,7 @@ Displays players' Hypixel Network, Bedwars, or SkyWars level badges above their 
 - `Y Offset` (`Number`: `-60` – `20`, step `1`, default `-20`)
 - `Update Interval` (`Number`: `10` – `600s`, step `10`, default `60`)
 
-#### 65. **Hypixel Player Stats** *(Experimental)*
+#### 70. **Hypixel Player Stats** *(Experimental)*
 One-shot action keybind that looks up a player's Bedwars, SkyWars, and Duels statistics via the Hypixel API and prints a formatted summary in chat.
 - `Target` (`Mode`: `Crosshair`, `Nearest`, `Self`, default `Crosshair`)
 - `Bedwars` (`Boolean`, default `true`)
@@ -678,10 +797,10 @@ One-shot action keybind that looks up a player's Bedwars, SkyWars, and Duels sta
 - `Cache Duration` (`Number`: `30` – `3600s`, step `30`, default `300`)
 - `Debug` (`Boolean`, default `true`)
 
-#### 66. **TNT Timer**
+#### 71. **TNT Timer**
 Renders a live color-coded countdown timer (`seconds`) above primed TNT entities.
 
-#### 67. **Auto GG**
+#### 72. **Auto GG**
 Automatically sends customizable `GG` and `GLHF` messages on match end/start across major multiplayer servers with anti-spoof chat detection.
 - `GG Message` (`Text`, default `"gg"`)
 - `GG Delay` (`Number`: `0.0` – `5.0s`, step `0.1`, default `1.0`)
@@ -690,42 +809,85 @@ Automatically sends customizable `GG` and `GLHF` messages on match end/start acr
 - `GLHF Delay` (`Number`: `0.0` – `5.0s`, step `0.1`, default `1.0`)
 - `Cooldown` (`Number`: `3` – `30s`, step `1`, default `8`)
 
+#### 73. **Bed Defense (Base Defense)**
+Scans nearby beds in Bedwars and renders a floating glassmorphic card above each bed displaying its defense layers (`Obsidian`, `End Stone`, `Wood`, `Clay`, `Glass`, `Wool`, `Water`), 3D block icons, layer order, and `⚠ Exposed` warnings when a bed is uncovered or has missing defense blocks.
+- `Highlight Bed` (`Boolean`, default `true`) — Renders a glowing 3D highlight bounding box around the bed.
+- `Show Block Icons` (`Boolean`, default `true`) — Renders miniature 3D floating block icons for each defense layer.
+- `Show Layer Names` (`Boolean`, default `true`) — Displays text badges for each layer material.
+- `Show Exposed Alert` (`Boolean`, default `true`) — Shows a red `⚠ EXPOSED` warning badge if the bed is directly accessible without mining defenses.
+- `Max Layers` (`Number`: `1` – `4`, step `1`, default `3`) — Number of block defense layers to inspect outward from the bed.
+- `Range` (`Number`: `8` – `96` blocks, step `8`, default `48`) — Detection radius in blocks around the player.
+
+#### 74. **Fireball Alert**
+Tracks incoming fireballs in Bedwars and mini-games to warn you before they hit or knock you off bridges.
+- `Sound Alert` (`Boolean`, default `true`) — Play a warning chime when an incoming fireball is detected.
+- `Sound Type` (`Mode`: `Bell`, `Pling`, `Ding`, `Anvil`, `Bass`, default `Bell`)
+- `Screen Warning` (`Boolean`, default `true`) — Display a high-visibility pulsing warning banner on screen with distance & ETA.
+- `Direction Arrow` (`Boolean`, default `true`) — Display directional pointer (`▲ Ahead`, `◀ Left`, `▶ Right`, `▼ Behind`) indicating where the fireball is coming from.
+- `World Box` (`Boolean`, default `true`) — Draw a 3D glowing highlight box around the fireball in the world.
+- `Tracer Line` (`Boolean`, default `true`) — Draw a 3D tracer line from screen center towards the fireball.
+- `Detection Range` (`Number`: `20.0` – `100.0` blocks, step `5.0`, default `60.0`)
+- `Direct Threat Only` (`Boolean`, default `true`) — Only trigger alerts for fireballs trajectory-calculated to land near you (`< 8.5` blocks).
+- `Toast Alert` (`Boolean`, default `false`) — Show a slide-in corner toast on initial detection.
+
+#### 75. **Base Alert**
+Automatically locks onto your team's bed on Bedwars match start or initial spawn, monitors your base perimeter, and alerts you when enemy players enter your territory so you never get snuck on or lose your bed unexpectedly.
+- `Alert Radius` (`Number`: `10.0` – `50.0` blocks, step `1.0`, default `25.0`) — Radius around your bed to trigger intruder alerts.
+- `Ignore NPCs` (`Boolean`, default `true`) — Filters out Hypixel Shopkeepers, Upgrades NPCs, and server Citizens bots.
+- `Sound Alert` (`Boolean`, default `true`) — Play alarm chimes when an enemy enters the base perimeter (increases pitch when `< 10m`).
+- `Sound Type` (`Mode`: `Bell`, `Pling`, `Ding`, `Anvil`, `Bass`, default `Ding`)
+- `Sound Cooldown` (`Number`: `1.0` – `10.0s`, step `0.5`, default `3.0`)
+- `Screen Threat HUD` (`Boolean`, default `true`) — Render top-screen threat card showing nearest intruder's name, distance to bed, relative direction, and held item (e.g. `⛏ Diamond Pickaxe`, `🧨 TNT`).
+- `Show Held Item` (`Boolean`, default `true`) — Displays the enemy's main hand item in the threat alert.
+- `Invis Enemy Alert` (`Boolean`, default `true`) — Highlights invisible players with special `👻 INVISIBLE!` warning when they step inside base radius.
+- `3D Perimeter Ring` (`Boolean`, default `true`) — Renders a glowing 3D defense boundary circle on the ground around your bed.
+- `3D Threat Box` (`Boolean`, default `true`) — Highlights invading enemy players in the world with a glowing 3D box.
+- `Tracer Line` (`Boolean`, default `false`) — Renders a tracer line from screen center towards invading enemies.
+- `Bed Status Marker` (`Boolean`, default `true`) — Floating 3D status badge directly above your team's bed (`🛏 Your Bed: [SAFE]` / `⚠ BASE ATTACK!`).
+- `Toast Notification` (`Boolean`, default `true`) — Fires a corner toast notification on intruder detection.
+
 ---
 
 ### ⚔ Cheats (15 Modules)
 
 > ⚠️ **Disclaimer:** Modules in the `Cheats` category are intended strictly for **Singleplayer**, **private servers**, or **environments where movement/combat modifications are explicitly permitted**. Always respect server rules.
 
-#### 68. **Fly** *(Default Key: `F`)*
+#### 76. **Fly** *(Default Key: `F`)*
 Enables free creative-style flight with adjustable speed.
 - `Speed` (`Number`: `1.0` – `10.0x`, step `0.5`, default `1.0`)
 
-#### 69. **Entity ESP** *(Default Key: `Y`)*
-Highlights nearby players and mobs through walls.
+#### 77. **Entity ESP** *(Default Key: `Y`)*
+Highlights nearby players and mobs through walls with boxes, Chams fills, tracer lines, and labels.
 - `Players Only` (`Boolean`, default `true`)
-- `Style` (`Mode`: `Glowing`, `Box 2D`, `Chams`, default `Glowing`)
-- `Range` (`Number`: `1` – `100` blocks, step `1`, default `15`)
+- `Style` (`Mode`: `Glowing`, `Box 2D`, `Box 3D`, `Chams`, default `Glowing`)
+- `Boxes` (`Boolean`, default `true`)
+- `Tracers` (`Boolean`, default `true`)
+- `Labels` (`Boolean`, default `true`)
+- `Use Client Colors` (`Boolean`, default `true`) — Syncs box outlines & tracer lines to `Client Menu Color` and box/label fills to `Client Menu Background`.
+- `Line Color` (`ColorMode`, default `Sky Blue`) — Custom box/tracer color when `Use Client Colors` is off.
+- `Fill Color` (`ColorMode`, default `Slate`) — Custom box/label fill color when `Use Client Colors` is off.
+- `Range` (`Number`: `1` – `100` blocks, step `1`, default `32`)
 
-#### 70. **Anti Knockback** *(Default Key: `K`)*
+#### 78. **Anti Knockback** *(Default Key: `K`)*
 Reduces or cancels incoming velocity knockback packets.
 - `Reduction` (`Number`: `0` – `100%`, step `5`, default `100%`)
 
-#### 71. **Walk on Water** *(Default Key: `J`)*
+#### 79. **Walk on Water** *(Default Key: `J`)*
 Allows walking across water surfaces as solid ground (hold Sneak to submerge).
 
-#### 72. **Speed** *(Default Key: `N`)*
+#### 80. **Speed** *(Default Key: `N`)*
 Multiplies horizontal ground movement velocity.
 - `Speed` (`Number`: `1.0` – `10.0x`, step `0.5`, default `2.0`)
 
-#### 73. **Scaffold**
+#### 81. **Scaffold**
 Automatically places blocks from your hotbar beneath your feet while walking.
 - `Tower` (`Boolean`, default `true`) — Hold Jump while standing still to build straight upward.
 
-#### 74. **Free Cam** *(Default Key: `U`)*
+#### 82. **Free Cam** *(Default Key: `U`)*
 Detaches the camera so you can fly freely through the world while your player body remains stationary.
 - `Speed` (`Number`: `0.1` – `10.0` blocks/tick, step `0.1`, default `1.0`)
 
-#### 75. **Aimbot** *(Default Key: `H`)*
+#### 83. **Aimbot** *(Default Key: `H`)*
 Smoothly rotates toward nearby targets with optional automatic attacking.
 - `Targets` (`Mode`: `Players & Mobs`, `Players Only`, `Mobs Only`, default `Players & Mobs`)
 - `Range` (`Number`: `1.0` – `10.0` blocks, step `1.0`, default `6.0`)
@@ -734,37 +896,37 @@ Smoothly rotates toward nearby targets with optional automatic attacking.
 - `Auto Attack` (`Boolean`, default `true`)
 - `PVP Mode` (`Mode`: `1.9+`, `1.8`, default `1.9+`)
 
-#### 76. **Kill Aura**
+#### 84. **Kill Aura**
 Automatically attacks valid entities within range using configurable target priority and weapon cooldown modes.
 - `Range` (`Number`: `1.0` – `8.0` blocks, step `0.5`, default `4.5`)
 - `Players Only` (`Boolean`, default `false`)
 - `Priority` (`Mode`: `Closest`, `Lowest HP`, `Angle`, default `Closest`)
 - `Attack Mode` (`Mode`: `1.9+`, `1.8`, default `1.9+`)
 
-#### 77. **Auto Clicker**
+#### 85. **Auto Clicker**
 Automatically attacks living entities under your crosshair at a configurable CPS rate.
 - `CPS` (`Number`: `1` – `30`, step `1`, default `12`)
 - `When Holding` (`Boolean`, default `true`) — Only click while holding Left Mouse Button.
 
-#### 78. **Fast Place**
+#### 86. **Fast Place**
 Removes the vanilla right-click block placement delay.
 
-#### 79. **Fast Break**
+#### 87. **Fast Break**
 Accelerates block mining speed and eliminates block-break cooldown ticks.
 - `Speed` (`Number`: `1.0` – `10.0x`, step `0.5`, default `3.0`)
 
-#### 80. **No Fall**
+#### 88. **No Fall**
 Mitigates fall distance tracking to prevent fall damage.
 - `Mode` (`Mode`: `Safe`, `Strict`, default `Safe`)
 
-#### 81. **Chest ESP**
+#### 89. **Chest ESP**
 Highlights storage containers (Chests, Trapped Chests, Barrels, Ender Chests, Shulker Boxes) through walls.
 - `Range` (`Number`: `8` – `128` blocks, step `8`, default `48`)
 - `Boxes` (`Boolean`, default `true`)
 - `Tracers` (`Boolean`, default `true`)
 - `Labels` (`Boolean`, default `true`)
 
-#### 82. **Ore ESP**
+#### 90. **Ore ESP**
 Scans and highlights valuable ore blocks through terrain with per-ore color coding.
 - `Show Diamond` (`Boolean`, default `true`)
 - `Show Ancient Debris` (`Boolean`, default `true`)
@@ -791,6 +953,7 @@ All module keybinds can be customized or cleared directly inside the **ClickGUI*
 | `Right Shift` | **Open Star Client ClickGUI** | Toggle |
 | `C` | **Zoom** | Hold |
 | `G` | **Free Look** (`360°` Orbit Camera) | Hold |
+| `R` | **Radial Quick-Swap** | Hold |
 | `V` | **Toggle Sprint** | Toggle |
 | `B` | **Fullbright** | Toggle |
 | `T` | **Time Changer** | Toggle |

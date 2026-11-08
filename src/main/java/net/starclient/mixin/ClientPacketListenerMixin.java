@@ -14,6 +14,8 @@ import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.world.phys.Vec3;
 import net.starclient.StarClient;
 import net.starclient.config.ProfileManager;
+import net.starclient.gui.BaseAlertRenderer;
+import net.starclient.gui.FireballAlertRenderer;
 import net.starclient.module.AntiKnockbackState;
 import net.starclient.module.ChatPlusState;
 import net.starclient.module.ServerSessionTracker;
@@ -73,6 +75,8 @@ public abstract class ClientPacketListenerMixin {
             }
         }
         ChatPlusState.onSessionJoined(client);
+        BaseAlertRenderer.clear();
+        FireballAlertRenderer.clear();
     }
 
     @Inject(method = "handleSetTime", at = @At("HEAD"))

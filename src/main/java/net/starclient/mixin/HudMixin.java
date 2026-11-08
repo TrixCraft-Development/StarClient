@@ -170,6 +170,17 @@ public abstract class HudMixin {
         } else if (mod.getSetting("Color") instanceof ColorModeSetting cms) {
             color = cms.getColor();
         }
+
+        boolean friendTint = getBool(mod, "Friend Tint", true);
+        if (friendTint) {
+            net.minecraft.world.entity.Entity lookTarget = client.crosshairPickEntity;
+            if (lookTarget == null && client.hitResult instanceof net.minecraft.world.phys.EntityHitResult ehr) {
+                lookTarget = ehr.getEntity();
+            }
+            if (lookTarget != null && net.starclient.friend.FriendManager.isFriend(lookTarget)) {
+                color = 0xFF10B981; // Emerald green
+            }
+        }
         color |= 0xFF000000;
         int outlineColor = 0xCC000000;
 

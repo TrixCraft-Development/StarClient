@@ -3,8 +3,10 @@ package net.starclient.mixin;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
@@ -18,6 +20,7 @@ import net.starclient.module.AutoToolState;
 import net.starclient.module.CombatStatsTracker;
 import net.starclient.module.DurabilityGuardState;
 import net.starclient.module.FastBreakState;
+import net.starclient.module.OldAnimationsState;
 import net.starclient.stats.ClientStatsManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -92,6 +95,11 @@ public abstract class MultiPlayerGameModeMixin {
             return;
         }
         CombatStatsTracker.onAttack(player, entity);
+        if (OldAnimationsState.isOldHitSounds()) {
+            Minecraft.getInstance().getSoundManager().play(
+                    SimpleSoundInstance.forUI(SoundEvents.PLAYER_HURT, 1.0F)
+            );
+        }
     }
 
     @Inject(method = "useItem(Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/InteractionHand;)Lnet/minecraft/world/InteractionResult;", at = @At("HEAD"), cancellable = true)

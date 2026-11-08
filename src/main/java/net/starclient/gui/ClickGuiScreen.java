@@ -14,6 +14,7 @@ import net.starclient.StarClient;
 import net.starclient.config.ClientProfile;
 import net.starclient.config.ProfileManager;
 
+import net.starclient.friend.FriendManager;
 import net.starclient.module.ChatPlusState;
 import net.starclient.module.Category;
 import net.starclient.module.Module;
@@ -25,6 +26,7 @@ import net.starclient.rank.Rank;
 import net.starclient.setting.BannedWordListSetting;
 import net.starclient.setting.BooleanSetting;
 import net.starclient.setting.ColorModeSetting;
+import net.starclient.setting.FriendListSetting;
 import net.starclient.setting.MacroListSetting;
 import net.starclient.setting.ModeSetting;
 import net.starclient.setting.NickEntryListSetting;
@@ -1094,6 +1096,16 @@ public class ClickGuiScreen extends Screen {
                 GuiRenderUtils.drawRoundedOutline(extractor, btnX, item.y + 4, btnW, 16, 4, menuBorder());
                 GuiRenderUtils.drawCenteredText(extractor, this.font, label, btnX + btnW / 2, item.y + 8, menuAccent());
             }
+            case FriendListSetting friendListSetting -> {
+                GuiRenderUtils.drawText(extractor, this.font, setting.getName(), item.x + 8, item.y + 8, 0xFFE2E8F0);
+                int count = FriendManager.getFriends().size();
+                String label = (count == 0 ? "Manage (0)" : count + (count == 1 ? " friend" : " friends")) + " ✎";
+                int btnW = GuiRenderUtils.textWidth(this.font, label) + 12;
+                int btnX = item.x + item.width - btnW - 6;
+                GuiRenderUtils.fillRoundedRect(extractor, btnX, item.y + 4, btnW, 16, 4, menuBgDark());
+                GuiRenderUtils.drawRoundedOutline(extractor, btnX, item.y + 4, btnW, 16, 4, menuBorder());
+                GuiRenderUtils.drawCenteredText(extractor, this.font, label, btnX + btnW / 2, item.y + 8, menuAccent());
+            }
             case WaypointListSetting waypointListSetting -> {
                 List<WaypointsState.Waypoint> wps = WaypointsState.getWaypointsForCurrentContext(Minecraft.getInstance());
                 String title = "Waypoints (" + wps.size() + ")";
@@ -1310,6 +1322,11 @@ public class ClickGuiScreen extends Screen {
                 case "HUD Text Shadow" -> {
                     curY += 4;
                     items.add(DrawerItem.header("HUD & In-Game Visuals", x, curY, width));
+                    curY += 22;
+                }
+                case "Friend List" -> {
+                    curY += 4;
+                    items.add(DrawerItem.header("Friends System", x, curY, width));
                     curY += 22;
                 }
                 case "Hypixel API Key" -> {
@@ -1894,6 +1911,8 @@ public class ClickGuiScreen extends Screen {
             Minecraft.getInstance().gui.setScreen(new BannedWordsScreen(this));
         } else if (setting instanceof NoteListSetting) {
             Minecraft.getInstance().gui.setScreen(new PinnedNotesScreen(this));
+        } else if (setting instanceof FriendListSetting) {
+            Minecraft.getInstance().gui.setScreen(new FriendsScreen(this));
         } else if (setting instanceof WaypointListSetting) {
             int btnH = 14;
             int btnY = item.y + 5;

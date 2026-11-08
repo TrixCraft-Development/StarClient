@@ -96,7 +96,10 @@ public class StarClient implements ClientModInitializer {
         ));
 
         // Save configuration on game shutdown
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> this.configManager.saveConfig()));
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            this.configManager.saveConfig();
+            net.starclient.friend.FriendManager.save();
+        }));
 
         // Scan installed mods in .minecraft/mods
         this.modManager.scanInstalledMods();
@@ -108,6 +111,10 @@ public class StarClient implements ClientModInitializer {
             net.starclient.module.AutoRespawnReconnectState.onClientTick(client);
             net.starclient.module.WaypointsState.onClientTick(client);
             net.starclient.module.AutoGgState.onClientTick(client);
+            net.starclient.friend.FriendManager.onClientTick(client);
+            net.starclient.module.StopwatchTimerState.onClientTick(client);
+            net.starclient.module.SoundRadarState.onClientTick(client);
+            net.starclient.module.PotionAlertsState.onClientTick(client);
             boolean inGame = client.player != null && client.level != null;
             if (inGame) {
                 if (client.gui.screen() == null) {
@@ -191,6 +198,7 @@ public class StarClient implements ClientModInitializer {
         if (!this.configLoaded && this.configManager != null) {
             this.configLoaded = true;
             this.configManager.loadConfig();
+            net.starclient.friend.FriendManager.load();
         }
     }
 }

@@ -181,8 +181,14 @@ public final class MinimapRenderer {
                 switch (e) {
                     case Player player -> {
                         if (!showPlayers) continue;
-                        dotColor = 0xFF38BDF8;
-                        dotSize = 3;
+                        if (net.starclient.friend.FriendManager.isHighlightFriendsInEsp()
+                                && net.starclient.friend.FriendManager.isFriend(player)) {
+                            dotColor = net.starclient.friend.FriendManager.getFriendColor();
+                            dotSize = 4;
+                        } else {
+                            dotColor = 0xFF38BDF8;
+                            dotSize = 3;
+                        }
                     }
                     case Enemy enemy -> {
                         if (!showHostile) continue;

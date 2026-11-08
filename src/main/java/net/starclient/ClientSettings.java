@@ -2,6 +2,7 @@ package net.starclient;
 
 import net.starclient.setting.BooleanSetting;
 import net.starclient.setting.ColorModeSetting;
+import net.starclient.setting.FriendListSetting;
 import net.starclient.setting.ModeSetting;
 import net.starclient.setting.Setting;
 import net.starclient.setting.TextSetting;
@@ -51,6 +52,17 @@ public final class ClientSettings {
     private final ModeSetting titleBackground;
     private final BooleanSetting modernButtons;
     private final BooleanSetting keybindNotifications;
+    private final BooleanSetting toastNotifications;
+    private final FriendListSetting friendList;
+    private final BooleanSetting friendBadge;
+    private final ModeSetting friendBadgeStyle;
+    private final ColorModeSetting friendColor;
+    private final BooleanSetting friendChatBadge;
+    private final BooleanSetting friendNotifications;
+    private final BooleanSetting friendNotificationSound;
+    private final BooleanSetting middleClickFriend;
+    private final BooleanSetting protectFriendsInCombat;
+    private final BooleanSetting highlightFriendsInEsp;
     private final BooleanSetting experimentalFeatures;
     private final BooleanSetting paletteCrashSafeguard;
 
@@ -61,6 +73,29 @@ public final class ClientSettings {
                 "Show the Star icon next to your name in the tab list and above your head", true);
         this.keybindNotifications = new BooleanSetting("Keybind Notifications",
                 "Show a slide-in corner notification when toggling modules via keybinds", true);
+        this.toastNotifications = new BooleanSetting("Toast Notifications",
+                "Show slide-in corner notifications for profile switches, screenshots, friends, and client alerts", true);
+        this.friendList = new FriendListSetting("Friend List",
+                "Open the Friends Manager to add or remove friends");
+        this.friendBadge = new BooleanSetting("Show Friend Badge",
+                "Show a badge next to friends' names in the tab list and above their heads", true);
+        this.friendBadgeStyle = new ModeSetting("Friend Badge Style",
+                "Badge icon displayed next to friends' names", "♥ Heart",
+                List.of("♥ Heart", "★ Star", "🛡 Ally", "✦ Sparkle", "[FRIEND]"));
+        this.friendColor = new ColorModeSetting("Friend Color",
+                "Accent color used for friend badges and ESP highlights", "Green", MENU_ACCENT_COLORS);
+        this.friendChatBadge = new BooleanSetting("Friend Chat Badges",
+                "Show friend badge in front of friends' names in chat messages", true);
+        this.friendNotifications = new BooleanSetting("Friend Notifications",
+                "Show toast notifications when friends join or leave your server", true);
+        this.friendNotificationSound = new BooleanSetting("Friend Notification Sound",
+                "Play a subtle chime sound when a friend joins or leaves", true);
+        this.middleClickFriend = new BooleanSetting("Middle Click Friend",
+                "Middle-click a player in-game to quickly add or remove them as a friend", true);
+        this.protectFriendsInCombat = new BooleanSetting("Protect Friends in Combat",
+                "Prevent Aimbot, Kill Aura, and Auto Clicker from attacking your friends", true);
+        this.highlightFriendsInEsp = new BooleanSetting("Highlight Friends in ESP",
+                "Highlight friends with your Friend Color in Entity ESP, Hitboxes, and Minimap", true);
         this.removeSplash = new BooleanSetting("Remove Splash Text",
                 "Hide the random yellow splash text on the title screen", true);
         this.containerAnimations = new BooleanSetting("Container Animations",
@@ -90,9 +125,20 @@ public final class ClientSettings {
         settings.add(hudTextShadow);
         settings.add(tabIcon);
         settings.add(keybindNotifications);
+        settings.add(toastNotifications);
         settings.add(removeSplash);
         settings.add(containerAnimations);
         settings.add(containerBlur);
+        settings.add(friendList);
+        settings.add(friendBadge);
+        settings.add(friendBadgeStyle);
+        settings.add(friendColor);
+        settings.add(friendChatBadge);
+        settings.add(friendNotifications);
+        settings.add(friendNotificationSound);
+        settings.add(middleClickFriend);
+        settings.add(protectFriendsInCombat);
+        settings.add(highlightFriendsInEsp);
         settings.add(hypixelApiKey);
         settings.add(experimentalFeatures);
         settings.add(paletteCrashSafeguard);
@@ -104,7 +150,9 @@ public final class ClientSettings {
 
     public void resetToDefaults() {
         for (Setting<?> setting : settings) {
-            setting.reset();
+            if (!(setting instanceof FriendListSetting)) {
+                setting.reset();
+            }
         }
     }
 
@@ -118,6 +166,50 @@ public final class ClientSettings {
 
     public boolean isKeybindNotifications() {
         return keybindNotifications == null || keybindNotifications.getValue();
+    }
+
+    public boolean isToastNotifications() {
+        return toastNotifications == null || toastNotifications.getValue();
+    }
+
+    public FriendListSetting getFriendListSetting() {
+        return friendList;
+    }
+
+    public boolean isFriendBadge() {
+        return friendBadge == null || friendBadge.getValue();
+    }
+
+    public String getFriendBadgeStyle() {
+        return friendBadgeStyle == null ? "♥ Heart" : friendBadgeStyle.getValue();
+    }
+
+    public int getFriendColor() {
+        return friendColor == null ? 0xFF34D399 : friendColor.getColor();
+    }
+
+    public boolean isFriendChatBadge() {
+        return friendChatBadge == null || friendChatBadge.getValue();
+    }
+
+    public boolean isFriendNotifications() {
+        return friendNotifications == null || friendNotifications.getValue();
+    }
+
+    public boolean isFriendNotificationSound() {
+        return friendNotificationSound == null || friendNotificationSound.getValue();
+    }
+
+    public boolean isMiddleClickFriend() {
+        return middleClickFriend == null || middleClickFriend.getValue();
+    }
+
+    public boolean isProtectFriendsInCombat() {
+        return protectFriendsInCombat == null || protectFriendsInCombat.getValue();
+    }
+
+    public boolean isHighlightFriendsInEsp() {
+        return highlightFriendsInEsp == null || highlightFriendsInEsp.getValue();
     }
 
     public boolean isRemoveSplash() {

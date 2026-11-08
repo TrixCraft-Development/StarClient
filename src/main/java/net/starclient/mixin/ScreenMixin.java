@@ -3,7 +3,6 @@ package net.starclient.mixin;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.ChatScreen;
-import net.minecraft.client.gui.screens.DeathScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.ClickEvent;
@@ -11,7 +10,6 @@ import net.minecraft.network.chat.Component;
 import net.starclient.ClientSettings;
 import net.starclient.StarClient;
 import net.starclient.gui.TitleBackgroundOverlay;
-import net.starclient.module.AutoRespawnReconnectState;
 import net.starclient.module.BetterScreenshotsState;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -51,14 +49,6 @@ public abstract class ScreenMixin {
         if (!ClientSettings.BG_VANILLA.equals(mode)) {
             ci.cancel();
             TitleBackgroundOverlay.renderBackground(graphics, this.width, this.height, a, mode);
-        }
-    }
-
-    @Inject(method = "extractRenderState", at = @At("RETURN"))
-    private void starclient$onExtractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a, CallbackInfo ci) {
-        Screen self = (Screen) (Object) this;
-        if (self instanceof DeathScreen) {
-            AutoRespawnReconnectState.renderScreenOverlay(graphics, self, mouseX, mouseY);
         }
     }
 

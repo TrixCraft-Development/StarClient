@@ -3,6 +3,8 @@ package net.starclient.mixin;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleEngine;
 import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.core.particles.ParticleTypes;
+import net.starclient.module.OldAnimationsState;
 import net.starclient.module.PerformanceState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -40,6 +42,10 @@ public abstract class ParticleEngineMixin {
             double ya,
             double za,
             CallbackInfoReturnable<Particle> cir) {
+        if (OldAnimationsState.isDisableSweep() && options != null && options.getType() == ParticleTypes.SWEEP_ATTACK) {
+            cir.setReturnValue(this.makeParticle(options, x, y, z, xa, ya, za));
+            return;
+        }
         if (PerformanceState.shouldSkipParticle(options)) {
             // Return the un-queued Particle instance without calling add(particle).
             // Callers like FireworkParticles$Starter dereference the returned Particle

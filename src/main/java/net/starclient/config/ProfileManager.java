@@ -12,6 +12,7 @@ import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.storage.LevelResource;
 import net.starclient.StarClient;
+import net.starclient.gui.ToastNotificationManager;
 import net.starclient.module.Module;
 
 import java.io.ByteArrayInputStream;
@@ -102,6 +103,16 @@ public class ProfileManager {
 
         if (!silent) {
             StarClient.LOGGER.info("Switched active profile to '{}' ({})", target.getName(), target.getId());
+            int accent = StarClient.getInstance() != null && StarClient.getInstance().getClientSettings() != null
+                    ? StarClient.getInstance().getClientSettings().getMenuAccentColor()
+                    : 0xFF38BDF8;
+            ToastNotificationManager.pushToast(
+                    "profile_switch",
+                    "Profile Switched",
+                    target.getIcon() + " " + target.getName(),
+                    "PROFILE",
+                    accent
+            );
         }
     }
 

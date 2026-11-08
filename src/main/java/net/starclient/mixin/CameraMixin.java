@@ -4,9 +4,11 @@ import net.minecraft.client.Camera;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 import net.starclient.module.FreeCamState;
 import net.starclient.module.FreeLookState;
+import net.starclient.module.OldAnimationsState;
 import net.starclient.module.ZoomState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -24,6 +26,33 @@ public abstract class CameraMixin {
 
     @Shadow
     private boolean detached;
+
+    @Shadow
+    private float eyeHeight;
+
+    @Shadow
+    private float eyeHeightOld;
+
+    @Shadow
+    private Entity entity;
+
+    @Inject(method = "alignWithEntity", at = @At("HEAD"))
+    private void starclient$alignWithEntitySneak(float partialTicks, CallbackInfo ci) {
+        if (OldAnimationsState.isOldSneak() && this.entity != null) {
+            float target = this.entity.getEyeHeight();
+            this.eyeHeight = target;
+            this.eyeHeightOld = target;
+        }
+    }
+
+    @Inject(method = "tick", at = @At("TAIL"))
+    private void starclient$oldSneakEyeHeight(CallbackInfo ci) {
+        if (OldAnimationsState.isOldSneak() && this.entity != null) {
+            float target = this.entity.getEyeHeight();
+            this.eyeHeight = target;
+            this.eyeHeightOld = target;
+        }
+    }
 
     @Inject(method = "calculateFov", at = @At("RETURN"), cancellable = true)
     private void starclient$smoothZoomFov(float partialTicks, CallbackInfoReturnable<Float> cir) {

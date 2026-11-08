@@ -14,6 +14,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
+import net.starclient.gui.ToastNotificationManager;
 import net.starclient.setting.BooleanSetting;
 import net.starclient.setting.NumberSetting;
 import net.starclient.setting.Setting;
@@ -109,9 +110,17 @@ public final class DurabilityGuardState {
                     if (soundPing) {
                         player.playSound(SoundEvents.NOTE_BLOCK_PLING.value(), 0.75f, 1.65f);
                         int pct = Math.max(1, Math.round(ratio * 100.0f));
+                        String itemName = stack.getHoverName().getString();
                         String msg = String.format(Locale.US, "⚠ Low Durability: %s (%d/%d • %d%%)",
-                                stack.getHoverName().getString(), remaining, max, pct);
+                                itemName, remaining, max, pct);
                         showActionbar(Component.literal(msg).withStyle(ChatFormatting.RED));
+                        ToastNotificationManager.pushToast(
+                                "durability_warn_" + i,
+                                "Low Durability: " + itemName,
+                                remaining + " / " + max + " left (" + pct + "%)",
+                                "LOW",
+                                0xFFF59E0B
+                        );
                     }
                 }
             } else if (ratio > threshold + 0.03f) {
@@ -209,11 +218,19 @@ public final class DurabilityGuardState {
         lastPreventNotifyMs = now;
 
         int rem = Math.max(0, stack.getMaxDamage() - stack.getDamageValue());
+        String itemName = stack.getHoverName().getString();
         player.playSound(SoundEvents.NOTE_BLOCK_BASS.value(), 0.7f, 0.85f);
         showActionbar(Component.literal("🛡 Saved ")
                 .withStyle(ChatFormatting.GOLD)
-                .append(Component.literal(stack.getHoverName().getString()).withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD))
+                .append(Component.literal(itemName).withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD))
                 .append(Component.literal(" from breaking (" + rem + " durability left)!").withStyle(ChatFormatting.RED)));
+        ToastNotificationManager.pushToast(
+                "durability_saved",
+                "Saved " + itemName,
+                "Stopped at " + rem + " durability",
+                "SAVED",
+                0xFFEF4444
+        );
     }
 
     private static void showActionbar(Component message) {

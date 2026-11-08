@@ -5,6 +5,7 @@ import net.minecraft.client.gui.components.PlayerTabOverlay;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
 import net.starclient.StarClient;
+import net.starclient.friend.FriendManager;
 import net.starclient.module.NickToolState;
 import net.starclient.rank.Rank;
 import net.starclient.rank.RankManager;
@@ -36,6 +37,12 @@ public abstract class NickTabMixin {
                 Component icon = Component.literal("⭐").withStyle(style -> style.withColor(rank.getRgb()));
                 cir.setReturnValue(Component.literal("").append(icon).append(Component.literal(" ")).append(display));
             }
+        }
+        Component current = cir.getReturnValue() != null ? cir.getReturnValue() : display;
+        if (FriendManager.isShowFriendBadge() && FriendManager.isFriend(info.getProfile().name())) {
+            int fRgb = FriendManager.getFriendRgb();
+            Component badge = Component.literal(FriendManager.getFriendBadgePrefix()).withStyle(style -> style.withColor(fRgb));
+            cir.setReturnValue(Component.literal("").append(badge).append(current));
         }
     }
 }
