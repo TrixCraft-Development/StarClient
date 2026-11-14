@@ -43,6 +43,9 @@ public class HudLayout {
     public static final String STOPWATCH = "stopwatch";
     public static final String SOUND_RADAR = "sound_radar";
     public static final String DEATH_RECAP = "death_recap";
+    public static final String TEAM_HEALTH = "team_health";
+    public static final String BEDWARS_TIMERS = "bedwars_timers";
+    public static final String LOOT_FEED = "loot_feed";
     public static final int AUTO = Integer.MIN_VALUE;
 
     public static final float MIN_SCALE = 0.50f;
@@ -53,7 +56,7 @@ public class HudLayout {
             CPS, REACH, SPEED, COMBO, CLOCK, COMPASS, SERVER_INFO,
             MEMORY, POTIONS, TARGET_HUD, SCOREBOARD, BOSS_BAR, INVENTORY,
             MINIMAP, WORLD_INFO, ITEM_COUNTER, BLOCK_INFO, PINNED_NOTES, STOPWATCH,
-            SOUND_RADAR, DEATH_RECAP
+            SOUND_RADAR, DEATH_RECAP, TEAM_HEALTH, BEDWARS_TIMERS, LOOT_FEED
     };
 
     public static final int FPS_WIDTH = 130;
@@ -65,6 +68,8 @@ public class HudLayout {
     public static final int TARGET_HUD_HEIGHT = 48;
     public static final int DEATH_RECAP_WIDTH = 260;
     public static final int DEATH_RECAP_HEIGHT = 92;
+    public static final int TEAM_HEALTH_WIDTH = 150;
+    public static final int TEAM_HEALTH_HEIGHT = 72;
     public static final int ELEMENT_HEIGHT = 18;
 
     public static final int BASE_BOSS_BAR_WIDTH = 162;
@@ -218,6 +223,11 @@ public class HudLayout {
             }
             case INVENTORY -> isAuto(id) ? screenWidth - inventoryWidth() - 8 : getX(id);
             case DEATH_RECAP -> isAuto(id) ? (screenWidth - DEATH_RECAP_WIDTH) / 2 : getX(id);
+            case TEAM_HEALTH, BEDWARS_TIMERS -> isAuto(id) ? 8 : getX(id);
+            case LOOT_FEED -> {
+                int w = maxModWidth > 0 ? maxModWidth : 148;
+                yield isAuto(id) ? screenWidth - w - 8 : getX(id);
+            }
             default -> getX(id);
         };
     }
@@ -239,6 +249,9 @@ public class HudLayout {
             case STOPWATCH -> isAuto(id) ? screenHeight - 246 : getY(id);
             case SOUND_RADAR -> isAuto(id) ? 140 : getY(id);
             case DEATH_RECAP -> isAuto(id) ? Math.max(14, screenHeight / 4 - 44) : getY(id);
+            case TEAM_HEALTH -> isAuto(id) ? 110 : getY(id);
+            case BEDWARS_TIMERS -> isAuto(id) ? 190 : getY(id);
+            case LOOT_FEED -> isAuto(id) ? screenHeight - 170 : getY(id);
             case BLOCK_INFO -> isAuto(id) ? 38 : getY(id);
             case SERVER_INFO -> isAuto(id) ? 60 : getY(id);
             case ITEM_COUNTER -> isAuto(id) ? screenHeight - 62 : getY(id);
@@ -546,6 +559,33 @@ public class HudLayout {
             int drX = layout.effectiveX(DEATH_RECAP, screenWidth, drW);
             int drY = layout.effectiveY(DEATH_RECAP, screenHeight);
             rects.add(makeScaledRect(layout, DEATH_RECAP, drX, drY, drW, drH));
+        }
+
+        Module teamHealthMod = StarClient.getInstance().getModuleManager().getModuleByName("Team Health");
+        if (teamHealthMod != null && teamHealthMod.isEnabled()) {
+            int thW = TEAM_HEALTH_WIDTH;
+            int thH = TEAM_HEALTH_HEIGHT;
+            int thX = layout.effectiveX(TEAM_HEALTH, screenWidth, thW);
+            int thY = layout.effectiveY(TEAM_HEALTH, screenHeight);
+            rects.add(makeScaledRect(layout, TEAM_HEALTH, thX, thY, thW, thH));
+        }
+
+        Module bwTimersMod = StarClient.getInstance().getModuleManager().getModuleByName("Bedwars Timers");
+        if (bwTimersMod != null && bwTimersMod.isEnabled()) {
+            int bwW = BedwarsTimersRenderer.getWidth(bwTimersMod);
+            int bwH = BedwarsTimersRenderer.getHeight(bwTimersMod);
+            int bwX = layout.effectiveX(BEDWARS_TIMERS, screenWidth, bwW);
+            int bwY = layout.effectiveY(BEDWARS_TIMERS, screenHeight);
+            rects.add(makeScaledRect(layout, BEDWARS_TIMERS, bwX, bwY, bwW, bwH));
+        }
+
+        Module lootFeedMod = StarClient.getInstance().getModuleManager().getModuleByName("Loot Feed");
+        if (lootFeedMod != null && lootFeedMod.isEnabled()) {
+            int lfW = LootFeedRenderer.getWidth(font, lootFeedMod);
+            int lfH = LootFeedRenderer.getHeight(lootFeedMod);
+            int lfX = layout.effectiveX(LOOT_FEED, screenWidth, lfW);
+            int lfY = layout.effectiveY(LOOT_FEED, screenHeight);
+            rects.add(makeScaledRect(layout, LOOT_FEED, lfX, lfY, lfW, lfH));
         }
 
         int potX = layout.effectiveX(POTIONS, screenWidth, 0);

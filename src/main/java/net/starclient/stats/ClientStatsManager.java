@@ -282,6 +282,11 @@ public class ClientStatsManager {
             return;
         }
 
+        if (client.gui.screen() == null && RewindManager.getInstance().shouldShowInitialPopup()) {
+            RewindManager.getInstance().markPopupShown();
+            client.gui.setScreen(new net.starclient.gui.RewindPopupScreen(null));
+        }
+
         GameplayStats current = getActiveStats();
 
         // 3. Blocks traveled

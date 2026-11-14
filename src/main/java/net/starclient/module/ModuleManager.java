@@ -36,8 +36,11 @@ import net.starclient.api.HypixelApi;
 import net.starclient.friend.FriendManager;
 import net.starclient.gui.BaseAlertRenderer;
 import net.starclient.gui.BedDefenseRenderer;
+import net.starclient.gui.BedwarsTimersRenderer;
+import net.starclient.gui.LootFeedRenderer;
 import net.starclient.gui.EntityEsp;
 import net.starclient.gui.FireballAlertRenderer;
+import net.starclient.gui.LowBlocksWarningRenderer;
 import net.starclient.gui.HypixelLevelHead;
 import net.starclient.gui.HypixelPlayerStats;
 import net.starclient.gui.ItemEsp;
@@ -2911,6 +2914,102 @@ public class ModuleManager {
             @Override
             public void onDisable() {
                 BaseAlertRenderer.clear();
+            }
+        });
+
+        register(new Module("Team Health", "RPG-style party HUD showing teammates' skin avatars, live HP bars, distance, and damage alerts.", Category.SERVER) {
+            {
+                addSetting(new BooleanSetting("Use Client Color", "Match team widget accent color to Client Menu Color", true));
+                addSetting(new ColorModeSetting("Color", "Widget accent color when Use Client Color is off", "Sky Blue", BlockOutlineState.OUTLINE_COLORS));
+                addSetting(new BooleanSetting("Show Distance", "Display teammate distance in meters", true));
+                addSetting(new BooleanSetting("Show Health Bar", "Display colored health bar for each teammate", true));
+                addSetting(new BooleanSetting("Show Health Text", "Display numerical HP text overlay", true));
+                addSetting(new BooleanSetting("Show Absorption", "Display golden absorption hearts from golden apples", true));
+                addSetting(new BooleanSetting("Damage Flash", "Pulse red border when a teammate takes damage", true));
+                addSetting(new BooleanSetting("Include Friends", "Automatically track Star Client friends as teammates", true));
+                addSetting(new BooleanSetting("Show Self", "Include your own player in the team health list", false));
+                addSetting(new NumberSetting("Max Teammates", "Maximum number of teammates to display", 4.0, 1.0, 8.0, 1.0));
+            }
+        });
+
+        register(new Module("Low Blocks", "Monitors bridging blocks and alerts you with on-screen warnings and audio chimes when blocks run low.", Category.PLAYER) {
+            {
+                addSetting(new NumberSetting("Warning Threshold", "Block count to trigger low blocks warning", 16.0, 4.0, 64.0, 4.0));
+                addSetting(new NumberSetting("Critical Threshold", "Block count to trigger critical warning", 4.0, 2.0, 16.0, 2.0));
+                addSetting(new BooleanSetting("Sound Alert", "Play an audio chime when block count drops low", true));
+                addSetting(new ModeSetting("Sound Type", "Alert sound effect", "Pling", List.of("Pling", "Ding", "Bass", "Bell", "Anvil")));
+                addSetting(new BooleanSetting("Screen Badge", "Render floating warning pill badge on screen", true));
+                addSetting(new BooleanSetting("Actionbar Alert", "Send urgent actionbar alert message", false));
+                addSetting(new BooleanSetting("Only When Holding", "Only warn while holding a bridge block", true));
+                addSetting(new NumberSetting("Sound Cooldown", "Minimum cooldown between repeated audio alerts", 3.0, 1.0, 10.0, 0.5));
+            }
+
+            @Override
+            public void onDisable() {
+                LowBlocksWarningRenderer.reset();
+            }
+        });
+
+        register(new Module("TNT Blast Radius", "Renders glowing 3D blast radius spheres, ground danger rings, and fuse timers around primed TNT.", Category.SERVER) {
+            {
+                addSetting(new NumberSetting("Blast Radius", "Explosion damage radius in blocks", 4.0, 2.0, 8.0, 0.5));
+                addSetting(new ModeSetting("Style", "Wireframe rendering style", "Both", List.of("Both", "Ground Ring", "3D Sphere")));
+                addSetting(new BooleanSetting("Show Fuse Timer", "Display floating 3D fuse seconds tag above TNT", true));
+                addSetting(new BooleanSetting("Danger Alert", "Pulse danger red when standing inside blast radius", true));
+                addSetting(new NumberSetting("Line Thickness", "Wireframe line thickness in pixels", 1.8, 1.0, 4.0, 0.2));
+                addSetting(new NumberSetting("Range", "Maximum detection range in blocks", 36.0, 8.0, 64.0, 4.0));
+                addSetting(new BooleanSetting("Use Client Color", "Color wireframe using Client Menu Color", false));
+            }
+        });
+
+        register(new Module("Bedwars Timers", "Tracks Diamond & Emerald generator spawn timers, upgrade events, and countdowns.", Category.SERVER) {
+            {
+                addSetting(new BooleanSetting("Use Client Color", "Match card accent color to Client Menu Color", true));
+                addSetting(new ColorModeSetting("Color", "Card accent color when Use Client Color is off", "Sky Blue", BlockOutlineState.OUTLINE_COLORS));
+                addSetting(new ModeSetting("Display Mode", "Visual layout style", "Full Card", List.of("Full Card", "Compact")));
+                addSetting(new BooleanSetting("Audio Chimes", "Play a subtle audio chime 3 seconds before resources spawn", true));
+                addSetting(new ModeSetting("Sound Type", "Alert sound effect", "Pling", List.of("Pling", "Ding", "Bell", "Bass")));
+                addSetting(new BooleanSetting("Show Progress Bar", "Display smooth visual fill progress bars", true));
+                addSetting(new BooleanSetting("Show Tier Badges", "Display [I], [II], [III] tier indicators", true));
+                addSetting(new BooleanSetting("Show Next Event", "Display next game stage countdown (e.g. Diamond II in 3:24)", true));
+                addSetting(new BooleanSetting("Only In Bedwars", "Hide widget when not playing in a Bedwars match", false));
+            }
+
+            @Override
+            public void onDisable() {
+                BedwarsTimersRenderer.reset();
+            }
+        });
+
+        register(new Module("Loot Feed",
+                "RPG-style animated notification feed displaying items as you pick them up (+X) or drop/use them (-X).",
+                Category.UI) {
+            {
+                addSetting(new BooleanSetting("Use Client Color", "Match card border accent to Client Menu Color", true));
+                addSetting(new ColorModeSetting("Color", "Accent color when Use Client Color is off", "Sky Blue", LootFeedRenderer.ACCENT_COLORS));
+                addSetting(new BooleanSetting("Show Pickups", "Show items gained or picked up (+X)", true));
+                addSetting(new BooleanSetting("Show Drops / Used", "Show items dropped, placed, or consumed (-X)", true));
+                addSetting(new BooleanSetting("Merge Stacks", "Combine consecutive pickups or drops of the same item into one updating row", true));
+                addSetting(new BooleanSetting("Show Item Name", "Display item name next to the 3D icon and count", true));
+                addSetting(new BooleanSetting("Show Rarity Color", "Color item names according to item rarity and enchantment state", true));
+                addSetting(new NumberSetting("Max Entries", "Maximum number of rows visible at once", 5.0, 2.0, 10.0, 1.0));
+                addSetting(new NumberSetting("Duration", "Seconds each row stays visible before fading out", 4.0, 1.5, 10.0, 0.5));
+                addSetting(new ModeSetting("Animation", "Row entry and exit animation style", "Slide", List.of("Slide", "Fade", "None")));
+            }
+
+            @Override
+            public void onEnable() {
+                LootFeedRenderer.reset();
+            }
+
+            @Override
+            public void onTick(Minecraft client) {
+                LootFeedRenderer.onTick(client, this);
+            }
+
+            @Override
+            public void onDisable() {
+                LootFeedRenderer.reset();
             }
         });
     }

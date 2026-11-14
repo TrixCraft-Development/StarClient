@@ -5,12 +5,15 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.PlayerSkinRenderCache;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.item.component.ResolvableProfile;
 import net.starclient.ClientSettings;
 import net.starclient.StarClient;
 import net.starclient.stats.ClientStatsManager;
 import net.starclient.stats.GameplayStats;
+import net.starclient.stats.RewindManager;
 
 import java.util.List;
 import java.util.Locale;
@@ -75,8 +78,11 @@ public final class StatsViewRenderer {
         int tabsY = panelTop + 4;
         int tabH = 26;
         int gap = 6;
-        int shareBtnW = 100;
-        int tabW = Math.min(115, (contentWidth - shareBtnW - gap * 3) / 3);
+        boolean rewindActive = RewindManager.getInstance().isRewindActive();
+        int shareBtnW = rewindActive ? 86 : 100;
+        int rewindBtnW = rewindActive ? 82 : 0;
+        int rightTotalW = shareBtnW + (rewindActive ? rewindBtnW + gap : 0);
+        int tabW = Math.min(115, (contentWidth - rightTotalW - gap * 3) / 3);
 
         // Share button on far right of header
         int shareBtnX = contentLeft + contentWidth - shareBtnW;
@@ -84,6 +90,17 @@ public final class StatsViewRenderer {
             copyFormattedSummaryToClipboard();
             this.showShareCardModal = true;
             return true;
+        }
+
+        // Rewind button next to Share button when Rewind is active
+        if (rewindActive) {
+            int rewindBtnX = shareBtnX - gap - rewindBtnW;
+            if (mouseX >= rewindBtnX && mouseX <= rewindBtnX + rewindBtnW && mouseY >= tabsY && mouseY <= tabsY + tabH) {
+                Minecraft client = Minecraft.getInstance();
+                client.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+                client.gui.setScreen(new RewindScreen(client.gui.screen()));
+                return true;
+            }
         }
 
         // Category Tabs
@@ -285,8 +302,11 @@ public final class StatsViewRenderer {
         int tabsY = panelTop + 4;
         int tabH = 26;
         int gap = 6;
-        int shareBtnW = 100;
-        int tabW = Math.min(115, (contentWidth - shareBtnW - gap * 3) / 3);
+        boolean rewindActive = RewindManager.getInstance().isRewindActive();
+        int shareBtnW = rewindActive ? 86 : 100;
+        int rewindBtnW = rewindActive ? 82 : 0;
+        int rightTotalW = shareBtnW + (rewindActive ? rewindBtnW + gap : 0);
+        int tabW = Math.min(115, (contentWidth - rightTotalW - gap * 3) / 3);
         int sepY = panelTop + 36;
         int cardsClipTop = sepY + 2;
 
@@ -379,12 +399,28 @@ public final class StatsViewRenderer {
         int shareBg = recentlyCopied ? 0x3310B981 : (shareHovered ? menuSurfaceHover : menuSurface);
         int shareBorder = recentlyCopied ? 0xFF10B981 : (shareHovered ? menuAccent : menuBorder);
         int shareText = recentlyCopied ? 0xFF34D399 : (shareHovered ? 0xFFF1F5F9 : 0xFF94A3B8);
-        String shareLabel = recentlyCopied ? "Copied!" : "📋 Share Stats";
+        String shareLabel = recentlyCopied ? "Copied!" : (rewindActive ? "📋 Share" : "📋 Share Stats");
 
         GuiRenderUtils.drawDropShadow(extractor, shareBtnX, tabsY, shareBtnW, tabH, 4, 2, 50);
         GuiRenderUtils.fillRoundedRect(extractor, shareBtnX, tabsY, shareBtnW, tabH, 6, shareBg);
         GuiRenderUtils.drawRoundedOutline(extractor, shareBtnX, tabsY, shareBtnW, tabH, 6, shareBorder);
         GuiRenderUtils.drawCenteredText(extractor, font, shareLabel, shareBtnX + shareBtnW / 2, tabsY + (tabH - font.lineHeight) / 2 + 1, shareText);
+
+        // Rewind button next to Share button when Rewind is active
+        if (rewindActive) {
+            int rewindBtnX = shareBtnX - gap - rewindBtnW;
+            boolean rwHovered = mouseX >= rewindBtnX && mouseX <= rewindBtnX + rewindBtnW && mouseY >= tabsY && mouseY <= tabsY + tabH;
+            float pulse = (float) (Math.sin(System.currentTimeMillis() / 300.0) * 0.5 + 0.5);
+            int rwBg = rwHovered ? 0x33FBBF24 : menuSurface;
+            int rwBorder = rwHovered ? 0xFFFBBF24 : GuiRenderUtils.lerpColor(menuAccent, 0xFFFBBF24, pulse * 0.65F);
+            int rwText = rwHovered ? 0xFFFBBF24 : 0xFFFFFFFF;
+            String rwLabel = "✨ Rewind";
+
+            GuiRenderUtils.drawDropShadow(extractor, rewindBtnX, tabsY, rewindBtnW, tabH, 4, 2, 50);
+            GuiRenderUtils.fillRoundedRect(extractor, rewindBtnX, tabsY, rewindBtnW, tabH, 6, rwBg);
+            GuiRenderUtils.drawRoundedOutline(extractor, rewindBtnX, tabsY, rewindBtnW, tabH, 6, rwBorder);
+            GuiRenderUtils.drawCenteredText(extractor, font, rwLabel, rewindBtnX + rewindBtnW / 2, tabsY + (tabH - font.lineHeight) / 2 + 1, rwText);
+        }
 
         // Horizontal separator line below tabs
         extractor.fill(contentLeft, sepY, contentLeft + contentWidth, sepY + 1, menuBorder);

@@ -339,6 +339,39 @@ public class HudOverlay {
             layout.endScale(extractor, sc);
         }
 
+        // 3d14. Team Health
+        Module teamHealthMod = StarClient.getInstance().getModuleManager().getModuleByName("Team Health");
+        if (teamHealthMod != null && teamHealthMod.isEnabled()) {
+            int thW = HudLayout.TEAM_HEALTH_WIDTH;
+            int thX = layout.effectiveX(HudLayout.TEAM_HEALTH, screenWidth, thW);
+            int thY = layout.effectiveY(HudLayout.TEAM_HEALTH, screenHeight);
+            boolean sc = layout.beginScale(extractor, thX, thY, HudLayout.TEAM_HEALTH);
+            TeamHealthRenderer.render(extractor, client, teamHealthMod, thX, thY);
+            layout.endScale(extractor, sc);
+        }
+
+        // 3d15. Bedwars Generator Timers
+        Module bwTimersMod = StarClient.getInstance().getModuleManager().getModuleByName("Bedwars Timers");
+        if (bwTimersMod != null && bwTimersMod.isEnabled()) {
+            int bwW = BedwarsTimersRenderer.getWidth(bwTimersMod);
+            int bwX = layout.effectiveX(HudLayout.BEDWARS_TIMERS, screenWidth, bwW);
+            int bwY = layout.effectiveY(HudLayout.BEDWARS_TIMERS, screenHeight);
+            boolean sc = layout.beginScale(extractor, bwX, bwY, HudLayout.BEDWARS_TIMERS);
+            BedwarsTimersRenderer.render(extractor, client, bwTimersMod, bwX, bwY);
+            layout.endScale(extractor, sc);
+        }
+
+        // 3d16. Loot & Pickup Feed
+        Module lootFeedMod = StarClient.getInstance().getModuleManager().getModuleByName("Loot Feed");
+        if (lootFeedMod != null && lootFeedMod.isEnabled()) {
+            int lfW = LootFeedRenderer.getWidth(client.font, lootFeedMod);
+            int lfX = layout.effectiveX(HudLayout.LOOT_FEED, screenWidth, lfW);
+            int lfY = layout.effectiveY(HudLayout.LOOT_FEED, screenHeight);
+            boolean sc = layout.beginScale(extractor, lfX, lfY, HudLayout.LOOT_FEED);
+            LootFeedRenderer.render(extractor, client, lootFeedMod, lfX, lfY);
+            layout.endScale(extractor, sc);
+        }
+
         // 3e. Potion Effects HUD
         Module potionsMod = StarClient.getInstance().getModuleManager().getModuleByName("Potion Effects");
         if (potionsMod != null && potionsMod.isEnabled()) {
@@ -572,6 +605,22 @@ public class HudOverlay {
         Module baseAlertMod = StarClient.getInstance().getModuleManager().getModuleByName("Base Alert");
         if (baseAlertMod != null && baseAlertMod.isEnabled()) {
             BaseAlertRenderer.render(extractor, client, baseAlertMod);
+        }
+
+        // 13h. Low Blocks Warning (Bridge block alerts & chimes)
+        Module lowBlocksMod = StarClient.getInstance().getModuleManager().getModuleByName("Low Blocks");
+        if (lowBlocksMod != null && lowBlocksMod.isEnabled()
+                && !(client.gui.screen() instanceof ClickGuiScreen)
+                && !(client.gui.screen() instanceof HudEditorScreen)) {
+            LowBlocksWarningRenderer.render(extractor, client, lowBlocksMod);
+        }
+
+        // 13i. TNT Blast Radius Wireframe (3D blast radius sphere, ground danger ring & fuse timer)
+        Module tntBlastMod = StarClient.getInstance().getModuleManager().getModuleByName("TNT Blast Radius");
+        if (tntBlastMod != null && tntBlastMod.isEnabled()
+                && !(client.gui.screen() instanceof ClickGuiScreen)
+                && !(client.gui.screen() instanceof HudEditorScreen)) {
+            TntBlastRadiusRenderer.render(extractor, client, tntBlastMod);
         }
 
         // 14. 3D In-World Waypoints

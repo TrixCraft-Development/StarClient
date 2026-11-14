@@ -176,6 +176,36 @@ public class HudEditorScreen extends Screen {
             layout.endScale(extractor, sc);
         }
 
+        Module teamHealthMod = mod.getModuleManager().getModuleByName("Team Health");
+        if (teamHealthMod != null && teamHealthMod.isEnabled() && isHudElementVisible(HudLayout.TEAM_HEALTH)) {
+            int thW = HudLayout.TEAM_HEALTH_WIDTH;
+            int thX = layout.effectiveX(HudLayout.TEAM_HEALTH, this.width, thW);
+            int thY = layout.effectiveY(HudLayout.TEAM_HEALTH, this.height);
+            boolean sc = layout.beginScale(extractor, thX, thY, HudLayout.TEAM_HEALTH);
+            TeamHealthRenderer.renderPreview(extractor, teamHealthMod, thX, thY);
+            layout.endScale(extractor, sc);
+        }
+
+        Module bwTimersMod = mod.getModuleManager().getModuleByName("Bedwars Timers");
+        if (bwTimersMod != null && bwTimersMod.isEnabled() && isHudElementVisible(HudLayout.BEDWARS_TIMERS)) {
+            int bwW = BedwarsTimersRenderer.getWidth(bwTimersMod);
+            int bwX = layout.effectiveX(HudLayout.BEDWARS_TIMERS, this.width, bwW);
+            int bwY = layout.effectiveY(HudLayout.BEDWARS_TIMERS, this.height);
+            boolean sc = layout.beginScale(extractor, bwX, bwY, HudLayout.BEDWARS_TIMERS);
+            BedwarsTimersRenderer.renderPreview(extractor, bwTimersMod, bwX, bwY);
+            layout.endScale(extractor, sc);
+        }
+
+        Module lootFeedMod = mod.getModuleManager().getModuleByName("Loot Feed");
+        if (lootFeedMod != null && lootFeedMod.isEnabled() && isHudElementVisible(HudLayout.LOOT_FEED)) {
+            int lfW = LootFeedRenderer.getWidth(this.font, lootFeedMod);
+            int lfX = layout.effectiveX(HudLayout.LOOT_FEED, this.width, lfW);
+            int lfY = layout.effectiveY(HudLayout.LOOT_FEED, this.height);
+            boolean sc = layout.beginScale(extractor, lfX, lfY, HudLayout.LOOT_FEED);
+            LootFeedRenderer.renderPreview(extractor, lootFeedMod, lfX, lfY);
+            layout.endScale(extractor, sc);
+        }
+
         // Render rounded bounding outlines, preview cards, and pill badges for all active elements
         List<Module> activeMods = getActiveModules();
         List<HudLayout.Rect> rects = HudLayout.computeRects(this.font, activeMods, this.width, this.height, layout);
@@ -197,7 +227,10 @@ public class HudEditorScreen extends Screen {
                     && !r.id().equals(HudLayout.PINNED_NOTES)
                     && !r.id().equals(HudLayout.STOPWATCH)
                     && !r.id().equals(HudLayout.SOUND_RADAR)
-                    && !r.id().equals(HudLayout.DEATH_RECAP)) {
+                    && !r.id().equals(HudLayout.DEATH_RECAP)
+                    && !r.id().equals(HudLayout.TEAM_HEALTH)
+                    && !r.id().equals(HudLayout.BEDWARS_TIMERS)
+                    && !r.id().equals(HudLayout.LOOT_FEED)) {
                 GuiRenderUtils.drawDropShadow(extractor, r.x1(), r.y1(), rw, rh, 4, 3, 80);
                 GuiRenderUtils.fillRoundedRect(extractor, r.x1(), r.y1(), rw, rh, 4, 0xCC0F172A);
                 GuiRenderUtils.drawRoundedOutline(extractor, r.x1(), r.y1(), rw, rh, 4, 0x4438BDF8);
@@ -604,6 +637,9 @@ public class HudEditorScreen extends Screen {
             case HudLayout.BOSS_BAR -> "Boss Bar";
             case HudLayout.INVENTORY -> "Inventory HUD";
             case HudLayout.DEATH_RECAP -> "Death Recap";
+            case HudLayout.TEAM_HEALTH -> "Team Health";
+            case HudLayout.BEDWARS_TIMERS -> "Bedwars Timers";
+            case HudLayout.LOOT_FEED -> "Loot Feed";
             default -> "";
         };
     }
@@ -640,6 +676,9 @@ public class HudEditorScreen extends Screen {
             case HudLayout.BOSS_BAR -> "Boss Bar";
             case HudLayout.INVENTORY -> "Inventory HUD";
             case HudLayout.DEATH_RECAP -> "💀 Death Recap";
+            case HudLayout.TEAM_HEALTH -> "👥 Team Health";
+            case HudLayout.BEDWARS_TIMERS -> "💎 Bedwars Timers";
+            case HudLayout.LOOT_FEED -> "🎒 Loot Feed";
             default -> id;
         };
     }

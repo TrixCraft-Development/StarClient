@@ -46,7 +46,10 @@ public abstract class Module {
             "Pinned Notes",
             "Stopwatch & Timer",
             "Sound Radar",
-            "Death Recap"
+            "Death Recap",
+            "Team Health",
+            "Bedwars Timers",
+            "Loot Feed"
     );
 
     private static final Set<String> MODULES_WITH_TRANSPARENT_BG = Set.of(

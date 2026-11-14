@@ -12,7 +12,10 @@ import net.starclient.changelog.ChangelogManager;
 import net.starclient.gui.AccountSwitcherOverlay;
 import net.starclient.gui.ChangelogScreen;
 import net.starclient.gui.GuiRenderUtils;
+import net.starclient.gui.RewindPopupScreen;
+import net.starclient.gui.RewindScreen;
 import net.starclient.gui.TitleBackgroundOverlay;
+import net.starclient.stats.RewindManager;
 import org.joml.Matrix3x2fStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -182,6 +185,35 @@ public abstract class TitleScreenMixin {
 
         this.starclient$accountSwitcher.render(graphics, mouseX, mouseY);
         this.starclient$backgroundOverlay.render(graphics, mouseX, mouseY);
+
+        // Yearly Rewind Main Menu Button (active for the configured duration, e.g. 7d)
+        RewindManager rewindMgr = RewindManager.getInstance();
+        if (rewindMgr.isRewindActive()) {
+            int rwYear = rewindMgr.getRewindYear();
+            int rwDays = rewindMgr.getDaysRemaining();
+            String rwLabel = "✨ " + rwYear + " Rewind (" + rwDays + "d)";
+            int rwW = client.font.width(rwLabel) + 18;
+            int rwH = 26;
+            int rwX = this.starclient$accountSwitcher.getRightEdge() + 6;
+            int rwY = 8;
+
+            boolean rwHovered = mouseX >= rwX && mouseX <= rwX + rwW && mouseY >= rwY && mouseY <= rwY + rwH;
+            int rwBg = rwHovered ? (0x38000000 | (color & 0x00FFFFFF)) : 0xF20F172A;
+            int rwBorder = rwHovered ? 0xFFFBBF24 : GuiRenderUtils.lerpColor(color, 0xFFFBBF24, pulse * 0.65F);
+
+            GuiRenderUtils.drawDropShadow(graphics, rwX, rwY, rwW, rwH, 6, 4, 90);
+            GuiRenderUtils.fillRoundedRect(graphics, rwX, rwY, rwW, rwH, 6, rwBg);
+            GuiRenderUtils.drawRoundedOutline(graphics, rwX, rwY, rwW, rwH, 6, rwBorder);
+            GuiRenderUtils.drawCenteredText(graphics, client.font, rwLabel,
+                    rwX + rwW / 2, rwY + (rwH - client.font.lineHeight) / 2 + 1,
+                    rwHovered ? 0xFFFBBF24 : 0xFFFFFFFF);
+        }
+
+        // Automatically open the Rewind popup when first launching the game on the set date
+        if (rewindMgr.shouldShowInitialPopup()) {
+            rewindMgr.markPopupShown();
+            client.gui.setScreen(new RewindPopupScreen(self));
+        }
     }
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
@@ -207,6 +239,25 @@ public abstract class TitleScreenMixin {
                 Screen self = (Screen) (Object) this;
                 double mx = event.x();
                 double my = event.y();
+
+                // Check Yearly Rewind Main Menu Button click
+                RewindManager rewindMgr = RewindManager.getInstance();
+                if (rewindMgr.isRewindActive()) {
+                    int rwYear = rewindMgr.getRewindYear();
+                    int rwDays = rewindMgr.getDaysRemaining();
+                    String rwLabel = "✨ " + rwYear + " Rewind (" + rwDays + "d)";
+                    int rwW = client.font.width(rwLabel) + 18;
+                    int rwH = 26;
+                    int rwX = this.starclient$accountSwitcher.getRightEdge() + 6;
+                    int rwY = 8;
+
+                    if (mx >= rwX && mx <= rwX + rwW && my >= rwY && my <= rwY + rwH) {
+                        client.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+                        client.gui.setScreen(new RewindScreen(self));
+                        cir.setReturnValue(true);
+                        return;
+                    }
+                }
 
                 // Check Toast Banner clicks (Top-Right)
                 if (ChangelogManager.getInstance().isCurrentVersionUnread() && !ChangelogManager.getInstance().isToastDismissed()) {

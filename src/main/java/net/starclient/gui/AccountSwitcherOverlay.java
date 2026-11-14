@@ -37,6 +37,10 @@ public final class AccountSwitcherOverlay {
         this.dropdownOpen = false;
     }
 
+    public int getRightEdge() {
+        return BOX_X + this.lastHeaderWidth;
+    }
+
     public void render(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         Minecraft client = Minecraft.getInstance();
         StarClient starClient = StarClient.getInstance();

@@ -7,8 +7,10 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvents;
 import net.starclient.ClientSettings;
 import net.starclient.StarClient;
 import net.starclient.config.ClientProfile;
@@ -116,6 +118,9 @@ public class ClickGuiScreen extends Screen {
     private String pendingTooltipTitle;
     private String pendingTooltipDesc;
     private boolean profileDropdownOpen = false;
+    private boolean showExperimentalConfirmModal = false;
+    private BooleanSetting pendingExperimentalSetting = null;
+    private Module pendingExperimentalModule = null;
     private final StatsViewRenderer statsViewRenderer = new StatsViewRenderer();
     private final ProfilesViewRenderer profilesViewRenderer = new ProfilesViewRenderer();
 
@@ -264,9 +269,15 @@ public class ClickGuiScreen extends Screen {
             this.statsViewRenderer.drawCardModal(extractor, this.font, this.width, this.height, mouseX, mouseY);
         }
 
+        // Experimental Features Warning Modal overlay if active
+        if (this.showExperimentalConfirmModal) {
+            drawExperimentalConfirmModal(extractor, mouseX, mouseY);
+        }
+
         // Floating tooltip (hidden while modal or dropdown is open)
         if (pendingTooltipTitle != null && !pendingTooltipTitle.isEmpty()
                 && !profileDropdownOpen
+                && !this.showExperimentalConfirmModal
                 && (!isStatsView() || !this.statsViewRenderer.isShowingCardModal())) {
             drawFloatingTooltip(extractor, pendingTooltipTitle, pendingTooltipDesc, mouseX, mouseY);
         }
@@ -1488,6 +1499,10 @@ public class ClickGuiScreen extends Screen {
         double mouseY = event.y();
         int button = event.button();
 
+        if (this.showExperimentalConfirmModal) {
+            return handleExperimentalConfirmModalClick(mouseX, mouseY);
+        }
+
         if (isStatsView() && this.statsViewRenderer.isShowingCardModal()) {
             return this.statsViewRenderer.handleCardModalClick(this.width, this.height, mouseX, mouseY);
         }
@@ -1700,6 +1715,14 @@ public class ClickGuiScreen extends Screen {
     private void handleTileClick(ModuleTile tile, double mouseX, double mouseY, int button) {
         Module module = tile.module;
         if (!module.canUse()) {
+            if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && module.isExperimentalLocked() && !module.isRankLocked()) {
+                BooleanSetting expSetting = StarClient.getInstance().getClientSettings().getExperimentalFeaturesSetting();
+                if (expSetting != null && !expSetting.getValue()) {
+                    this.showExperimentalConfirmModal = true;
+                    this.pendingExperimentalSetting = expSetting;
+                    this.pendingExperimentalModule = module;
+                }
+            }
             return;
         }
 
@@ -1839,6 +1862,12 @@ public class ClickGuiScreen extends Screen {
     private void handleSettingItemClick(DrawerItem item, double mouseX, double mouseY, int button, boolean inDrawer) {
         Setting<?> setting = item.setting;
         if (setting instanceof BooleanSetting booleanSetting) {
+            if ("Experimental Features".equals(booleanSetting.getName()) && !booleanSetting.getValue()) {
+                this.showExperimentalConfirmModal = true;
+                this.pendingExperimentalSetting = booleanSetting;
+                this.pendingExperimentalModule = null;
+                return;
+            }
             booleanSetting.toggle();
             if ("Experimental Features".equals(booleanSetting.getName()) && !booleanSetting.getValue()) {
                 for (Module mod : StarClient.getInstance().getModuleManager().getModules()) {
@@ -2005,7 +2034,7 @@ public class ClickGuiScreen extends Screen {
 
     @Override
     public boolean mouseDragged(@NonNull MouseButtonEvent event, double deltaX, double deltaY) {
-        if (isStatsView() && this.statsViewRenderer.isShowingCardModal()) {
+        if (this.showExperimentalConfirmModal || (isStatsView() && this.statsViewRenderer.isShowingCardModal())) {
             return true;
         }
 
@@ -2098,7 +2127,7 @@ public class ClickGuiScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-        if (isStatsView() && this.statsViewRenderer.isShowingCardModal()) {
+        if (this.showExperimentalConfirmModal || (isStatsView() && this.statsViewRenderer.isShowingCardModal())) {
             return true;
         }
 
@@ -2173,6 +2202,12 @@ public class ClickGuiScreen extends Screen {
 
         // Escape closes card modal first, then expanded dropdown, then open Settings Drawer, then focused search / search query, then screen
         if (key == GLFW.GLFW_KEY_ESCAPE) {
+            if (this.showExperimentalConfirmModal) {
+                this.showExperimentalConfirmModal = false;
+                this.pendingExperimentalSetting = null;
+                this.pendingExperimentalModule = null;
+                return true;
+            }
             if (profileDropdownOpen) {
                 profileDropdownOpen = false;
                 return true;
@@ -2349,6 +2384,123 @@ public class ClickGuiScreen extends Screen {
         } else {
             super.onClose();
         }
+    }
+
+    private void drawExperimentalConfirmModal(GuiGraphicsExtractor extractor, int mouseX, int mouseY) {
+        extractor.fill(0, 0, this.width, this.height, 0xB8000000);
+
+        int cardW = 340;
+        int cardH = 166;
+        int cardX = (this.width - cardW) / 2;
+        int cardY = (this.height - cardH) / 2;
+
+        GuiRenderUtils.drawDropShadow(extractor, cardX, cardY, cardW, cardH, 16, 6, 150);
+        GuiRenderUtils.fillRoundedRect(extractor, cardX, cardY, cardW, cardH, 8, 0xF80B132B);
+        GuiRenderUtils.drawRoundedOutline(extractor, cardX, cardY, cardW, cardH, 8, 0xFFF59E0B);
+
+        // Close button ("✕")
+        int closeSize = 18;
+        int closeX = cardX + cardW - closeSize - 10;
+        int closeY = cardY + 10;
+        boolean closeHover = mouseX >= closeX && mouseX <= closeX + closeSize && mouseY >= closeY && mouseY <= closeY + closeSize;
+        GuiRenderUtils.fillRoundedRect(extractor, closeX, closeY, closeSize, closeSize, 4, closeHover ? 0x44EF4444 : 0x1AFFFFFF);
+        GuiRenderUtils.drawRoundedOutline(extractor, closeX, closeY, closeSize, closeSize, 4, closeHover ? 0xFFEF4444 : 0x33FFFFFF);
+        GuiRenderUtils.drawCenteredText(extractor, this.font, "✕", closeX + closeSize / 2, closeY + (closeSize - this.font.lineHeight) / 2 + 1, closeHover ? 0xFFF87171 : 0xFF94A3B8);
+
+        // Warning Header
+        GuiRenderUtils.drawText(extractor, this.font, "⚠ Experimental Features", cardX + 16, cardY + 14, 0xFFF59E0B, true);
+        extractor.fill(cardX + 14, cardY + 34, cardX + cardW - 14, cardY + 35, 0x3364748B);
+
+        // Body Warning Lines
+        int centerX = cardX + cardW / 2;
+        GuiRenderUtils.drawCenteredText(extractor, this.font, "Experimental features are still in progress", centerX, cardY + 48, 0xFFFFFFFF);
+        GuiRenderUtils.drawCenteredText(extractor, this.font, "and may not work as expected", centerX, cardY + 62, 0xFFE2E8F0);
+        GuiRenderUtils.drawCenteredText(extractor, this.font, "or could even break your game!", centerX, cardY + 76, 0xFFF87171);
+        GuiRenderUtils.drawCenteredText(extractor, this.font, "Proceed at your own risk.", centerX, cardY + 96, 0xFF94A3B8);
+
+        // Buttons: Cancel (left) & "I understand!" (right)
+        int btnY = cardY + cardH - 36;
+        int btnH = 24;
+        int cancelW = 96;
+        int cancelX = cardX + 16;
+        int understandX = cancelX + cancelW + 10;
+        int understandW = cardW - 32 - cancelW - 10;
+
+        boolean cancelHover = mouseX >= cancelX && mouseX <= cancelX + cancelW && mouseY >= btnY && mouseY <= btnY + btnH;
+        GuiRenderUtils.fillRoundedRect(extractor, cancelX, btnY, cancelW, btnH, 5, cancelHover ? 0xFF334155 : 0xFF1E293B);
+        GuiRenderUtils.drawRoundedOutline(extractor, cancelX, btnY, cancelW, btnH, 5, cancelHover ? 0xFF94A3B8 : 0x33FFFFFF);
+        GuiRenderUtils.drawCenteredText(extractor, this.font, "Cancel", cancelX + cancelW / 2, btnY + (btnH - this.font.lineHeight) / 2 + 1, 0xFFE2E8F0);
+
+        boolean understandHover = mouseX >= understandX && mouseX <= understandX + understandW && mouseY >= btnY && mouseY <= btnY + btnH;
+        int uBg = understandHover ? 0xFFF59E0B : 0x33F59E0B;
+        int uBorder = understandHover ? 0xFFFFFFFF : 0xFFF59E0B;
+        int uText = understandHover ? 0xFF0F172A : 0xFFFBBF24;
+        GuiRenderUtils.fillRoundedRect(extractor, understandX, btnY, understandW, btnH, 5, uBg);
+        GuiRenderUtils.drawRoundedOutline(extractor, understandX, btnY, understandW, btnH, 5, uBorder);
+        GuiRenderUtils.drawCenteredText(extractor, this.font, "I understand!", understandX + understandW / 2, btnY + (btnH - this.font.lineHeight) / 2 + 1, uText);
+    }
+
+    private boolean handleExperimentalConfirmModalClick(double mouseX, double mouseY) {
+        int cardW = 340;
+        int cardH = 166;
+        int cardX = (this.width - cardW) / 2;
+        int cardY = (this.height - cardH) / 2;
+
+        // Close "✕" button
+        int closeSize = 18;
+        int closeX = cardX + cardW - closeSize - 10;
+        int closeY = cardY + 10;
+        if (mouseX >= closeX && mouseX <= closeX + closeSize && mouseY >= closeY && mouseY <= closeY + closeSize) {
+            closeExperimentalModal(false);
+            return true;
+        }
+
+        int btnY = cardY + cardH - 36;
+        int btnH = 24;
+        int cancelW = 96;
+        int cancelX = cardX + 16;
+        int understandX = cancelX + cancelW + 10;
+        int understandW = cardW - 32 - cancelW - 10;
+
+        // Cancel button
+        if (mouseX >= cancelX && mouseX <= cancelX + cancelW && mouseY >= btnY && mouseY <= btnY + btnH) {
+            closeExperimentalModal(false);
+            return true;
+        }
+
+        // "I understand!" button
+        if (mouseX >= understandX && mouseX <= understandX + understandW && mouseY >= btnY && mouseY <= btnY + btnH) {
+            closeExperimentalModal(true);
+            return true;
+        }
+
+        // Clicked inside card -> consume click
+        if (mouseX >= cardX && mouseX <= cardX + cardW && mouseY >= cardY && mouseY <= cardY + cardH) {
+            return true;
+        }
+
+        // Clicked outside card on dark backdrop -> dismiss without enabling
+        closeExperimentalModal(false);
+        return true;
+    }
+
+    private void closeExperimentalModal(boolean confirmed) {
+        Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+        if (confirmed) {
+            BooleanSetting expSetting = this.pendingExperimentalSetting != null
+                    ? this.pendingExperimentalSetting
+                    : StarClient.getInstance().getClientSettings().getExperimentalFeaturesSetting();
+            if (expSetting != null) {
+                expSetting.setValue(true);
+            }
+            if (this.pendingExperimentalModule != null && this.pendingExperimentalModule.canUse()) {
+                this.pendingExperimentalModule.setEnabled(true);
+            }
+            StarClient.getInstance().getConfigManager().saveConfig();
+        }
+        this.showExperimentalConfirmModal = false;
+        this.pendingExperimentalSetting = null;
+        this.pendingExperimentalModule = null;
     }
 
     private record ModuleTile(Module module, int x, int y, int width) {

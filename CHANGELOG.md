@@ -1,36 +1,19 @@
-# Star Client v0.13
+# Star Client v0.14
 
-> Welcome to Star Client **v0.13**! A high-performance, modular Fabric client for Minecraft 26.2 featuring glassmorphic UI, custom HUD widgets, and game enhancements.
+> Welcome to Star Client **v0.14**! A high-performance, modular Fabric client for Minecraft 26.2 featuring glassmorphic UI, custom HUD widgets, and game enhancements.
 
 ---
 
 ## What's New
 
 ### New Modules, Friends System & Client Enhancements
-- [NEW] **Base Alert (`SERVER`)**: Automatically locks onto your team's bed on Bedwars match start or initial spawn, monitors your base perimeter (`10` – `50` blocks), and sends high-urgency alerts when enemy players approach—featuring an on-screen Threat HUD card (nearest intruder, distance to bed, direction, held item: e.g. `⛏ Diamond Pickaxe`, `🧨 TNT`), invisible player alerts (`👻 INVISIBLE!`), a glowing 3D defense perimeter ring on the ground around your bed, 3D threat boxes, tracer lines, floating bed status markers (`🛏 Your Bed: [SAFE]` / `⚠ BASE ATTACK!`), audio warning chimes, and slide-in corner toast notifications.
-- [NEW] **Fireball Alert (`SERVER`)**: Tracks incoming fireballs in Bedwars and mini-games to warn you before they hit or knock you off bridges—featuring pulsing on-screen warning banners with live distance & ETA, directional pointers (`▲ Ahead`, `◀ Left`, `▶ Right`, `▼ Behind`), 3D world bounding boxes, tracer lines, and warning chimes.
-- [NEW] **1.8 Module (`COMBAT`)**: Authentic Minecraft 1.8.9 mechanics and combat feel for modern clients—featuring classic **Sword Block-Hitting** & chops, snappy **Old Swing Trajectory**, instant **Old Re-equip** (zero item swap dip delay), classic **Old Rod & Bow Angles**, mouth-bobbing **Old Eating/Drinking**, **Red Armor Damage Flash** on hurt entities, **Hide Modern Cooldown**, **Disable Sweep Particles & Sounds**, **Hide Offhand (1st Person)**, snappy **Instant 1.8 Sneaking** (`1.54` eye height), and classic **Hit Sounds & Bow Ding**.
-- [NEW] **Sound Radar (`UI` — HUD Widget)**: Directional audio compass & circular HUD radar card visualizing 3D in-game sounds (footsteps, explosions, projectiles, chests/blocks, mobs) with distance readouts and optional crosshair directional chevrons.
-- [NEW] **Death Recap (`PLAYER`)**: Post-death summary card on the Death Screen displaying killer name & 3D skin avatar, weapon, lost XP levels, coordinates, and dimension, with one-click `[📌 Set Waypoint]` and `[📋 Copy Coords]` buttons.
-- [NEW] **Radial Quick-Swap Wheel (`PLAYER` — Hold Key `R`)**: Hold hotkey to open an 8-slice glassmorphic circular wheel around your crosshair to instantly equip tools, food/gapples, pearls, or water buckets without scrolling the hotbar.
-- [NEW] **Potion Alerts (`UI`)**: Note Block pling sound pings, actionbar warnings, and corner toasts when positive potion buffs are expiring (`≤ 10s`), plus bass warning tones and an on-screen cure indicator badge (`🥛 Drink Milk to Cure!`) when afflicted with harmful debuffs.
-- [NEW] **Stopwatch & Timer (`UI` — HUD)**: Draggable HUD stopwatch and countdown timer (`0.5` – `120.0` min) with `RUN` / `PAUSE` / `DONE` status badges, tenths-of-a-second readout, `Start / Pause` hotkey action, and `Double-Tap Reset`.
-- [NEW] **Entity Info in Block Info (`UI` — WAILA HUD)**: `Block Info` now inspects targeted entities—displaying live health & armor bars, **Horse / Donkey / Mule / Camel** speed (`m/s`) & jump height (`blocks`), **Villager** profession & trade tier (`Novice` → `Master`), pet tame/sitting status, sheep wool state, and player ping/friend tags.
-- [NEW] **Item ESP (`RENDER`) & Upgraded Entity ESP (`CHEATS`)**: Highlights dropped items and entities with `Box 2D`, `Box 3D`, `Chams`, or `Glowing` styles, tracer lines, item icons, and stack labels—synced with **Client Menu Color** & **Client Menu Background** (`Use Client Colors`) or custom `Line Color` & `Fill Color` palettes.
-- [NEW] **Spawner Overlay (`WORLD`)**: Highlights **Mob Spawners**, **Trial Spawners**, and **Vaults** with 3D boxes, mob type & `● Active` / `○ Standby` badges, and a 3D **16-block Activation Radius ring**.
-- [NEW] **Low Health Vignette (`RENDER`)**: Smooth heartbeat-pulsing screen-edge vignette when your health drops at or below a configurable HP threshold.
-- [NEW] **Bed Defense / Base Defense (`SERVER`)**: Scans nearby beds in Bedwars and displays a floating glassmorphic card above each bed showing its defense layers (`Obsidian`, `End Stone`, `Wood`, `Clay`, `Glass`, `Wool`, `Water`) in order, 3D block icons, layer names, 3D world highlight boxes, and instant `⚠ Exposed` alerts when a bed is uncovered.
-- [NEW] **Client Friends System Overhaul (`Client Settings`)**:
-  - **Player Skin Avatars**: Face avatars with 3D skin hat layers rendered next to each friend in the Friends Manager (resolved via online players or Mojang profile cache).
-  - **Per-Friend Notes & Tags**: Add custom notes/tags per friend (e.g., `"2v2 Partner"`, `"SMP Builder"`) with inline editing and sleek HUD/card pill badges.
-  - **Join & Leave Toast Notifications**: Automatic Tab-list monitor with corner toasts (`Friend Joined` / `Friend Left`) and subtle chime sounds.
-  - **Chat Name Highlighting**: Displays your friend's badge in front of their name in chat messages.
-  - **Customizable Badge Styles**: Choose between `♥ Heart`, `★ Star`, `🛡 Ally`, `✦ Sparkle`, or `[FRIEND]`.
-  - **Target HUD & Crosshair Indicator**: Displays a `♥ FRIEND` pill on the Target HUD card, and tints the Custom Crosshair emerald green when aiming at friends (`Friend Tint`).
-  - **Global Client-Wide Storage**: Friends are persisted in `starclient/friends.json` globally and never reset or wiped when switching profiles.
-- [NEW] **Unified Toast Notification System (`Client Settings`)**: Expanded slide-in corner toasts for Profile switches, Friends added/removed, Screenshots saved/copied, Low Durability & Tool Saved alerts, Waypoints, and Timer completion.
-- [IMPROVED] **Custom Screenshot Resolutions (`PLAYER — Screenshots`)**: Configure custom output resolutions for F2 screenshots (`Native`, `720p`, `1080p`, `1440p`, `4K`, `8K`, or `Custom Width × Height`) with native STB image resampling and aspect-ratio preservation—capture pristine 4K or 8K screenshots from any monitor, window size, or ultrawide aspect ratio.
-- [IMPROVED] **Combat Category (`🗡 Combat`)**: Organized **Reach Display**, **Combo Counter**, **Hit Color**, **Hit Particles**, **Low Fire**, and **Low Shield** into the dedicated `Combat` category.
+- [NEW] **Loot Feed (`UI` — Draggable HUD Widget)**: RPG-style sliding notification feed showing items as you pick them up (`+X`) or drop/use them (`-X`) with 3D item icons, automatic stack merging, rarity colors, and smooth slide/fade animations.
+- [NEW] **Yearly Rewind ("Rewind of the Year")**: Interactive 5-slide animated year-in-review story showcasing your lifetime and yearly gameplay stats (Playtime breakdown, Streaks, Combat & K/D, World Builder & Explorer milestones, and a Shareable Summary Card). Automatically opens a launch popup (`"Your rewind of the year is here. Press below to watch it"`) on the configured Rewind start date and adds rewatch buttons to both the **Main Menu** and **Stats Menu** for the active duration (`7 days` by default).
+- [NEW] **Experimental Features Confirmation Popup**: Attempting to enable `Experimental Features` in Settings (or clicking a locked experimental module) now displays a safety confirmation modal warning that experimental features are *"still in progress, may not work or even break your game"* with an **"I understand!"** confirmation button.
+- [NEW] **Bedwars Generator Timers (`SERVER` — Draggable HUD Widget)**: Tracks Hypixel and Bedwars Diamond and Emerald island generator spawn cycles with live countdowns, tier badges, upgrade event progression (`Diamond II in 3:24`), 3-second audio chimes, and smooth filling progress bars. Supports both Detailed Card and Compact Pill display styles.
+- [NEW] **Team Health (`SERVER` — Draggable HUD Widget)**: RPG-style party HUD showing teammates' 3D skin face avatars, live HP bars, distance readouts, golden absorption hearts, and red damage flash alerts when teammates take damage. Includes full custom palette color changer and `Use Client Color` theme integration.
+- [NEW] **Low Blocks Warning (`PLAYER`)**: Monitors bridging blocks (Wool, Wood, Terracotta, End Stone, Sandstone, Glass, Stone) and alerts you with on-screen warning pills, actionbar messages, and audio chimes when your block count drops low (`≤ 16` or `≤ 4`), preventing accidental void falls while bridging.
+- [NEW] **TNT Blast Radius Wireframe (`SERVER`)**: Renders glowing 3D blast radius spheres, ground danger rings, and floating 3D fuse timer countdown tags (`💣 3.2s`) around primed TNT, with instant red pulse warnings when standing inside the explosion zone.
 ---
 
 ## Shortcuts & Controls
