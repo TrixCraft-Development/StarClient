@@ -6,7 +6,7 @@
 ![Version](https://img.shields.io/badge/Version-v0.13-A78BFA?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-64748B?style=for-the-badge)
 
-**Star Client** is a modern, high-performance modular Minecraft client built on **Fabric** for **Minecraft 26.2 (Java 25)** by **TrixCraft Development**. It combines a sleek glassmorphic user interface, **103 customizable modules**, **28 draggable & scalable HUD widgets**, a full **3D Cosmetics Studio**, **Saved Loadout Profiles** with automatic world/server switching, a **Client Friends System**, an **In-Game Account Manager**, and deep **FPS / Render Optimizations** — while remaining fully compatible with standard Fabric mods.
+**Star Client** is a modern, high-performance modular Minecraft client built on **Fabric** for **Minecraft 26.2 (Java 25)** by **TrixCraft Development**. It combines a sleek glassmorphic user interface, **115 customizable modules**, **32 draggable & scalable HUD widgets**, an **In-Game Screenshot Gallery**, a **Quick Server Switcher**, **Discord Rich Presence**, a full **3D Cosmetics Studio**, **Saved Loadout Profiles** with automatic world/server switching, a **Client Friends System**, an **In-Game Account Manager**, and deep **FPS / Render Optimizations** — while remaining fully compatible with standard Fabric mods.
 
 ---
 
@@ -20,14 +20,14 @@
    - [Client Statistics Dashboard](#4-client-statistics-dashboard)
    - [Account Manager, Custom Main Menu & Mod Browser](#5-account-manager-custom-main-menu--mod-browser)
 3. [General Client Settings (`Settings` Tab)](#-general-client-settings-settings-tab)
-4. [Complete Modules & Settings Reference (104 Modules)](#-complete-modules--settings-reference-104-modules)
+4. [Complete Modules & Settings Reference (115 Modules)](#-complete-modules--settings-reference-115-modules)
    - [🗡 Combat (7 Modules)](#-combat-7-modules)
-   - [🎨 UI & Visuals (30 Modules)](#-ui--visuals-30-modules)
+   - [🎨 UI & Visuals (34 Modules)](#-ui--visuals-34-modules)
    - [👁 Render (15 Modules)](#-render-15-modules)
-   - [🛡 Player (18 Modules)](#-player-18-modules)
+   - [🛡 Player (21 Modules)](#-player-21-modules)
    - [🚀 Movement (3 Modules)](#-movement-3-modules)
-   - [🌍 World (6 Modules)](#-world-6-modules)
-   - [🖥 Server (10 Modules)](#-server-10-modules)
+   - [🌍 World (9 Modules)](#-world-9-modules)
+   - [🖥 Server (11 Modules)](#-server-11-modules)
    - [⚔ Cheats (15 Modules)](#-cheats-15-modules)
 5. [Default Keybinds](#-default-keybinds)
 6. [Installation & Building from Source](#-installation--building-from-source)
@@ -90,9 +90,11 @@ Accessible from the **`Stats`** category:
   - Automatically displays a launch popup (`"Your rewind of the year is here. Press below to watch it"`) on first launch during the active Rewind window (`7 days` by default, configurable via `RewindManager.REWIND_DURATION_DAYS`).
   - Includes dedicated **`✨ Rewind`** rewatch buttons in both the **Stats Menu** header and on the **Main Menu** throughout the active Rewind period.
 
-### 5. Account Manager, Custom Main Menu & Mod Browser
+### 5. Account Manager, Custom Main Menu, Screenshot Gallery & Quick Server Switcher
 - **In-Game Account Manager**: Switch seamlessly between **Microsoft** accounts and **Offline** accounts without restarting the game, with cached 3D skin avatars.
-- **Custom Star Title Screen**: Modern glassmorphic main menu with quick access to Singleplayer, Multiplayer, Cosmetics, Account Switcher, Changelog viewer, and Settings.
+- **Custom Star Title Screen**: Modern glassmorphic main menu with quick access to Singleplayer, Multiplayer, Cosmetics, Account Switcher, Screenshot Gallery, Changelog viewer, and Settings.
+- **In-Game Screenshot Gallery (`📷 Gallery`)**: Accessible from the **Main Menu**, **Pause Menu (`ESC`)**, and **ClickGUI** sidebar. Browse captured screenshots in a responsive thumbnail grid with resolution badges (`720p`, `1080p`, `1440p`, `4K`, `8K`), live filename search, and a fullscreen lightbox viewer with one-click **Copy Image to Clipboard**, **Open File/Folder**, **Rename**, and **Delete**.
+- **Quick Server Switcher (`🌐 Switch Server`)**: Accessible from the **Pause Menu (`ESC`)** and **ClickGUI** sidebar. Pings all saved multiplayer servers live (icons, MOTD, color-coded latency, online players), supports search + direct IP join, and switches servers with **1 click** without returning to the Main Menu.
 - **Fabric Mod Manager**: Automatically detects and lists all loaded Fabric mods alongside Star Client.
 
 ---
@@ -124,9 +126,16 @@ Global settings that control Star Client's theme, menus, and safeguards:
 | **Middle Click Friend** | Boolean | `true` / `false` | `true` | Middle-click any player in-game to quickly add or remove them as a friend. |
 | **Protect Friends in Combat** | Boolean | `true` / `false` | `true` | Prevents `Aimbot`, `Kill Aura`, and `Auto Clicker` from targeting your friends. |
 | **Highlight Friends in ESP** | Boolean | `true` / `false` | `true` | Highlights friends using your `Friend Color` in `Entity ESP`, `Hitboxes`, and `Minimap`. |
+| **Discord Rich Presence** | Boolean | `true` / `false` | `true` | Displays your live Minecraft status (Main Menu, Server IP, Singleplayer World, Dimension & Session Playtime) on your Discord profile via native Windows IPC with a live connection status header. |
+| **Discord Show Server IP** | Boolean | `true` / `false` | `true` | Shows the multiplayer server address on Discord (turn off for privacy to show `"Playing Multiplayer"`). |
+| **Discord Show World Name** | Boolean | `true` / `false` | `true` | Shows your singleplayer world name on Discord (turn off to show `"Playing Singleplayer"`). |
+| **Discord Show Dimension** | Boolean | `true` / `false` | `true` | Displays your active dimension (`Overworld`, `The Nether`, `The End`) in your Discord status. |
+| **Discord Show Playtime** | Boolean | `true` / `false` | `true` | Shows live elapsed session playtime on your Discord profile. |
+| **Discord App ID (Optional)** | Text | Custom Discord Developer App ID | `""` | Leave empty to use the built-in Minecraft RPC app, or paste your own Discord Application ID named `"Star Client"`. |
 | **Hypixel API Key** | Secret Text | API key from `hypixel.dev` | `""` | API key used by Hypixel server integration modules. |
 | **Experimental Features** | Boolean | `true` / `false` | `false` | Unlocks experimental modules currently in active development (prompts a confirmation warning modal with an `"I understand!"` button before enabling). |
 | **Palette Crash Safeguard** | Boolean | `true` / `false` | `true` | Protects against client crashes caused by malformed server chunk palette IDs. |
+| **Prevent Game Crashes** | Boolean | `true` / `false` | `false` | Attempts to intercept runtime crashes, save the crash report, and return you to the Main Menu instead of closing the game (prompts a confirmation warning modal with an `"I understand!"` button before enabling). |
 
 ---
 
@@ -461,6 +470,38 @@ RPG-style animated notification feed displaying items as you pick them up (`+X`)
 - `Duration` (`Number`: `1.5` – `10.0s`, step `0.5`, default `4.0`) — Seconds each row stays visible before fading out.
 - `Animation` (`Mode`: `Slide`, `Fade`, `None`, default `Slide`) — Row entry and exit animation style.
 
+#### 34. **Now Playing** `[HUD]`
+Draggable Windows Media HUD displaying currently playing tracks from Spotify, YouTube Music, Apple Music, VLC, and web browsers with animated equalizer bars, smooth marquee scrolling, and optional in-game media control shortcuts (`Alt+P` Play/Pause, `Alt+←/→` Prev/Next).
+- `Style` (`Mode`: `Card`, `Compact`, default `Card`) — Visual layout of the Now Playing widget.
+- `Use Client Color` (`Boolean`, default `true`) — Match accent color and visualizer to Client Menu Color.
+- `Accent Color` (`ColorModeSetting`, default `Sky Blue`) — Accent color when `Use Client Color` is off.
+- `Show Visualizer` (`Boolean`, default `true`) — Display animated audio equalizer bars while music plays.
+- `Show Duration` (`Boolean`, default `true`) — Display the real-time elapsed/total song timer (`0:37/1:20`) alongside the bottom progress bar.
+- `Bar Mode` (`Mode`: `Progress`, `Remaining`, default `Progress`) — Fill the timeline bar with elapsed song progress or drain it to show remaining time left.
+- `Show Artist` (`Boolean`, default `true`) — Display the track artist name alongside the title.
+- `Show Source App` (`Boolean`, default `true`) — Display the media source app name (e.g. Spotify, Chrome).
+- `Hide When Idle` (`Boolean`, default `false`) — Hide the HUD widget automatically when no media is playing.
+- `Media Hotkeys` (`Boolean`, default `true`) — Enable in-game `Alt+P` (Play/Pause) and `Alt+Left/Right` (Prev/Next) shortcuts.
+
+#### 35. **Keyword Alerts**
+Highlights custom chat keywords, triggers a slide-in corner Toast notification, and plays a configurable sound chime whenever matching chat messages arrive.
+- `Keywords` (`KeywordAlertListSetting`) — Opens the in-game **Chat Keyword Alerts** editor with quick-add preset chips, live highlight preview, and sound chime test.
+- `Use Client Color` (`Boolean`, default `false`) — Match highlight and toast accent to Client Menu Color.
+- `Highlight Color` (`ColorModeSetting`, default `Gold`) — Highlight color for matched keywords when `Use Client Color` is off.
+- `Bold Highlight` (`Boolean`, default `true`) — Render matched keywords in bold text inside chat.
+- `Whole Word Only` (`Boolean`, default `true`) — Only match whole words rather than partial substrings.
+- `Ignore Own Messages` (`Boolean`, default `true`) — Do not alert on chat messages sent by yourself.
+- `Toast Alert` (`Boolean`, default `true`) — Show a slide-in corner Toast notification on match.
+- `Sound Alert` (`Boolean`, default `true`) — Play a chime sound when a keyword matches.
+- `Sound Type` (`Mode`: `Pling`, `Bell`, `Ding`, `Level Up`, `Bass`, default `Pling`) — Chime sound played when a keyword matches.
+
+#### 36. **Color Formatting Bar**
+Adds a compact glassmorphic 1-click Minecraft color & formatting toolbar (all 16 color swatches `0–9`/`a–f`, Bold, Italic, Underline, Strikethrough, Obfuscated, Reset, plus a live `&` / `§` prefix switcher) to Sign Editors, Book & Quill, and Anvil Rename screens.
+- `Code Prefix` (`Mode`: `Auto`, `& (Servers)`, `§ (Vanilla)`, default `Auto`) — `Auto` uses `§` in Books and `&` in Signs/Anvils.
+- `Show on Signs` (`Boolean`, default `true`)
+- `Show on Books` (`Boolean`, default `true`)
+- `Show on Anvil` (`Boolean`, default `true`)
+
 ---
 
 ### 👁 Render (15 Modules)
@@ -725,6 +766,29 @@ Monitors bridging blocks (Wool, Wood, Terracotta, Concrete, End Stone, Sandstone
 - `Only When Holding` (`Boolean`, default `true`) — Only warn while holding a bridge block in main or offhand.
 - `Sound Cooldown` (`Number`: `1.0` – `10.0s`, step `0.5`, default `3.0`)
 
+#### 61. **Slot Lock** *(Default Key: `L`)*
+Locks any hotbar, inventory, armor, or offhand slot (press the hotkey while hovering a slot in any inventory/container, or while holding a hotbar slot in-game) with a crisp pixel-art padlock icon so you never accidentally drop (`Q` / `Ctrl+Q`), shift-click into chests, or swap your prized items. Locked slots persist automatically per profile.
+- `Block Dropping (Q)` (`Boolean`, default `true`) — Prevent dropping locked items with `Q` / `Ctrl+Q` in-world or inside containers.
+- `Block Moving & Swapping` (`Boolean`, default `true`) — Prevent picking up, Shift-clicking, or hotbar-swapping (`1–9` / `F`) locked slots inside containers.
+- `Block Offhand Swap (F)` (`Boolean`, default `true`) — Prevent swapping a locked hotbar or offhand slot with `F`.
+- `Show on Hotbar` (`Boolean`, default `true`) — Display a subtle pixel padlock icon on locked hotbar & offhand slots on the HUD.
+- `Show Slot Border` (`Boolean`, default `true`) — Draw a crisp colored outline around locked slots (flashes red when a drop or move is blocked).
+- `Use Client Color` (`Boolean`, default `false`) — Match lock badge & border color to Client Menu Color.
+- `Lock Color` (`ColorMode`, default `Gold`) — Lock badge & border color when `Use Client Color` is off.
+- `Sound Feedback` (`Boolean`, default `true`) — Play subtle chimes when locking, unlocking, or blocking a drop.
+- `Clear All Locks` (`Boolean`, action) — Immediately unlock every currently locked slot.
+
+#### 62. **Sound Muffler**
+Selectively mute or quietly lower annoying individual Minecraft sounds without reducing your overall game volume, featuring 11 one-click sound category toggles and a custom filter modal with a live **Recently Played Sounds** 1-click mute list.
+- `Muffle Volume (%)` (`Number`: `0` – `50%`, step `5`, default `0%`) — `0%` silences matched sounds completely; higher values quietly scale down their volume.
+- `Custom Sounds` (`MutedSoundListSetting`) — Opens the custom filter editor to add custom sound IDs/substrings or 1-click mute any recently played sound.
+- One-Click Presets (`Boolean`): `Nether Portals` (default `true`), `Rain & Thunder`, `Villagers`, `Endermen`, `Minecarts`, `Pistons`, `Fire & Lava`, `Elytra Wind`, `Water & Cave Ambient`, `Farm Animals`, `Beacon & Conduit`.
+
+#### 63. **Crafting Calculator** *(Default Key: `O`)*
+Glassmorphic bulk crafting material calculator (press `O` in-game or while hovering any item in an inventory/chest) merging your unlocked recipes with 80+ curated Minecraft recipes, supporting recursive raw-material expansion, stack breakdowns, live inventory availability comparison, and 1-click clipboard shopping-list export.
+- `Open Calculator` (`Boolean`, action) — Open the Crafting Material Calculator immediately from ClickGUI.
+- `Default Raw Breakdown` (`Boolean`, default `false`) — Automatically expand crafted intermediates (like Planks/Chests/Sticks) into raw materials when opening.
+
 ---
 
 ### 🚀 Movement (3 Modules)
@@ -794,9 +858,43 @@ Highlights nearby **Mob Spawners**, **Trial Spawners**, and **Vaults** with 3D b
 - `Range` (`Number`: `16` – `96` blocks, step `8`, default `48`)
 - `Line Thickness` (`Number`: `1.0` – `4.0px`, step `0.5`, default `1.5`)
 
+#### 70. **Tactical Ping** *(Default Key: `Z`)*
+Apex/Shooter-style 3D tactical crosshair ping marker (press hotkey up to `150` blocks away; hold `Sneak` + hotkey to clear all active pings) that automatically detects **Enemies**, **Allies / Friends**, **Primed TNT / Fireballs**, **Beds**, **Chests**, **Resources**, **Spawners**, and **Locations** with 3D beams, highlight boxes, and off-screen edge arrows.
+- `Duration (s)` (`Number`: `5.0` – `60.0s`, step `5.0`, default `15.0`)
+- `Max Range` (`Number`: `30` – `250` blocks, step `10`, default `150`)
+- `Max Pings` (`Number`: `1` – `6`, step `1`, default `4`)
+- `Show Beam` (`Boolean`, default `true`)
+- `Show Coordinates` (`Boolean`, default `false`)
+- `Off-Screen Arrows` (`Boolean`, default `true`)
+- `Sound Effect` (`Boolean`, default `true`)
+- `Chat Callout` (`Mode`: `Off`, `Send Chat Message`, `Copy to Clipboard`, default `Off`)
+- `Use Client Color` (`Boolean`, default `false`)
+- `Color` (`ColorModeSetting`, default `Sky Blue`)
+- `Clear All Pings` (`Boolean`, default `false`) — Click to immediately remove active markers.
+
+#### 71. **Villager Trades**
+Enhances the Villager Trading UI by highlighting **Max-Level & Rare Enchanted Books** (`Mending`, `Protection IV`, `Sharpness V`, `Unbreaking III`, `Looting III`, `Fortune III`, etc.) and enchanted gear, displaying a glassmorphic **Trade Inspector** side panel with vanilla-accurate emerald price ratings (`GREAT` / `FAIR` / `PRICY` / `CURSE`), and playing roll alerts when rerolling Librarians.
+- `Highlight Trade Rows` (`Boolean`, default `true`) — Draw glowing borders & star markers on notable offers inside the trade list.
+- `Show Inspector Panel` (`Boolean`, default `true`) — Display a Trade Inspector side panel listing all enchanted trades and ratings at a glance.
+- `Only Show When Enchanted` (`Boolean`, default `true`) — Automatically hide the Inspector panel for non-enchanted villagers.
+- `Include Enchanted Gear` (`Boolean`, default `true`) — Also inspect enchanted armor, tools, and weapons from Smiths and Fletchers.
+- `Show Price Ratings` (`Boolean`, default `true`) — Show `GREAT` / `FAIR` / `PRICY` emerald cost badges (plus `↓` discount indicators).
+- `Highlight Only Max Level` (`Boolean`, default `false`) — Only highlight max-level or treasure enchantments (and curses).
+- `Roll Alert Sound` (`Boolean`, default `true`) — Play a celebratory chime when a Villager offers a Max-Level or Treasure book.
+- `Roll Alert Toast` (`Boolean`, default `true`) — Push a slide-in corner Toast summarizing the best Librarian roll.
+- `Alert Only Great Prices` (`Boolean`, default `false`) — Only alert when the book also has a `GREAT` emerald cost.
+
+#### 72. **Anvil Helper**
+Enhances Minecraft's Anvil GUI with per-slot Prior Work Penalty / Anvil Use badges (`2/6`), true XP level cost calculation past vanilla's `"Too Expensive!"` (40+) cap, conflicting enchantment warnings, and a live reverse-order Swap XP Optimizer (`"💡 Swap inputs: Save X lvls!"`).
+- `Show Slot Use Badges` (`Boolean`, default `true`) — Display compact anvil-use badges below the Anvil input slots.
+- `Show True Cost (40+)` (`Boolean`, default `true`) — Reveal the real XP level cost when vanilla displays `"Too Expensive!"`.
+- `Swap Order Optimizer` (`Boolean`, default `true`) — Alert whenever swapping left and right inputs reduces XP cost.
+- `Show Helper Panel` (`Boolean`, default `true`) — Display the glassmorphic Anvil Helper panel beside the Anvil UI.
+- `Always Show Panel` (`Boolean`, default `false`) — Keep the helper panel visible even when the Anvil is empty.
+
 ---
 
-### 🖥 Server (10 Modules)
+### 🖥 Server (11 Modules)
 
 #### 70. **Hypixel Level Head**
 Displays players' Hypixel Network, Bedwars, or SkyWars level badges above their heads *(requires `Hypixel API Key` in Client Settings)*.
@@ -909,6 +1007,19 @@ Tracks Hypixel and Bedwars Diamond and Emerald island generator spawn cycles wit
 - `Show Next Event` (`Boolean`, default `true`) — Displays countdown to next match stage (e.g. `⏳ Diamond II: 3:24`).
 - `Only In Bedwars` (`Boolean`, default `false`) — Hides widget when not playing in a Bedwars match (always visible in HUD Editor).
 
+#### 80. **Bedwars Upgrades** `[HUD]`
+Automatically tracks your team's purchased **Bedwars Upgrades** (`Sharpness`, `Protection I–IV`, `Maniac Miner I–II`, `Iron` → `Molten Forge`, `Heal Pool`, `Dragon Buff`) and active **Trap queue (`0–3`)** from match chat, flashing urgent audio & banner alerts when an enemy triggers a trap.
+- `Use Client Color` (`Boolean`, default `true`) — Matches card accent and border to Client Menu Color.
+- `Color` (`ColorModeSetting`, default `Sky Blue`) — Accent color when `Use Client Color` is off.
+- `Display Mode` (`Mode`: `Full Card`, `Compact`, default `Full Card`) — Full 2-column grid + trap queue chips or compact single-row pill.
+- `Trap Trigger Alert` (`Boolean`, default `true`) — Pulses red banner & outline when a trap is set off.
+- `Alert Sound` (`Boolean`, default `true`) — Plays audio chimes when upgrades are bought or traps trigger.
+- `Sound Type` (`Mode`: `Bell`, `Pling`, `Ding`, `Anvil`, `Bass`, default `Bell`)
+- `Toast Notifications` (`Boolean`, default `true`) — Pushes slide-in corner toast alert when a trap is triggered.
+- `Hide Unpurchased` (`Boolean`, default `false`) — Compactly hides upgrades not yet unlocked in the match.
+- `Only In Bedwars` (`Boolean`, default `false`) — Hides widget when not playing in a Bedwars match (always visible in HUD Editor).
+- `Reset Tracker` (`Boolean`, default `false`) — Click to clear tracked upgrades and trap queue.
+
 ---
 
 ### ⚔ Cheats (15 Modules)
@@ -1017,6 +1128,7 @@ All module keybinds can be customized or cleared directly inside the **ClickGUI*
 | `C` | **Zoom** | Hold |
 | `G` | **Free Look** (`360°` Orbit Camera) | Hold |
 | `R` | **Radial Quick-Swap** | Hold |
+| `Z` | **Tactical Ping** (`Sneak + Z` to Clear) | Action |
 | `V` | **Toggle Sprint** | Toggle |
 | `B` | **Fullbright** | Toggle |
 | `T` | **Time Changer** | Toggle |

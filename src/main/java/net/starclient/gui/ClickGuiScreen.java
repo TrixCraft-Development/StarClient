@@ -19,18 +19,22 @@ import net.starclient.config.ProfileManager;
 import net.starclient.friend.FriendManager;
 import net.starclient.module.ChatPlusState;
 import net.starclient.module.Category;
+import net.starclient.module.KeywordAlertsState;
 import net.starclient.module.Module;
 import net.starclient.module.NickToolState;
 import net.starclient.module.PinnedNotesState;
 import net.starclient.module.QuickCommandsState;
+import net.starclient.module.SoundMufflerState;
 import net.starclient.module.WaypointsState;
 import net.starclient.rank.Rank;
 import net.starclient.setting.BannedWordListSetting;
 import net.starclient.setting.BooleanSetting;
 import net.starclient.setting.ColorModeSetting;
 import net.starclient.setting.FriendListSetting;
+import net.starclient.setting.KeywordAlertListSetting;
 import net.starclient.setting.MacroListSetting;
 import net.starclient.setting.ModeSetting;
+import net.starclient.setting.MutedSoundListSetting;
 import net.starclient.setting.NickEntryListSetting;
 import net.starclient.setting.NoteListSetting;
 import net.starclient.setting.NumberSetting;
@@ -119,6 +123,7 @@ public class ClickGuiScreen extends Screen {
     private String pendingTooltipDesc;
     private boolean profileDropdownOpen = false;
     private boolean showExperimentalConfirmModal = false;
+    private boolean confirmModalIsCrashGuard = false;
     private BooleanSetting pendingExperimentalSetting = null;
     private Module pendingExperimentalModule = null;
     private final StatsViewRenderer statsViewRenderer = new StatsViewRenderer();
@@ -449,7 +454,7 @@ public class ClickGuiScreen extends Screen {
     }
 
     private int sidebarItemHeight() {
-        return guiHeight >= 400 ? 20 : 18;
+        return guiHeight >= 390 ? 19 : 16;
     }
 
     private int sidebarItemGap() {
@@ -505,6 +510,39 @@ public class ClickGuiScreen extends Screen {
             String label = category.getIcon() + " " + category.getName();
             drawSidebarItem(extractor, itemX, curY, itemW, itemH, label, badge, selected, menuAccent(), mouseX, mouseY);
             curY += itemH + itemGap;
+        }
+
+        // 3. Bottom Quick-Tool Pills (Screenshot Gallery & Quick Server Switcher)
+        int toolH = 20;
+        int toolY = Math.max(curY + 4, startY + guiHeight - toolH - 7);
+        if (toolY + toolH <= startY + guiHeight - 3) {
+            extractor.fill(itemX + 4, toolY - 5, itemX + itemW - 4, toolY - 4, menuBorder());
+            int halfW = (itemW - 4) / 2;
+            int galX = itemX;
+            int srvX = itemX + halfW + 4;
+            int srvW = itemW - halfW - 4;
+
+            boolean galHov = isHovered(mouseX, mouseY, galX, toolY, halfW, toolH);
+            GuiRenderUtils.fillRoundedRect(extractor, galX, toolY, halfW, toolH, 5,
+                    galHov ? menuSurfaceHover() : menuSurface());
+            GuiRenderUtils.drawRoundedOutline(extractor, galX, toolY, halfW, toolH, 5,
+                    galHov ? menuAccent() : menuBorder());
+            GuiRenderUtils.drawCenteredText(extractor, this.font, "📷 Shots", galX + halfW / 2, toolY + 6,
+                    galHov ? menuAccent() : 0xFFE2E8F0);
+            if (galHov) {
+                setTooltip("Screenshot Gallery", "Browse, preview, copy, rename & delete your screenshots in-game.");
+            }
+
+            boolean srvHov = isHovered(mouseX, mouseY, srvX, toolY, srvW, toolH);
+            GuiRenderUtils.fillRoundedRect(extractor, srvX, toolY, srvW, toolH, 5,
+                    srvHov ? menuSurfaceHover() : menuSurface());
+            GuiRenderUtils.drawRoundedOutline(extractor, srvX, toolY, srvW, toolH, 5,
+                    srvHov ? menuAccent() : menuBorder());
+            GuiRenderUtils.drawCenteredText(extractor, this.font, "🌐 Switch", srvX + srvW / 2, toolY + 6,
+                    srvHov ? menuAccent() : 0xFFE2E8F0);
+            if (srvHov) {
+                setTooltip("Quick Server Switcher", "Ping saved servers and switch with 1 click without returning to the Main Menu.");
+            }
         }
     }
 
@@ -1097,6 +1135,26 @@ public class ClickGuiScreen extends Screen {
                 GuiRenderUtils.drawRoundedOutline(extractor, btnX, item.y + 4, btnW, 16, 4, menuBorder());
                 GuiRenderUtils.drawCenteredText(extractor, this.font, label, btnX + btnW / 2, item.y + 8, menuAccent());
             }
+            case KeywordAlertListSetting keywordAlertListSetting -> {
+                GuiRenderUtils.drawText(extractor, this.font, setting.getName(), item.x + 8, item.y + 8, 0xFFE2E8F0);
+                int count = KeywordAlertsState.getKeywords().size();
+                String label = (count == 0 ? "Manage (0)" : count + (count == 1 ? " rule" : " rules")) + " ✎";
+                int btnW = GuiRenderUtils.textWidth(this.font, label) + 12;
+                int btnX = item.x + item.width - btnW - 6;
+                GuiRenderUtils.fillRoundedRect(extractor, btnX, item.y + 4, btnW, 16, 4, menuBgDark());
+                GuiRenderUtils.drawRoundedOutline(extractor, btnX, item.y + 4, btnW, 16, 4, menuBorder());
+                GuiRenderUtils.drawCenteredText(extractor, this.font, label, btnX + btnW / 2, item.y + 8, menuAccent());
+            }
+            case MutedSoundListSetting mutedSoundListSetting -> {
+                GuiRenderUtils.drawText(extractor, this.font, setting.getName(), item.x + 8, item.y + 8, 0xFFE2E8F0);
+                int count = SoundMufflerState.getCustomFilters().size();
+                String label = (count == 0 ? "Manage (0)" : count + (count == 1 ? " sound" : " sounds")) + " ✎";
+                int btnW = GuiRenderUtils.textWidth(this.font, label) + 12;
+                int btnX = item.x + item.width - btnW - 6;
+                GuiRenderUtils.fillRoundedRect(extractor, btnX, item.y + 4, btnW, 16, 4, menuBgDark());
+                GuiRenderUtils.drawRoundedOutline(extractor, btnX, item.y + 4, btnW, 16, 4, menuBorder());
+                GuiRenderUtils.drawCenteredText(extractor, this.font, label, btnX + btnW / 2, item.y + 8, menuAccent());
+            }
             case NoteListSetting noteListSetting -> {
                 GuiRenderUtils.drawText(extractor, this.font, setting.getName(), item.x + 8, item.y + 8, 0xFFE2E8F0);
                 int count = PinnedNotesState.getNotes().size();
@@ -1338,6 +1396,12 @@ public class ClickGuiScreen extends Screen {
                 case "Friend List" -> {
                     curY += 4;
                     items.add(DrawerItem.header("Friends System", x, curY, width));
+                    curY += 22;
+                }
+                case "Discord Rich Presence" -> {
+                    curY += 4;
+                    String rpcStatus = net.starclient.DiscordRpcManager.getStatusText();
+                    items.add(DrawerItem.header("Discord Rich Presence  •  " + rpcStatus, x, curY, width));
                     curY += 22;
                 }
                 case "Hypixel API Key" -> {
@@ -1653,6 +1717,26 @@ public class ClickGuiScreen extends Screen {
             curY += itemH + itemGap;
         }
 
+        // 4b. Check Sidebar Bottom Quick-Tool Pills (Gallery & Server Switcher)
+        int toolH = 20;
+        int toolY = Math.max(curY + 4, startY + guiHeight - toolH - 7);
+        if (toolY + toolH <= startY + guiHeight - 3) {
+            int halfW = (itemW - 4) / 2;
+            int galX = itemX;
+            int srvX = itemX + halfW + 4;
+            int srvW = itemW - halfW - 4;
+            if (isHovered(mouseX, mouseY, galX, toolY, halfW, toolH)) {
+                Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+                Minecraft.getInstance().gui.setScreen(new ScreenshotGalleryScreen(this));
+                return true;
+            }
+            if (isHovered(mouseX, mouseY, srvX, toolY, srvW, toolH)) {
+                Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+                Minecraft.getInstance().gui.setScreen(new ServerSwitcherScreen(this));
+                return true;
+            }
+        }
+
         // 5. Check Settings Drawer interactions if open
         if (drawerModule != null && !isSettingsView() && !isStatsView() && !isProfilesView() && drawerProgress > 0.5F) {
             int drawerX = startX + guiWidth - DRAWER_WIDTH;
@@ -1719,6 +1803,7 @@ public class ClickGuiScreen extends Screen {
                 BooleanSetting expSetting = StarClient.getInstance().getClientSettings().getExperimentalFeaturesSetting();
                 if (expSetting != null && !expSetting.getValue()) {
                     this.showExperimentalConfirmModal = true;
+                    this.confirmModalIsCrashGuard = false;
                     this.pendingExperimentalSetting = expSetting;
                     this.pendingExperimentalModule = module;
                 }
@@ -1864,6 +1949,14 @@ public class ClickGuiScreen extends Screen {
         if (setting instanceof BooleanSetting booleanSetting) {
             if ("Experimental Features".equals(booleanSetting.getName()) && !booleanSetting.getValue()) {
                 this.showExperimentalConfirmModal = true;
+                this.confirmModalIsCrashGuard = false;
+                this.pendingExperimentalSetting = booleanSetting;
+                this.pendingExperimentalModule = null;
+                return;
+            }
+            if (ClientSettings.PREVENT_GAME_CRASHES_NAME.equals(booleanSetting.getName()) && !booleanSetting.getValue()) {
+                this.showExperimentalConfirmModal = true;
+                this.confirmModalIsCrashGuard = true;
                 this.pendingExperimentalSetting = booleanSetting;
                 this.pendingExperimentalModule = null;
                 return;
@@ -1938,6 +2031,10 @@ public class ClickGuiScreen extends Screen {
             Minecraft.getInstance().gui.setScreen(new QuickCommandsScreen(this));
         } else if (setting instanceof BannedWordListSetting) {
             Minecraft.getInstance().gui.setScreen(new BannedWordsScreen(this));
+        } else if (setting instanceof KeywordAlertListSetting) {
+            Minecraft.getInstance().gui.setScreen(new KeywordAlertsScreen(this));
+        } else if (setting instanceof MutedSoundListSetting) {
+            Minecraft.getInstance().gui.setScreen(new SoundMufflerScreen(this));
         } else if (setting instanceof NoteListSetting) {
             Minecraft.getInstance().gui.setScreen(new PinnedNotesScreen(this));
         } else if (setting instanceof FriendListSetting) {
@@ -2204,6 +2301,7 @@ public class ClickGuiScreen extends Screen {
         if (key == GLFW.GLFW_KEY_ESCAPE) {
             if (this.showExperimentalConfirmModal) {
                 this.showExperimentalConfirmModal = false;
+                this.confirmModalIsCrashGuard = false;
                 this.pendingExperimentalSetting = null;
                 this.pendingExperimentalModule = null;
                 return true;
@@ -2408,15 +2506,24 @@ public class ClickGuiScreen extends Screen {
         GuiRenderUtils.drawCenteredText(extractor, this.font, "✕", closeX + closeSize / 2, closeY + (closeSize - this.font.lineHeight) / 2 + 1, closeHover ? 0xFFF87171 : 0xFF94A3B8);
 
         // Warning Header
-        GuiRenderUtils.drawText(extractor, this.font, "⚠ Experimental Features", cardX + 16, cardY + 14, 0xFFF59E0B, true);
+        String modalTitle = this.confirmModalIsCrashGuard ? "⚠ Prevent Game Crashes" : "⚠ Experimental Features";
+        GuiRenderUtils.drawText(extractor, this.font, modalTitle, cardX + 16, cardY + 14, 0xFFF59E0B, true);
         extractor.fill(cardX + 14, cardY + 34, cardX + cardW - 14, cardY + 35, 0x3364748B);
 
         // Body Warning Lines
         int centerX = cardX + cardW / 2;
-        GuiRenderUtils.drawCenteredText(extractor, this.font, "Experimental features are still in progress", centerX, cardY + 48, 0xFFFFFFFF);
-        GuiRenderUtils.drawCenteredText(extractor, this.font, "and may not work as expected", centerX, cardY + 62, 0xFFE2E8F0);
-        GuiRenderUtils.drawCenteredText(extractor, this.font, "or could even break your game!", centerX, cardY + 76, 0xFFF87171);
-        GuiRenderUtils.drawCenteredText(extractor, this.font, "Proceed at your own risk.", centerX, cardY + 96, 0xFF94A3B8);
+        if (this.confirmModalIsCrashGuard) {
+            GuiRenderUtils.drawCenteredText(extractor, this.font, "This setting tries to catch game crashes", centerX, cardY + 48, 0xFFFFFFFF);
+            GuiRenderUtils.drawCenteredText(extractor, this.font, "and return you safely to the Main Menu.", centerX, cardY + 62, 0xFFE2E8F0);
+            GuiRenderUtils.drawCenteredText(extractor, this.font, "It can cause issues and is NOT guaranteed", centerX, cardY + 76, 0xFFF87171);
+            GuiRenderUtils.drawCenteredText(extractor, this.font, "to work 100% of the time.", centerX, cardY + 90, 0xFFF87171);
+            GuiRenderUtils.drawCenteredText(extractor, this.font, "Proceed at your own risk.", centerX, cardY + 108, 0xFF94A3B8);
+        } else {
+            GuiRenderUtils.drawCenteredText(extractor, this.font, "Experimental features are still in progress", centerX, cardY + 48, 0xFFFFFFFF);
+            GuiRenderUtils.drawCenteredText(extractor, this.font, "and may not work as expected", centerX, cardY + 62, 0xFFE2E8F0);
+            GuiRenderUtils.drawCenteredText(extractor, this.font, "or could even break your game!", centerX, cardY + 76, 0xFFF87171);
+            GuiRenderUtils.drawCenteredText(extractor, this.font, "Proceed at your own risk.", centerX, cardY + 96, 0xFF94A3B8);
+        }
 
         // Buttons: Cancel (left) & "I understand!" (right)
         int btnY = cardY + cardH - 36;
@@ -2487,18 +2594,22 @@ public class ClickGuiScreen extends Screen {
     private void closeExperimentalModal(boolean confirmed) {
         Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
         if (confirmed) {
-            BooleanSetting expSetting = this.pendingExperimentalSetting != null
-                    ? this.pendingExperimentalSetting
-                    : StarClient.getInstance().getClientSettings().getExperimentalFeaturesSetting();
-            if (expSetting != null) {
-                expSetting.setValue(true);
+            BooleanSetting targetSetting = this.pendingExperimentalSetting;
+            if (targetSetting == null) {
+                targetSetting = this.confirmModalIsCrashGuard
+                        ? StarClient.getInstance().getClientSettings().getPreventGameCrashesSetting()
+                        : StarClient.getInstance().getClientSettings().getExperimentalFeaturesSetting();
             }
-            if (this.pendingExperimentalModule != null && this.pendingExperimentalModule.canUse()) {
+            if (targetSetting != null) {
+                targetSetting.setValue(true);
+            }
+            if (!this.confirmModalIsCrashGuard && this.pendingExperimentalModule != null && this.pendingExperimentalModule.canUse()) {
                 this.pendingExperimentalModule.setEnabled(true);
             }
             StarClient.getInstance().getConfigManager().saveConfig();
         }
         this.showExperimentalConfirmModal = false;
+        this.confirmModalIsCrashGuard = false;
         this.pendingExperimentalSetting = null;
         this.pendingExperimentalModule = null;
     }

@@ -222,6 +222,59 @@ public final class BetterScreenshotsState {
         });
     }
 
+    public static String formatResolutionBadge(int width, int height) {
+        if (width <= 0 || height <= 0) return "?";
+        int maxDim = Math.max(width, height);
+        int minDim = Math.min(width, height);
+        if (maxDim >= 7600 || minDim >= 4200) return "8K";
+        if (maxDim >= 3800 || minDim >= 2100) return "4K";
+        if (maxDim >= 2500 || minDim >= 1400) return "1440p";
+        if (maxDim >= 1900 || minDim >= 1060) return "1080p";
+        if (maxDim >= 1260 || minDim >= 700) return "720p";
+        return width + "×" + height;
+    }
+
+    public static void copyFileToClipboardAsync(File file, Consumer<Boolean> onResult) {
+        if (file == null || !file.isFile()) {
+            if (onResult != null) {
+                Minecraft client = Minecraft.getInstance();
+                if (client != null) {
+                    client.execute(() -> onResult.accept(false));
+                } else {
+                    onResult.accept(false);
+                }
+            }
+            return;
+        }
+        Util.ioPool().execute(() -> {
+            boolean ok = false;
+            try (InputStream in = Files.newInputStream(file.toPath());
+                 NativeImage img = NativeImage.read(in)) {
+                ok = copyNativeImageToClipboard(img);
+            } catch (Throwable t) {
+                StarClient.LOGGER.warn("Failed to copy screenshot file to clipboard", t);
+            }
+            final boolean success = ok;
+            if (success) {
+                ToastNotificationManager.pushToast(
+                        "screenshot_copy",
+                        "Screenshot Copied",
+                        file.getName(),
+                        "CLIPBOARD",
+                        0xFF34D399
+                );
+            }
+            if (onResult != null) {
+                Minecraft client = Minecraft.getInstance();
+                if (client != null) {
+                    client.execute(() -> onResult.accept(success));
+                } else {
+                    onResult.accept(success);
+                }
+            }
+        });
+    }
+
     public static void handleCopyActionClick(String payload, Minecraft client) {
         if (payload == null || !payload.startsWith(COPY_ACTION_PREFIX)) return;
         String pathStr = payload.substring(COPY_ACTION_PREFIX.length());

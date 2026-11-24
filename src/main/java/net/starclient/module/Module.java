@@ -6,7 +6,9 @@ import net.starclient.rank.Rank;
 import net.starclient.setting.BannedWordListSetting;
 import net.starclient.setting.BooleanSetting;
 import net.starclient.setting.ColorModeSetting;
+import net.starclient.setting.KeywordAlertListSetting;
 import net.starclient.setting.MacroListSetting;
+import net.starclient.setting.MutedSoundListSetting;
 import net.starclient.setting.NickEntryListSetting;
 import net.starclient.setting.NoteListSetting;
 import net.starclient.setting.Setting;
@@ -49,7 +51,9 @@ public abstract class Module {
             "Death Recap",
             "Team Health",
             "Bedwars Timers",
-            "Loot Feed"
+            "Bedwars Upgrades",
+            "Loot Feed",
+            "Now Playing"
     );
 
     private static final Set<String> MODULES_WITH_TRANSPARENT_BG = Set.of(
@@ -293,6 +297,10 @@ public abstract class Module {
                 ml.getValue().clear();
             } else if (setting instanceof BannedWordListSetting bwl) {
                 bwl.getValue().clear();
+            } else if (setting instanceof KeywordAlertListSetting kal) {
+                kal.getValue().clear();
+            } else if (setting instanceof MutedSoundListSetting msl) {
+                msl.getValue().clear();
             } else if (setting instanceof NoteListSetting nls) {
                 nls.getValue().clear();
             }
@@ -307,6 +315,8 @@ public abstract class Module {
                     && !(setting instanceof MacroListSetting)
                     && !(setting instanceof WaypointListSetting)
                     && !(setting instanceof BannedWordListSetting)
+                    && !(setting instanceof KeywordAlertListSetting)
+                    && !(setting instanceof MutedSoundListSetting)
                     && !(setting instanceof NoteListSetting)) {
                 setting.reset();
             }

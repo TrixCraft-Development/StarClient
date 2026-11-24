@@ -7,9 +7,11 @@ import net.minecraft.client.multiplayer.chat.GuiMessageSource;
 import net.minecraft.client.multiplayer.chat.GuiMessageTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MessageSignature;
+import net.starclient.gui.BedwarsUpgradesRenderer;
 import net.starclient.gui.WorldInfoRenderer;
 import net.starclient.module.AutoGgState;
 import net.starclient.module.ChatPlusState;
+import net.starclient.module.KeywordAlertsState;
 import net.starclient.module.NickToolState;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -70,7 +72,8 @@ public abstract class ChatMessageMixin {
             at = @At(value = "INVOKE", target = ADD_MESSAGE),
             index = 0)
     private Component rewritePlayerChat(Component message) {
-        return rewriteChat(message);
+        Component out = rewriteChat(message);
+        return KeywordAlertsState.processIncomingMessage(out, GuiMessageSource.PLAYER);
     }
 
     @ModifyArg(method = "addServerSystemMessage(Lnet/minecraft/network/chat/Component;)V",
@@ -79,9 +82,12 @@ public abstract class ChatMessageMixin {
     private Component rewriteServerSystemChat(Component message) {
         if (message != null) {
             WorldInfoRenderer.captureSeedFromServerMessage(message);
-            AutoGgState.onServerMessage(message.getString());
+            String plain = message.getString();
+            AutoGgState.onServerMessage(plain);
+            BedwarsUpgradesRenderer.onServerMessage(plain);
         }
-        return rewriteChat(message);
+        Component out = rewriteChat(message);
+        return KeywordAlertsState.processIncomingMessage(out, GuiMessageSource.SYSTEM_SERVER);
     }
 
     @ModifyArg(method = "addClientSystemMessage(Lnet/minecraft/network/chat/Component;)V",

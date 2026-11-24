@@ -8,6 +8,7 @@ import net.minecraft.client.sounds.SoundManager;
 import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvents;
 import net.starclient.module.OldAnimationsState;
+import net.starclient.module.SoundMufflerState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -29,6 +30,13 @@ public abstract class SoundManagerMixin {
         if (sound == null || sound.getIdentifier() == null) return;
         Identifier id = sound.getIdentifier();
         String path = id.getPath();
+
+        // Record recent sound for Sound Muffler's 1-click mute UI & cancel completely silenced sounds
+        SoundMufflerState.recordRecentSound(id);
+        if (SoundMufflerState.shouldCompletelyCancel(id)) {
+            cir.setReturnValue(SoundEngine.PlayResult.NOT_STARTED);
+            return;
+        }
 
         // 1. Disable sweep sounds
         if (OldAnimationsState.isDisableSweep()) {

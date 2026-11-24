@@ -196,6 +196,16 @@ public class HudEditorScreen extends Screen {
             layout.endScale(extractor, sc);
         }
 
+        Module bwUpgradesMod = mod.getModuleManager().getModuleByName("Bedwars Upgrades");
+        if (!inWorld && bwUpgradesMod != null && bwUpgradesMod.isEnabled() && isHudElementVisible(HudLayout.BEDWARS_UPGRADES)) {
+            int bwuW = BedwarsUpgradesRenderer.getWidth(this.font, bwUpgradesMod);
+            int bwuX = layout.effectiveX(HudLayout.BEDWARS_UPGRADES, this.width, bwuW);
+            int bwuY = layout.effectiveY(HudLayout.BEDWARS_UPGRADES, this.height);
+            boolean sc = layout.beginScale(extractor, bwuX, bwuY, HudLayout.BEDWARS_UPGRADES);
+            BedwarsUpgradesRenderer.renderPreview(extractor, bwUpgradesMod, bwuX, bwuY);
+            layout.endScale(extractor, sc);
+        }
+
         Module lootFeedMod = mod.getModuleManager().getModuleByName("Loot Feed");
         if (lootFeedMod != null && lootFeedMod.isEnabled() && isHudElementVisible(HudLayout.LOOT_FEED)) {
             int lfW = LootFeedRenderer.getWidth(this.font, lootFeedMod);
@@ -203,6 +213,16 @@ public class HudEditorScreen extends Screen {
             int lfY = layout.effectiveY(HudLayout.LOOT_FEED, this.height);
             boolean sc = layout.beginScale(extractor, lfX, lfY, HudLayout.LOOT_FEED);
             LootFeedRenderer.renderPreview(extractor, lootFeedMod, lfX, lfY);
+            layout.endScale(extractor, sc);
+        }
+
+        Module mediaHudMod = mod.getModuleManager().getModuleByName("Now Playing");
+        if (mediaHudMod != null && mediaHudMod.isEnabled() && isHudElementVisible(HudLayout.MEDIA_HUD)) {
+            int mhW = MediaHudRenderer.getWidth(mediaHudMod);
+            int mhX = layout.effectiveX(HudLayout.MEDIA_HUD, this.width, mhW);
+            int mhY = layout.effectiveY(HudLayout.MEDIA_HUD, this.height);
+            boolean sc = layout.beginScale(extractor, mhX, mhY, HudLayout.MEDIA_HUD);
+            MediaHudRenderer.renderPreview(extractor, mediaHudMod, mhX, mhY);
             layout.endScale(extractor, sc);
         }
 
@@ -230,7 +250,9 @@ public class HudEditorScreen extends Screen {
                     && !r.id().equals(HudLayout.DEATH_RECAP)
                     && !r.id().equals(HudLayout.TEAM_HEALTH)
                     && !r.id().equals(HudLayout.BEDWARS_TIMERS)
-                    && !r.id().equals(HudLayout.LOOT_FEED)) {
+                    && !r.id().equals(HudLayout.BEDWARS_UPGRADES)
+                    && !r.id().equals(HudLayout.LOOT_FEED)
+                    && !r.id().equals(HudLayout.MEDIA_HUD)) {
                 GuiRenderUtils.drawDropShadow(extractor, r.x1(), r.y1(), rw, rh, 4, 3, 80);
                 GuiRenderUtils.fillRoundedRect(extractor, r.x1(), r.y1(), rw, rh, 4, 0xCC0F172A);
                 GuiRenderUtils.drawRoundedOutline(extractor, r.x1(), r.y1(), rw, rh, 4, 0x4438BDF8);
@@ -639,7 +661,9 @@ public class HudEditorScreen extends Screen {
             case HudLayout.DEATH_RECAP -> "Death Recap";
             case HudLayout.TEAM_HEALTH -> "Team Health";
             case HudLayout.BEDWARS_TIMERS -> "Bedwars Timers";
+            case HudLayout.BEDWARS_UPGRADES -> "Bedwars Upgrades";
             case HudLayout.LOOT_FEED -> "Loot Feed";
+            case HudLayout.MEDIA_HUD -> "Now Playing";
             default -> "";
         };
     }
@@ -678,7 +702,9 @@ public class HudEditorScreen extends Screen {
             case HudLayout.DEATH_RECAP -> "💀 Death Recap";
             case HudLayout.TEAM_HEALTH -> "👥 Team Health";
             case HudLayout.BEDWARS_TIMERS -> "💎 Bedwars Timers";
+            case HudLayout.BEDWARS_UPGRADES -> "⚔ Bedwars Upgrades";
             case HudLayout.LOOT_FEED -> "🎒 Loot Feed";
+            case HudLayout.MEDIA_HUD -> "♪ Now Playing";
             default -> id;
         };
     }

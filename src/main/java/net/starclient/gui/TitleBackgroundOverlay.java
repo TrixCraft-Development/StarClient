@@ -64,6 +64,15 @@ public final class TitleBackgroundOverlay {
         this.dropdownOpen = false;
     }
 
+    public int getLeftEdge() {
+        if (this.lastBoxX > 0) {
+            return this.lastBoxX;
+        }
+        Minecraft client = Minecraft.getInstance();
+        int screenW = client.getWindow().getGuiScaledWidth();
+        return screenW - 110;
+    }
+
     public static void renderBackground(GuiGraphicsExtractor graphics, int width, int height, float delta, String mode) {
         if (ClientSettings.BG_CUSTOM.equals(mode)) {
             renderCustomWallpaper(graphics, width, height);

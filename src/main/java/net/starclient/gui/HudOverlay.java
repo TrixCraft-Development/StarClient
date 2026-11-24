@@ -361,6 +361,17 @@ public class HudOverlay {
             layout.endScale(extractor, sc);
         }
 
+        // 3d15b. Bedwars Upgrades & Trap Tracker
+        Module bwUpgradesMod = StarClient.getInstance().getModuleManager().getModuleByName("Bedwars Upgrades");
+        if (bwUpgradesMod != null && bwUpgradesMod.isEnabled()) {
+            int bwuW = BedwarsUpgradesRenderer.getWidth(client.font, bwUpgradesMod);
+            int bwuX = layout.effectiveX(HudLayout.BEDWARS_UPGRADES, screenWidth, bwuW);
+            int bwuY = layout.effectiveY(HudLayout.BEDWARS_UPGRADES, screenHeight);
+            boolean sc = layout.beginScale(extractor, bwuX, bwuY, HudLayout.BEDWARS_UPGRADES);
+            BedwarsUpgradesRenderer.render(extractor, client, bwUpgradesMod, bwuX, bwuY);
+            layout.endScale(extractor, sc);
+        }
+
         // 3d16. Loot & Pickup Feed
         Module lootFeedMod = StarClient.getInstance().getModuleManager().getModuleByName("Loot Feed");
         if (lootFeedMod != null && lootFeedMod.isEnabled()) {
@@ -369,6 +380,17 @@ public class HudOverlay {
             int lfY = layout.effectiveY(HudLayout.LOOT_FEED, screenHeight);
             boolean sc = layout.beginScale(extractor, lfX, lfY, HudLayout.LOOT_FEED);
             LootFeedRenderer.render(extractor, client, lootFeedMod, lfX, lfY);
+            layout.endScale(extractor, sc);
+        }
+
+        // 3d17. Now Playing Media HUD
+        Module mediaHudMod = StarClient.getInstance().getModuleManager().getModuleByName("Now Playing");
+        if (mediaHudMod != null && mediaHudMod.isEnabled()) {
+            int mhW = MediaHudRenderer.getWidth(mediaHudMod);
+            int mhX = layout.effectiveX(HudLayout.MEDIA_HUD, screenWidth, mhW);
+            int mhY = layout.effectiveY(HudLayout.MEDIA_HUD, screenHeight);
+            boolean sc = layout.beginScale(extractor, mhX, mhY, HudLayout.MEDIA_HUD);
+            MediaHudRenderer.render(extractor, client, mediaHudMod, mhX, mhY);
             layout.endScale(extractor, sc);
         }
 
@@ -623,9 +645,13 @@ public class HudOverlay {
             TntBlastRadiusRenderer.render(extractor, client, tntBlastMod);
         }
 
-        // 14. 3D In-World Waypoints
+        // 14. 3D In-World Waypoints & Tactical Pings
         if (!(client.gui.screen() instanceof ClickGuiScreen) && !(client.gui.screen() instanceof HudEditorScreen)) {
             WaypointRenderer.render(extractor, client);
+            Module tacticalPingMod = StarClient.getInstance().getModuleManager().getModuleByName("Tactical Ping");
+            if (tacticalPingMod != null && tacticalPingMod.isEnabled()) {
+                TacticalPingRenderer.render(extractor, client, tacticalPingMod);
+            }
         }
 
         // 14b. Low Health Vignette

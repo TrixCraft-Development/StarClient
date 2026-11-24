@@ -10,14 +10,17 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.starclient.ClientSettings;
 import net.starclient.StarClient;
 import net.starclient.gui.ContainerPreviewRenderer;
+import net.starclient.gui.CraftingCalculatorScreen;
 import net.starclient.gui.GuiRenderUtils;
 import net.starclient.gui.InventorySearchHolder;
 import net.starclient.gui.InventorySearchManager;
+import net.starclient.module.SlotLockState;
 import net.starclient.module.TooltipFeaturesState;
 import org.joml.Matrix3x2fStack;
 import org.lwjgl.glfw.GLFW;
@@ -224,8 +227,17 @@ public abstract class AbstractContainerScreenMixin extends Screen implements Inv
         }
     }
 
+    @Inject(method = "slotClicked", at = @At("HEAD"), cancellable = true)
+    private void starclient$onSlotClicked(Slot slot, int slotId, int button, ContainerInput input, CallbackInfo ci) {
+        if (SlotLockState.shouldBlockContainerClick(slot, button, input)) {
+            ci.cancel();
+        }
+    }
+
     @Inject(method = "extractSlot", at = @At("TAIL"))
     private void starclient$onExtractSlot(GuiGraphicsExtractor graphics, Slot slot, int mouseX, int mouseY, CallbackInfo ci) {
+        SlotLockState.renderContainerSlotOverlay(graphics, slot);
+
         if (!InventorySearchManager.isEnabled() || this.starclient$searchBox == null) return;
         String query = this.starclient$searchBox.getValue();
         if (query.isBlank()) return;
@@ -310,6 +322,23 @@ public abstract class AbstractContainerScreenMixin extends Screen implements Inv
                 return;
             }
 
+            cir.setReturnValue(true);
+            return;
+        }
+
+        if (this.hoveredSlot != null && SlotLockState.isEnabled()
+                && event.key() == SlotLockState.getLockKeyBind()
+                && SlotLockState.isPlayerInventorySlot(this.hoveredSlot)) {
+            SlotLockState.toggleLock(this.hoveredSlot.getContainerSlot());
+            cir.setReturnValue(true);
+            return;
+        }
+
+        if (this.hoveredSlot != null && this.hoveredSlot.hasItem()
+                && CraftingCalculatorScreen.isEnabled()
+                && event.key() == CraftingCalculatorScreen.getHotkey()
+                && this.minecraft != null) {
+            this.minecraft.gui.setScreen(new CraftingCalculatorScreen(this, this.hoveredSlot.getItem().getItem()));
             cir.setReturnValue(true);
             return;
         }

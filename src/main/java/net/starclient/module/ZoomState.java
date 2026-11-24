@@ -1,8 +1,11 @@
 package net.starclient.module;
 
+import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.client.Minecraft;
 import net.minecraft.util.Mth;
 import net.starclient.setting.BooleanSetting;
 import net.starclient.setting.NumberSetting;
+import org.lwjgl.glfw.GLFW;
 
 public final class ZoomState {
     private static Module zoomModule;
@@ -20,14 +23,43 @@ public final class ZoomState {
         return zoomModule != null && zoomModule.isEnabled();
     }
 
+    /**
+     * Real-time zoom active check that immediately reflects key release on the render/mouse thread
+     * instead of waiting for the next 20Hz client tick.
+     */
+    public static boolean isZoomHeldNow() {
+        if (zoomModule == null || !zoomModule.isEnabled() || !zoomModule.canUse()) {
+            return false;
+        }
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null || mc.player == null || mc.level == null || mc.gui.screen() != null) {
+            return false;
+        }
+        int key = zoomModule.getKeyBind();
+        if (key != GLFW.GLFW_KEY_UNKNOWN && zoomModule.isHoldKey()) {
+            return InputConstants.isKeyDown(mc.getWindow(), key);
+        }
+        return true;
+    }
+
+    public static boolean isCinematicCameraEnabled() {
+        return zoomModule != null
+                && zoomModule.getSetting("Cinematic Camera") instanceof BooleanSetting bs
+                && bs.getValue();
+    }
+
+    public static int getZoomKeyBind() {
+        return zoomModule != null ? zoomModule.getKeyBind() : GLFW.GLFW_KEY_UNKNOWN;
+    }
+
     public static void onScroll(double amount) {
-        if (zoomModule != null && zoomModule.isEnabled()) {
+        if (isZoomHeldNow()) {
             zoomModule.onScroll(amount);
         }
     }
 
     public static double getSensitivityMultiplier() {
-        if (zoomModule != null && zoomModule.isEnabled()
+        if (isZoomHeldNow()
                 && zoomModule.getSetting("Mouse Sensitivity") instanceof NumberSetting ns) {
             return ns.getValue() / 100.0;
         }
@@ -35,7 +67,7 @@ public final class ZoomState {
     }
 
     public static float modifyFov(float baseFov) {
-        boolean active = isActive();
+        boolean active = isZoomHeldNow();
         if (!active && Math.abs(currentScale - 1.0F) < 0.001F) {
             currentScale = 1.0F;
             lastFrameNanos = 0L;

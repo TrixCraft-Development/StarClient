@@ -5,6 +5,8 @@ import com.mojang.authlib.yggdrasil.ProfileResult;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.User;
 import net.minecraft.client.multiplayer.ProfileKeyPairManager;
+import net.minecraft.client.server.IntegratedServer;
+import net.minecraft.network.Connection;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
 import org.spongepowered.asm.mixin.gen.Accessor;
@@ -35,4 +37,19 @@ public interface MinecraftAccessor {
     @Mutable
     @Accessor("profileKeyPairManager")
     void starclient$setProfileKeyPairManager(ProfileKeyPairManager profileKeyPairManager);
+
+    @Accessor("singleplayerServer")
+    void starclient$setSingleplayerServer(IntegratedServer server);
+
+    @Accessor("isLocalServer")
+    void starclient$setIsLocalServer(boolean isLocalServer);
+
+    @Accessor("pendingConnection")
+    Connection starclient$getPendingConnection();
+
+    @Accessor("pendingConnection")
+    void starclient$setPendingConnection(Connection connection);
+
+    @Accessor("pendingReload")
+    void starclient$setPendingReload(CompletableFuture<Void> pendingReload);
 }

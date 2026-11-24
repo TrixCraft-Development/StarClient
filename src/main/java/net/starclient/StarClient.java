@@ -97,6 +97,7 @@ public class StarClient implements ClientModInitializer {
 
         // Save configuration on game shutdown
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            DiscordRpcManager.shutdown();
             this.configManager.saveConfig();
             net.starclient.friend.FriendManager.save();
         }));
@@ -107,6 +108,7 @@ public class StarClient implements ClientModInitializer {
         // Register Client Tick Callback (config loaded on first tick when Minecraft is fully ready)
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             ensureConfigLoaded();
+            DiscordRpcManager.onClientTick(client);
             ClientStatsManager.getInstance().onTick(client);
             net.starclient.module.AutoRespawnReconnectState.onClientTick(client);
             net.starclient.module.WaypointsState.onClientTick(client);
@@ -119,9 +121,13 @@ public class StarClient implements ClientModInitializer {
             if (inGame) {
                 if (client.gui.screen() == null) {
                     this.moduleManager.handleKeybinds(client);
+                } else {
+                    this.moduleManager.releaseHoldModules();
                 }
                 this.moduleManager.onTick(client);
                 CosmeticTrailManager.tick(client);
+            } else {
+                this.moduleManager.releaseHoldModules();
             }
             PresetCosmetics.tickAnimations(System.currentTimeMillis() / 50);
 

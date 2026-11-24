@@ -26,6 +26,7 @@ import net.starclient.gui.ScoreboardRenderer;
 import net.starclient.gui.TabListRenderer;
 import net.starclient.module.CustomCrosshairState;
 import net.starclient.module.Module;
+import net.starclient.module.SlotLockState;
 import net.starclient.setting.ColorModeSetting;
 import net.starclient.setting.NumberSetting;
 import net.starclient.setting.Setting;
@@ -64,6 +65,14 @@ public abstract class HudMixin {
     @Inject(method = "extractFood", at = @At("TAIL"))
     private void starclient$renderSaturationAndFoodPreview(GuiGraphicsExtractor graphics, Player player, int y, int rightX, CallbackInfo ci) {
         HungerOverlayRenderer.renderSaturationAndPreview(graphics, player, y, rightX, FOOD_FULL_SPRITE, FOOD_HALF_SPRITE);
+    }
+
+    @Inject(method = "extractItemHotbar", at = @At("TAIL"))
+    private void starclient$renderSlotLockHotbarIcons(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker, CallbackInfo ci) {
+        Minecraft client = Minecraft.getInstance();
+        if (client.player != null) {
+            SlotLockState.renderHotbarOverlays(graphics, client.player);
+        }
     }
 
     @Unique

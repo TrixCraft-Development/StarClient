@@ -39,6 +39,7 @@ public final class ClientSettings {
     public static final String BG_CUSTOM = "Custom Wallpaper";
     public static final String BG_MODERN = "Modern Dark";
     public static final String BG_VANILLA = "Vanilla Panorama";
+    public static final String PREVENT_GAME_CRASHES_NAME = "Prevent Game Crashes";
 
     private final List<Setting<?>> settings = new ArrayList<>();
     private final BooleanSetting hudTextShadow;
@@ -46,6 +47,12 @@ public final class ClientSettings {
     private final BooleanSetting removeSplash;
     private final BooleanSetting containerAnimations;
     private final BooleanSetting containerBlur;
+    private final BooleanSetting discordRpcEnabled;
+    private final BooleanSetting discordShowServerIp;
+    private final BooleanSetting discordShowWorldName;
+    private final BooleanSetting discordShowDimension;
+    private final BooleanSetting discordShowPlaytime;
+    private final TextSetting discordAppId;
     private final TextSetting hypixelApiKey;
     private final ColorModeSetting menuAccentColor;
     private final ColorModeSetting menuBackgroundColor;
@@ -65,6 +72,7 @@ public final class ClientSettings {
     private final BooleanSetting highlightFriendsInEsp;
     private final BooleanSetting experimentalFeatures;
     private final BooleanSetting paletteCrashSafeguard;
+    private final BooleanSetting preventGameCrashes;
 
     public ClientSettings() {
         this.hudTextShadow = new BooleanSetting("HUD Text Shadow",
@@ -102,6 +110,18 @@ public final class ClientSettings {
                 "Smooth pop-in scale and glide transition when opening inventories and containers", false);
         this.containerBlur = new BooleanSetting("Container Background Blur",
                 "Apply Gaussian background blur behind open inventory and container screens", true);
+        this.discordRpcEnabled = new BooleanSetting("Discord Rich Presence",
+                "Show your live Minecraft status (server, world, dimension & playtime) on your Discord profile", true);
+        this.discordShowServerIp = new BooleanSetting("Discord Show Server IP",
+                "Display the multiplayer server IP on Discord (disable to show 'Playing Multiplayer')", true);
+        this.discordShowWorldName = new BooleanSetting("Discord Show World Name",
+                "Display your singleplayer world name on Discord (disable to show 'Playing Singleplayer')", true);
+        this.discordShowDimension = new BooleanSetting("Discord Show Dimension",
+                "Show your current dimension (Overworld, Nether, End) in your Discord status", true);
+        this.discordShowPlaytime = new BooleanSetting("Discord Show Playtime",
+                "Display live elapsed session playtime on your Discord profile", true);
+        this.discordAppId = new TextSetting("Discord App ID (Optional)",
+                "Leave blank for default Minecraft RPC, or paste a custom Discord Developer App ID named 'Star Client'", "", false);
         this.hypixelApiKey = new TextSetting("Hypixel API Key",
                 "Required by Server modules that query the Hypixel API. Create a free key at hypixel.dev", "", true);
         this.menuAccentColor = new ColorModeSetting("Client Menu Color",
@@ -117,6 +137,8 @@ public final class ClientSettings {
                 "Unlock experimental modules and features currently under development", false);
         this.paletteCrashSafeguard = new BooleanSetting("Palette Crash Safeguard",
                 "Prevents game crashes from invalid chunk palette IDs sent by servers", true);
+        this.preventGameCrashes = new BooleanSetting(PREVENT_GAME_CRASHES_NAME,
+                "Attempts to intercept game crashes and return you to the Main Menu instead of closing the game", false);
 
         settings.add(menuAccentColor);
         settings.add(menuBackgroundColor);
@@ -139,9 +161,16 @@ public final class ClientSettings {
         settings.add(middleClickFriend);
         settings.add(protectFriendsInCombat);
         settings.add(highlightFriendsInEsp);
+        settings.add(discordRpcEnabled);
+        settings.add(discordShowServerIp);
+        settings.add(discordShowWorldName);
+        settings.add(discordShowDimension);
+        settings.add(discordShowPlaytime);
+        settings.add(discordAppId);
         settings.add(hypixelApiKey);
         settings.add(experimentalFeatures);
         settings.add(paletteCrashSafeguard);
+        settings.add(preventGameCrashes);
     }
 
     public List<Setting<?>> getSettings() {
@@ -256,6 +285,14 @@ public final class ClientSettings {
         return paletteCrashSafeguard;
     }
 
+    public boolean isPreventGameCrashes() {
+        return preventGameCrashes != null && preventGameCrashes.getValue();
+    }
+
+    public BooleanSetting getPreventGameCrashesSetting() {
+        return preventGameCrashes;
+    }
+
     public void setModernButtons(boolean enabled) {
         modernButtons.setValue(enabled);
     }
@@ -263,6 +300,31 @@ public final class ClientSettings {
     public String getHypixelApiKey() {
         String key = hypixelApiKey.getValue();
         return key == null ? "" : key.trim();
+    }
+
+    public boolean isDiscordRpcEnabled() {
+        return discordRpcEnabled == null || discordRpcEnabled.getValue();
+    }
+
+    public boolean isDiscordShowServerIp() {
+        return discordShowServerIp == null || discordShowServerIp.getValue();
+    }
+
+    public boolean isDiscordShowWorldName() {
+        return discordShowWorldName == null || discordShowWorldName.getValue();
+    }
+
+    public boolean isDiscordShowDimension() {
+        return discordShowDimension == null || discordShowDimension.getValue();
+    }
+
+    public boolean isDiscordShowPlaytime() {
+        return discordShowPlaytime == null || discordShowPlaytime.getValue();
+    }
+
+    public String getDiscordAppId() {
+        String id = discordAppId != null ? discordAppId.getValue() : "";
+        return id == null ? "" : id.trim();
     }
 
     public int getMenuAccentColor() {

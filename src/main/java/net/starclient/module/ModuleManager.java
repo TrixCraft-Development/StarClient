@@ -34,10 +34,15 @@ import net.minecraft.world.phys.Vec3;
 import net.starclient.StarClient;
 import net.starclient.api.HypixelApi;
 import net.starclient.friend.FriendManager;
+import net.starclient.gui.AnvilHelperRenderer;
 import net.starclient.gui.BaseAlertRenderer;
 import net.starclient.gui.BedDefenseRenderer;
 import net.starclient.gui.BedwarsTimersRenderer;
+import net.starclient.gui.BedwarsUpgradesRenderer;
+import net.starclient.gui.ColorFormattingBarWidget;
+import net.starclient.gui.CraftingCalculatorScreen;
 import net.starclient.gui.LootFeedRenderer;
+import net.starclient.gui.TacticalPingRenderer;
 import net.starclient.gui.EntityEsp;
 import net.starclient.gui.FireballAlertRenderer;
 import net.starclient.gui.LowBlocksWarningRenderer;
@@ -47,14 +52,17 @@ import net.starclient.gui.ItemEsp;
 import net.starclient.gui.LightOverlayRenderer;
 import net.starclient.gui.SpawnerOverlayRenderer;
 import net.starclient.gui.ToastNotificationManager;
+import net.starclient.gui.VillagerTradeHighlighter;
 import net.starclient.mixin.FishingHookAccessor;
 import net.starclient.mixin.MinecraftAccessor;
 import net.starclient.mixin.MultiPlayerGameModeAccessor;
 import net.starclient.setting.BannedWordListSetting;
 import net.starclient.setting.BooleanSetting;
 import net.starclient.setting.ColorModeSetting;
+import net.starclient.setting.KeywordAlertListSetting;
 import net.starclient.setting.MacroListSetting;
 import net.starclient.setting.ModeSetting;
+import net.starclient.setting.MutedSoundListSetting;
 import net.starclient.setting.NickEntryListSetting;
 import net.starclient.setting.NoteListSetting;
 import net.starclient.setting.NumberSetting;
@@ -209,8 +217,6 @@ public class ModuleManager {
         });
 
         register(new Module("Zoom", "Hold to zoom in with smooth FOV interpolation and scroll wheel zoom control.", Category.UI, GLFW.GLFW_KEY_C) {
-            private boolean previousSmoothCamera = false;
-
             private static final double DEFAULT_ZOOM_FOV = 30.0;
 
             {
@@ -231,23 +237,11 @@ public class ModuleManager {
 
             @Override
             public void onEnable() {
-                previousSmoothCamera = mc.options.smoothCamera;
                 if (getSetting("Reset on Release") instanceof BooleanSetting bs && bs.getValue()) {
                     if (getSetting("FOV") instanceof NumberSetting number) {
                         number.setValue(DEFAULT_ZOOM_FOV);
                     }
                 }
-                applyZoom();
-            }
-
-            @Override
-            public void onTick(Minecraft client) {
-                applyZoom();
-            }
-
-            @Override
-            public void onDisable() {
-                mc.options.smoothCamera = previousSmoothCamera;
             }
 
             @Override
@@ -258,15 +252,6 @@ public class ModuleManager {
                 // Scale step proportionally at tight FOVs so ultra-deep zoom (down to 1.0 FOV) stays smooth
                 double curveFactor = Math.clamp(current / 30.0, 0.12, 1.4);
                 setting.setValue(Math.clamp(current - amount * step * curveFactor, setting.getMin(), setting.getMax()));
-            }
-
-            private void applyZoom() {
-                mc.options.smoothCamera = isSmoothCamera();
-            }
-
-            private boolean isSmoothCamera() {
-                Setting<?> setting = getSetting("Cinematic Camera");
-                return setting != null && (boolean) setting.getValue();
             }
         });
 
@@ -3012,6 +2997,246 @@ public class ModuleManager {
                 LootFeedRenderer.reset();
             }
         });
+
+        register(new Module("Tactical Ping",
+                "Apex-style 3D tactical crosshair ping marker (press hotkey, Sneak+Key to clear) identifying enemies, TNT, beds, loot, and locations.",
+                Category.WORLD, GLFW.GLFW_KEY_Z) {
+            {
+                addSetting(new NumberSetting("Duration (s)", "Seconds each tactical ping remains active", 15.0, 5.0, 60.0, 5.0));
+                addSetting(new NumberSetting("Max Range", "Maximum crosshair raycast distance in blocks", 150.0, 30.0, 250.0, 10.0));
+                addSetting(new NumberSetting("Max Pings", "Maximum simultaneous ping markers before oldest expires", 4.0, 1.0, 6.0, 1.0));
+                addSetting(new BooleanSetting("Show Beam", "Render a vertical 3D beacon beam at pinged markers", true));
+                addSetting(new BooleanSetting("Show Coordinates", "Display XYZ coordinates inside floating ping tags", false));
+                addSetting(new BooleanSetting("Off-Screen Arrows", "Show screen-edge directional arrows for pings behind or outside your view", true));
+                addSetting(new BooleanSetting("Sound Effect", "Play a crisp sonar ping sound on placement", true));
+                addSetting(new ModeSetting("Chat Callout", "Optional chat message or clipboard callout when placing a ping",
+                        "Off", List.of("Off", "Send Chat Message", "Copy to Clipboard")));
+                addSetting(new BooleanSetting("Use Client Color", "Match standard location pings to Client Menu Color", false));
+                addSetting(new ColorModeSetting("Color", "Location ping color when Use Client Color is off", "Sky Blue", BlockOutlineState.OUTLINE_COLORS));
+                addSetting(new BooleanSetting("Clear All Pings", "Click to immediately clear all active tactical pings", false));
+            }
+
+            @Override
+            public boolean isKeyBindToggleable() {
+                return false;
+            }
+
+            @Override
+            public void onKeyPress(Minecraft client) {
+                TacticalPingRenderer.onKeyPress(client, this);
+            }
+
+            @Override
+            public void onTick(Minecraft client) {
+                TacticalPingRenderer.onTick(client, this);
+            }
+
+            @Override
+            public void onDisable() {
+                TacticalPingRenderer.clear();
+            }
+        });
+
+        register(new Module("Bedwars Upgrades",
+                "Draggable HUD widget tracking your team's purchased Bedwars Upgrades (Sharpness, Protection, Haste, Forge, Heal Pool) and active Trap queue.",
+                Category.SERVER) {
+            {
+                addSetting(new BooleanSetting("Use Client Color", "Match widget accent color to Client Menu Color", true));
+                addSetting(new ColorModeSetting("Color", "Widget accent color when Use Client Color is off", "Sky Blue", BlockOutlineState.OUTLINE_COLORS));
+                addSetting(new ModeSetting("Display Mode", "Visual HUD card style", "Full Card", List.of("Full Card", "Compact")));
+                addSetting(new BooleanSetting("Trap Trigger Alert", "Flash urgent alert banner & border when an enemy sets off a trap", true));
+                addSetting(new BooleanSetting("Alert Sound", "Play a sound chime when upgrades are bought or traps trigger", true));
+                addSetting(new ModeSetting("Sound Type", "Audio chime sound effect for trap triggers", "Bell", List.of("Bell", "Pling", "Ding", "Anvil", "Bass")));
+                addSetting(new BooleanSetting("Toast Notifications", "Show a slide-in corner toast alert when a trap is triggered", true));
+                addSetting(new BooleanSetting("Hide Unpurchased", "Compactly hide upgrades not yet purchased in the current match", false));
+                addSetting(new BooleanSetting("Only In Bedwars", "Hide widget outside Bedwars matches (always visible in HUD Editor)", false));
+                addSetting(new BooleanSetting("Reset Tracker", "Click to reset tracked team upgrades and traps", false));
+            }
+
+            @Override
+            public void onTick(Minecraft client) {
+                BedwarsUpgradesRenderer.onTick(this);
+            }
+
+            @Override
+            public void onDisable() {
+                BedwarsUpgradesRenderer.reset();
+            }
+        });
+
+        register(new Module("Now Playing",
+                "Draggable Media HUD showing currently playing music (Spotify, YouTube Music, Apple Music, browser) with animated equalizer bars and Alt+P / Alt+←/→ media hotkeys.",
+                Category.UI) {
+            {
+                MediaHudState.setModule(this);
+                addSetting(new ModeSetting("Style", "Visual layout of the Now Playing widget", "Card", List.of("Card", "Compact")));
+                addSetting(new BooleanSetting("Use Client Color", "Match accent color and visualizer to Client Menu Color", true));
+                addSetting(new ColorModeSetting("Accent Color", "Accent color when Use Client Color is off", "Sky Blue", BlockOutlineState.OUTLINE_COLORS));
+                addSetting(new BooleanSetting("Show Visualizer", "Display animated audio equalizer bars while music plays", true));
+                addSetting(new BooleanSetting("Show Duration", "Display song elapsed/total duration counter (e.g. 0:37/1:20)", true));
+                addSetting(new ModeSetting("Bar Mode", "Whether the bottom bar fills up with elapsed progress or drains with remaining time", "Progress", List.of("Progress", "Remaining")));
+                addSetting(new BooleanSetting("Show Artist", "Display the track artist name alongside the title", true));
+                addSetting(new BooleanSetting("Show Source App", "Display the media source app name (e.g. Spotify, Chrome)", true));
+                addSetting(new BooleanSetting("Hide When Idle", "Hide the HUD widget automatically when no media is playing", false));
+                addSetting(new BooleanSetting("Media Hotkeys", "Enable in-game Alt+P (Play/Pause) and Alt+Left/Right (Prev/Next) shortcuts", true));
+            }
+
+            @Override
+            public void onTick(Minecraft client) {
+                MediaHudState.onTick(client);
+            }
+
+            @Override
+            public void onDisable() {
+                MediaHudState.stopWorker();
+            }
+        });
+
+        register(new Module("Keyword Alerts",
+                "Highlights custom chat keywords, triggers a slide-in Toast notification, and plays a configurable sound chime whenever matching messages arrive.",
+                Category.UI) {
+            {
+                KeywordAlertsState.setModule(this);
+                addSetting(new KeywordAlertListSetting("Keywords", "Manage custom alert keywords, phrases, and player names"));
+                addSetting(new BooleanSetting("Use Client Color", "Match highlight and toast accent to Client Menu Color", false));
+                addSetting(new ColorModeSetting("Highlight Color", "Highlight color for matched keywords when Use Client Color is off", "Gold", BlockOutlineState.OUTLINE_COLORS));
+                addSetting(new BooleanSetting("Bold Highlight", "Render matched keywords in bold text inside chat", true));
+                addSetting(new BooleanSetting("Whole Word Only", "Only match whole words rather than partial substrings", true));
+                addSetting(new BooleanSetting("Ignore Own Messages", "Do not alert on chat messages sent by yourself", true));
+                addSetting(new BooleanSetting("Toast Alert", "Show a slide-in corner Toast notification on match", true));
+                addSetting(new BooleanSetting("Sound Alert", "Play a chime sound when a keyword matches", true));
+                addSetting(new ModeSetting("Sound Type", "Chime sound played when a keyword matches", "Pling",
+                        List.of("Pling", "Bell", "Ding", "Level Up", "Bass")));
+            }
+        });
+
+        register(new Module("Slot Lock",
+                "Lock hotbar, inventory, armor, or offhand slots (press hotkey while hovering a slot or holding it in-game) so you never accidentally drop, move, or swap prized items.",
+                Category.PLAYER, GLFW.GLFW_KEY_L) {
+            {
+                SlotLockState.setModule(this);
+                addSetting(new BooleanSetting("Block Dropping (Q)", "Prevent dropping locked items with Q / Ctrl+Q in-world or inside containers", true));
+                addSetting(new BooleanSetting("Block Moving & Swapping", "Prevent picking up, Shift-clicking, or hotbar-swapping locked slots inside containers", true));
+                addSetting(new BooleanSetting("Block Offhand Swap (F)", "Prevent swapping a locked hotbar or offhand slot with F", true));
+                addSetting(new BooleanSetting("Show on Hotbar", "Display a subtle pixel padlock icon on locked hotbar & offhand slots on the HUD", true));
+                addSetting(new BooleanSetting("Show Slot Border", "Draw a crisp colored outline around locked slots", true));
+                addSetting(new BooleanSetting("Use Client Color", "Match lock badge & border color to Client Menu Color", false));
+                addSetting(new ColorModeSetting("Lock Color", "Lock badge & border color when Use Client Color is off", "Gold", BlockOutlineState.OUTLINE_COLORS));
+                addSetting(new BooleanSetting("Sound Feedback", "Play subtle audio chimes when locking, unlocking, or blocking a drop", true));
+                addSetting(new BooleanSetting("Clear All Locks", "Click to immediately unlock every currently locked slot", false));
+            }
+
+            @Override
+            public boolean isKeyBindToggleable() {
+                return false;
+            }
+
+            @Override
+            public void onKeyPress(Minecraft client) {
+                SlotLockState.onHeldHotbarKeyPress(client);
+            }
+
+            @Override
+            public void onTick(Minecraft client) {
+                SlotLockState.onTick(this);
+            }
+        });
+
+        register(new Module("Sound Muffler",
+                "Selectively mute or quiet annoying Minecraft sounds (Nether Portals, Rain, Villagers, Endermen, Minecarts, Pistons, etc.) plus a 1-click Recent Sounds custom filter.",
+                Category.PLAYER) {
+            {
+                SoundMufflerState.setModule(this);
+                addSetting(new NumberSetting("Muffle Volume (%)", "0% silences matched sounds completely; higher values lower them quietly", 0.0, 0.0, 50.0, 5.0));
+                addSetting(new MutedSoundListSetting("Custom Sounds", "Manage custom sound ID filters & 1-click mute recently played sounds"));
+                addSetting(new BooleanSetting("Nether Portals", "Muffle loud Nether portal ambient and travel sounds", true));
+                addSetting(new BooleanSetting("Rain & Thunder", "Muffle rain loop and lightning thunder strikes", false));
+                addSetting(new BooleanSetting("Villagers", "Muffle Villager and Wandering Trader grunts", false));
+                addSetting(new BooleanSetting("Endermen", "Muffle Enderman stares, screams, and teleports", false));
+                addSetting(new BooleanSetting("Minecarts", "Muffle rolling minecart rail noise", false));
+                addSetting(new BooleanSetting("Pistons", "Muffle piston extend and retract clicks", false));
+                addSetting(new BooleanSetting("Fire & Lava", "Muffle fire crackling, campfires, and lava popping", false));
+                addSetting(new BooleanSetting("Elytra Wind", "Muffle continuous wind rush while gliding with Elytra", false));
+                addSetting(new BooleanSetting("Water & Cave Ambient", "Muffle underwater ambience, bubble columns, and eerie cave noises", false));
+                addSetting(new BooleanSetting("Farm Animals", "Muffle cows, sheep, pigs, chickens, horses, bees, cats, and wolves", false));
+                addSetting(new BooleanSetting("Beacon & Conduit", "Muffle continuous beacon and conduit hums", false));
+            }
+        });
+
+        register(new Module("Villager Trades",
+                "Highlights Max-Level & Rare Enchanted Books (Mending, Protection IV, Sharpness V, etc.), adds a Trade Inspector side panel with emerald price ratings, and alerts on Librarian rolls.",
+                Category.WORLD) {
+            {
+                VillagerTradeHighlighter.setModule(this);
+                addSetting(new BooleanSetting("Highlight Trade Rows", "Draw glowing borders & star icons on notable offers inside the Villager trade list", true));
+                addSetting(new BooleanSetting("Show Inspector Panel", "Show a glassmorphic Trade Inspector panel listing all enchanted trades & prices at a glance", true));
+                addSetting(new BooleanSetting("Only Show When Enchanted", "Hide the Inspector panel automatically for non-enchanted villagers (e.g. Farmers)", true));
+                addSetting(new BooleanSetting("Include Enchanted Gear", "Also inspect enchanted armor, tools, and weapons from Smiths and Fletchers", true));
+                addSetting(new BooleanSetting("Show Price Ratings", "Show GREAT / FAIR / PRICY emerald cost ratings based on vanilla Librarian price ranges", true));
+                addSetting(new BooleanSetting("Highlight Only Max Level", "Only highlight max-level or treasure enchantments (and curses)", false));
+                addSetting(new BooleanSetting("Roll Alert Sound", "Play a celebratory chime when a Villager offers a Max-Level or Treasure book", true));
+                addSetting(new BooleanSetting("Roll Alert Toast", "Push a slide-in corner Toast summarizing the best Librarian roll", true));
+                addSetting(new BooleanSetting("Alert Only Great Prices", "Only fire roll alerts when the book also has a GREAT emerald price", false));
+            }
+
+            @Override
+            public void onDisable() {
+                VillagerTradeHighlighter.resetAlertState();
+            }
+        });
+
+        register(new Module("Anvil Helper",
+                "Shows each item's Anvil Uses / Prior Work Penalty (PWP), reveals exact XP costs past vanilla's 'Too Expensive!' (40+) limit, warns of conflicting enchantments, and alerts when swapping inputs saves XP.",
+                Category.WORLD) {
+            {
+                AnvilHelperRenderer.setModule(this);
+                addSetting(new BooleanSetting("Show Slot Use Badges", "Display compact anvil-use badges (e.g. 2/6) below the Anvil input slots", true));
+                addSetting(new BooleanSetting("Show True Cost (40+)", "Reveal the real XP level cost when vanilla displays 'Too Expensive!'", true));
+                addSetting(new BooleanSetting("Swap Order Optimizer", "Alert when swapping the left and right inputs reduces the XP level cost", true));
+                addSetting(new BooleanSetting("Show Helper Panel", "Display the glassmorphic Anvil Helper panel beside the Anvil UI", true));
+                addSetting(new BooleanSetting("Always Show Panel", "Show the Anvil Helper panel even before placing items in the Anvil", false));
+            }
+        });
+
+        register(new Module("Color Formatting Bar",
+                "Adds a sleek 1-click Minecraft color & text formatting bar (&/§ colors, Bold, Italic, Underline, Strike, Reset) to Sign Editors, Book & Quill, and Anvil Rename screens.",
+                Category.UI) {
+            {
+                ColorFormattingBarWidget.setModule(this);
+                addSetting(new ModeSetting("Code Prefix", "Default formatting prefix ('Auto' uses § in Books and & in Signs/Anvils)", "Auto",
+                        List.of("Auto", "& (Servers)", "§ (Vanilla)")));
+                addSetting(new BooleanSetting("Show on Signs", "Show the Color Formatting Bar above the Sign Editor screen", true));
+                addSetting(new BooleanSetting("Show on Books", "Show the Color Formatting Bar on the Book & Quill screen", true));
+                addSetting(new BooleanSetting("Show on Anvil", "Show the Color Formatting Bar above the Anvil rename screen", true));
+            }
+        });
+
+        register(new Module("Crafting Calculator",
+                "Bulk Crafting Material Calculator (press hotkey in-game or while hovering any item in an inventory) showing exact raw materials, stack counts, and live inventory comparison.",
+                Category.PLAYER, GLFW.GLFW_KEY_O) {
+            {
+                CraftingCalculatorScreen.setModule(this);
+                addSetting(new BooleanSetting("Open Calculator", "Click to open the Crafting Material Calculator immediately", false));
+                addSetting(new BooleanSetting("Default Raw Breakdown", "Automatically expand crafted intermediates (like Planks/Chests) into raw materials when opening", false));
+            }
+
+            @Override
+            public boolean isKeyBindToggleable() {
+                return false;
+            }
+
+            @Override
+            public void onKeyPress(Minecraft client) {
+                if (this.isEnabled() && this.canUse() && client != null) {
+                    client.gui.setScreen(new CraftingCalculatorScreen(client.gui.screen()));
+                }
+            }
+
+            @Override
+            public void onTick(Minecraft client) {
+                CraftingCalculatorScreen.onTick(client, this);
+            }
+        });
     }
 
     private void register(Module module) {
@@ -3099,6 +3324,14 @@ public class ModuleManager {
         QuickCommandsState.handleKeybinds(client);
         if (StarClient.getInstance() != null && StarClient.getInstance().getProfileManager() != null) {
             StarClient.getInstance().getProfileManager().handleHotkeys(client);
+        }
+    }
+
+    public void releaseHoldModules() {
+        for (Module module : modules) {
+            if (module.isHoldKey() && module.isEnabled()) {
+                module.setEnabled(false);
+            }
         }
     }
 }

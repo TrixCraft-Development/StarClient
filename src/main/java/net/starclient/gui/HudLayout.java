@@ -45,7 +45,9 @@ public class HudLayout {
     public static final String DEATH_RECAP = "death_recap";
     public static final String TEAM_HEALTH = "team_health";
     public static final String BEDWARS_TIMERS = "bedwars_timers";
+    public static final String BEDWARS_UPGRADES = "bedwars_upgrades";
     public static final String LOOT_FEED = "loot_feed";
+    public static final String MEDIA_HUD = "media_hud";
     public static final int AUTO = Integer.MIN_VALUE;
 
     public static final float MIN_SCALE = 0.50f;
@@ -56,7 +58,7 @@ public class HudLayout {
             CPS, REACH, SPEED, COMBO, CLOCK, COMPASS, SERVER_INFO,
             MEMORY, POTIONS, TARGET_HUD, SCOREBOARD, BOSS_BAR, INVENTORY,
             MINIMAP, WORLD_INFO, ITEM_COUNTER, BLOCK_INFO, PINNED_NOTES, STOPWATCH,
-            SOUND_RADAR, DEATH_RECAP, TEAM_HEALTH, BEDWARS_TIMERS, LOOT_FEED
+            SOUND_RADAR, DEATH_RECAP, TEAM_HEALTH, BEDWARS_TIMERS, BEDWARS_UPGRADES, LOOT_FEED, MEDIA_HUD
     };
 
     public static final int FPS_WIDTH = 130;
@@ -223,9 +225,13 @@ public class HudLayout {
             }
             case INVENTORY -> isAuto(id) ? screenWidth - inventoryWidth() - 8 : getX(id);
             case DEATH_RECAP -> isAuto(id) ? (screenWidth - DEATH_RECAP_WIDTH) / 2 : getX(id);
-            case TEAM_HEALTH, BEDWARS_TIMERS -> isAuto(id) ? 8 : getX(id);
+            case TEAM_HEALTH, BEDWARS_TIMERS, BEDWARS_UPGRADES -> isAuto(id) ? 8 : getX(id);
             case LOOT_FEED -> {
                 int w = maxModWidth > 0 ? maxModWidth : 148;
+                yield isAuto(id) ? screenWidth - w - 8 : getX(id);
+            }
+            case MEDIA_HUD -> {
+                int w = maxModWidth > 0 ? maxModWidth : MediaHudRenderer.CARD_WIDTH;
                 yield isAuto(id) ? screenWidth - w - 8 : getX(id);
             }
             default -> getX(id);
@@ -251,7 +257,9 @@ public class HudLayout {
             case DEATH_RECAP -> isAuto(id) ? Math.max(14, screenHeight / 4 - 44) : getY(id);
             case TEAM_HEALTH -> isAuto(id) ? 110 : getY(id);
             case BEDWARS_TIMERS -> isAuto(id) ? 190 : getY(id);
+            case BEDWARS_UPGRADES -> isAuto(id) ? 264 : getY(id);
             case LOOT_FEED -> isAuto(id) ? screenHeight - 170 : getY(id);
+            case MEDIA_HUD -> isAuto(id) ? 8 : getY(id);
             case BLOCK_INFO -> isAuto(id) ? 38 : getY(id);
             case SERVER_INFO -> isAuto(id) ? 60 : getY(id);
             case ITEM_COUNTER -> isAuto(id) ? screenHeight - 62 : getY(id);
@@ -579,6 +587,15 @@ public class HudLayout {
             rects.add(makeScaledRect(layout, BEDWARS_TIMERS, bwX, bwY, bwW, bwH));
         }
 
+        Module bwUpgradesMod = StarClient.getInstance().getModuleManager().getModuleByName("Bedwars Upgrades");
+        if (bwUpgradesMod != null && bwUpgradesMod.isEnabled()) {
+            int bwuW = BedwarsUpgradesRenderer.getWidth(font, bwUpgradesMod);
+            int bwuH = BedwarsUpgradesRenderer.getHeight(bwUpgradesMod);
+            int bwuX = layout.effectiveX(BEDWARS_UPGRADES, screenWidth, bwuW);
+            int bwuY = layout.effectiveY(BEDWARS_UPGRADES, screenHeight);
+            rects.add(makeScaledRect(layout, BEDWARS_UPGRADES, bwuX, bwuY, bwuW, bwuH));
+        }
+
         Module lootFeedMod = StarClient.getInstance().getModuleManager().getModuleByName("Loot Feed");
         if (lootFeedMod != null && lootFeedMod.isEnabled()) {
             int lfW = LootFeedRenderer.getWidth(font, lootFeedMod);
@@ -586,6 +603,15 @@ public class HudLayout {
             int lfX = layout.effectiveX(LOOT_FEED, screenWidth, lfW);
             int lfY = layout.effectiveY(LOOT_FEED, screenHeight);
             rects.add(makeScaledRect(layout, LOOT_FEED, lfX, lfY, lfW, lfH));
+        }
+
+        Module mediaHudMod = StarClient.getInstance().getModuleManager().getModuleByName("Now Playing");
+        if (mediaHudMod != null && mediaHudMod.isEnabled()) {
+            int mhW = MediaHudRenderer.getWidth(mediaHudMod);
+            int mhH = MediaHudRenderer.getHeight(mediaHudMod);
+            int mhX = layout.effectiveX(MEDIA_HUD, screenWidth, mhW);
+            int mhY = layout.effectiveY(MEDIA_HUD, screenHeight);
+            rects.add(makeScaledRect(layout, MEDIA_HUD, mhX, mhY, mhW, mhH));
         }
 
         int potX = layout.effectiveX(POTIONS, screenWidth, 0);

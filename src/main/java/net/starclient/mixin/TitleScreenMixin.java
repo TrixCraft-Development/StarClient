@@ -7,6 +7,7 @@ import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.sounds.SoundEvents;
+import net.starclient.CrashGuardManager;
 import net.starclient.StarClient;
 import net.starclient.changelog.ChangelogManager;
 import net.starclient.gui.AccountSwitcherOverlay;
@@ -14,6 +15,7 @@ import net.starclient.gui.ChangelogScreen;
 import net.starclient.gui.GuiRenderUtils;
 import net.starclient.gui.RewindPopupScreen;
 import net.starclient.gui.RewindScreen;
+import net.starclient.gui.ScreenshotGalleryScreen;
 import net.starclient.gui.TitleBackgroundOverlay;
 import net.starclient.stats.RewindManager;
 import org.joml.Matrix3x2fStack;
@@ -186,6 +188,30 @@ public abstract class TitleScreenMixin {
         this.starclient$accountSwitcher.render(graphics, mouseX, mouseY);
         this.starclient$backgroundOverlay.render(graphics, mouseX, mouseY);
 
+        // Screenshot Gallery Main Menu Button (left of Background Switcher)
+        {
+            String galLabel = "📷 Gallery";
+            int galW = client.font.width(galLabel) + 18;
+            int galH = 26;
+            int galX = this.starclient$backgroundOverlay.getLeftEdge() - galW - 6;
+            int galY = 8;
+            boolean galHovered = !this.starclient$backgroundOverlay.isDropdownOpen()
+                    && mouseX >= galX && mouseX <= galX + galW && mouseY >= galY && mouseY <= galY + galH;
+            int galBg = 0xF20F172A;
+            int galBorder = color;
+            if (starClient != null && starClient.getClientSettings() != null) {
+                var cs = starClient.getClientSettings();
+                galBg = galHovered ? cs.getMenuSurfaceHoverColor() : (0xF2000000 | (cs.getMenuBackgroundColor() & 0x00FFFFFF));
+                galBorder = galHovered ? color : cs.getMenuBorderColor();
+            }
+            GuiRenderUtils.drawDropShadow(graphics, galX, galY, galW, galH, 6, 4, 90);
+            GuiRenderUtils.fillRoundedRect(graphics, galX, galY, galW, galH, 6, galBg);
+            GuiRenderUtils.drawRoundedOutline(graphics, galX, galY, galW, galH, 6, galBorder);
+            GuiRenderUtils.drawCenteredText(graphics, client.font, galLabel,
+                    galX + galW / 2, galY + (galH - client.font.lineHeight) / 2 + 1,
+                    galHovered ? color : 0xFFFFFFFF);
+        }
+
         // Yearly Rewind Main Menu Button (active for the configured duration, e.g. 7d)
         RewindManager rewindMgr = RewindManager.getInstance();
         if (rewindMgr.isRewindActive()) {
@@ -207,6 +233,38 @@ public abstract class TitleScreenMixin {
             GuiRenderUtils.drawCenteredText(graphics, client.font, rwLabel,
                     rwX + rwW / 2, rwY + (rwH - client.font.lineHeight) / 2 + 1,
                     rwHovered ? 0xFFFBBF24 : 0xFFFFFFFF);
+        }
+
+        // Crash Prevented Banner (Top-Center, shown after recovering from a caught crash)
+        if (CrashGuardManager.hasActiveNotice()) {
+            int bannerW = Math.min(340, screenWidth - 20);
+            int bannerH = 28;
+            int bannerX = (screenWidth - bannerW) / 2;
+            int bannerY = 38;
+
+            int closeX = bannerX + bannerW - 18;
+            int closeY = bannerY + 6;
+            boolean closeHover = mouseX >= closeX - 2 && mouseX <= closeX + 14 && mouseY >= closeY - 2 && mouseY <= closeY + 14;
+
+            GuiRenderUtils.drawDropShadow(graphics, bannerX, bannerY, bannerW, bannerH, 6, 3, 95);
+            GuiRenderUtils.fillRoundedRect(graphics, bannerX, bannerY, bannerW, bannerH, 6, 0xF416121A);
+            GuiRenderUtils.drawRoundedOutline(graphics, bannerX, bannerY, bannerW, bannerH, 6, 0xFFF59E0B);
+
+            String header = "🛡 Game Crash Prevented — Returned to Main Menu";
+            graphics.text(client.font, header, bannerX + 10, bannerY + 5, 0xFFFBBF24);
+
+            String summary = CrashGuardManager.getLastCrashSummary();
+            String sub = (summary != null && !summary.isBlank() ? summary + " • " : "") + "Saved to crash-reports/";
+            int maxSubW = bannerW - 34;
+            if (client.font.width(sub) > maxSubW) {
+                sub = client.font.plainSubstrByWidth(sub, Math.max(10, maxSubW - 6)) + "…";
+            }
+            graphics.text(client.font, sub, bannerX + 10, bannerY + 15, 0xFFCBD5E1);
+
+            if (closeHover) {
+                GuiRenderUtils.fillRoundedRect(graphics, closeX - 1, closeY - 1, 14, 14, 3, 0x44EF4444);
+            }
+            GuiRenderUtils.drawCenteredText(graphics, client.font, "✕", closeX + 6, closeY + 3, closeHover ? 0xFFF87171 : 0xFF94A3B8);
         }
 
         // Automatically open the Rewind popup when first launching the game on the set date
@@ -239,6 +297,37 @@ public abstract class TitleScreenMixin {
                 Screen self = (Screen) (Object) this;
                 double mx = event.x();
                 double my = event.y();
+
+                // Check Screenshot Gallery Main Menu Button click
+                {
+                    String galLabel = "📷 Gallery";
+                    int galW = client.font.width(galLabel) + 18;
+                    int galH = 26;
+                    int galX = this.starclient$backgroundOverlay.getLeftEdge() - galW - 6;
+                    int galY = 8;
+                    if (mx >= galX && mx <= galX + galW && my >= galY && my <= galY + galH) {
+                        client.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+                        client.gui.setScreen(new ScreenshotGalleryScreen(self));
+                        cir.setReturnValue(true);
+                        return;
+                    }
+                }
+
+                // Check Crash Prevented Banner dismiss click
+                if (CrashGuardManager.hasActiveNotice()) {
+                    int bannerW = Math.min(340, self.width - 20);
+                    int bannerH = 28;
+                    int bannerX = (self.width - bannerW) / 2;
+                    int bannerY = 38;
+                    int closeX = bannerX + bannerW - 18;
+                    int closeY = bannerY + 6;
+                    if (mx >= closeX - 2 && mx <= closeX + 14 && my >= closeY - 2 && my <= closeY + 14) {
+                        CrashGuardManager.dismissNotice();
+                        client.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+                        cir.setReturnValue(true);
+                        return;
+                    }
+                }
 
                 // Check Yearly Rewind Main Menu Button click
                 RewindManager rewindMgr = RewindManager.getInstance();

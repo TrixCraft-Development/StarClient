@@ -12,8 +12,10 @@ import net.starclient.module.Module;
 import net.starclient.setting.BannedWordListSetting;
 import net.starclient.setting.BooleanSetting;
 import net.starclient.setting.FriendListSetting;
+import net.starclient.setting.KeywordAlertListSetting;
 import net.starclient.setting.MacroListSetting;
 import net.starclient.setting.ModeSetting;
+import net.starclient.setting.MutedSoundListSetting;
 import net.starclient.setting.NickEntryListSetting;
 import net.starclient.setting.NoteListSetting;
 import net.starclient.setting.NumberSetting;
@@ -61,6 +63,7 @@ public class ConfigManager {
         root.add("modules", getJsonObject());
         root.add("hudLayout", StarClient.getInstance().getHudLayout().toJson());
         root.add("clientSettings", getClientSettingsJson());
+        root.add("lockedSlots", net.starclient.module.SlotLockState.toJsonArray());
 
         // Per-account cosmetics
         JsonObject perAccountObj = new JsonObject();
@@ -185,6 +188,26 @@ public class ConfigManager {
                                             }
                                         }
                                     }
+                                    case KeywordAlertListSetting kal -> {
+                                        kal.getValue().clear();
+                                        if (settingsObj.get(kal.getName()).isJsonArray()) {
+                                            for (var elem : settingsObj.get(kal.getName()).getAsJsonArray()) {
+                                                if (elem.isJsonPrimitive()) {
+                                                    kal.addKeyword(elem.getAsString());
+                                                }
+                                            }
+                                        }
+                                    }
+                                    case MutedSoundListSetting msl -> {
+                                        msl.getValue().clear();
+                                        if (settingsObj.get(msl.getName()).isJsonArray()) {
+                                            for (var elem : settingsObj.get(msl.getName()).getAsJsonArray()) {
+                                                if (elem.isJsonPrimitive()) {
+                                                    msl.addFilter(elem.getAsString());
+                                                }
+                                            }
+                                        }
+                                    }
                                     case NoteListSetting nls -> {
                                         nls.getValue().clear();
                                         if (settingsObj.get(nls.getName()).isJsonArray()) {
@@ -207,7 +230,8 @@ public class ConfigManager {
                         }
                     }
                     if (modObj.has("enabled")) {
-                        module.setEnabled(modObj.get("enabled").getAsBoolean());
+                        boolean enabled = !module.isHoldKey() && modObj.get("enabled").getAsBoolean();
+                        module.setEnabled(enabled);
                     }
                 } else {
                     module.resetToFullDefault();
@@ -218,6 +242,12 @@ public class ConfigManager {
         StarClient.getInstance().getHudLayout().reset();
         if (root.has("hudLayout") && root.get("hudLayout").isJsonObject()) {
             StarClient.getInstance().getHudLayout().fromJson(root.getAsJsonObject("hudLayout"));
+        }
+
+        if (root.has("lockedSlots") && root.get("lockedSlots").isJsonArray()) {
+            net.starclient.module.SlotLockState.fromJsonArray(root.getAsJsonArray("lockedSlots"));
+        } else {
+            net.starclient.module.SlotLockState.fromJsonArray(null);
         }
 
         StarClient.getInstance().getCosmeticManager().clearAllAccountCosmetics();
@@ -330,6 +360,22 @@ public class ConfigManager {
                     }
                 }
                 settingsObj.add(setting.getName(), words);
+            } else if (setting instanceof KeywordAlertListSetting kal) {
+                JsonArray keywords = new JsonArray();
+                for (String kw : kal.getValue()) {
+                    if (kw != null && !kw.isBlank()) {
+                        keywords.add(kw);
+                    }
+                }
+                settingsObj.add(setting.getName(), keywords);
+            } else if (setting instanceof MutedSoundListSetting msl) {
+                JsonArray sounds = new JsonArray();
+                for (String s : msl.getValue()) {
+                    if (s != null && !s.isBlank()) {
+                        sounds.add(s);
+                    }
+                }
+                settingsObj.add(setting.getName(), sounds);
             } else if (setting instanceof NoteListSetting nls) {
                 JsonArray notes = new JsonArray();
                 for (NoteListSetting.NoteEntry entry : nls.getValue()) {
