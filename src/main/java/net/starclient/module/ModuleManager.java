@@ -36,13 +36,21 @@ import net.starclient.api.HypixelApi;
 import net.starclient.friend.FriendManager;
 import net.starclient.gui.AnvilHelperRenderer;
 import net.starclient.gui.BaseAlertRenderer;
+import net.starclient.gui.BeaconHelperRenderer;
 import net.starclient.gui.BedDefenseRenderer;
 import net.starclient.gui.BedwarsTimersRenderer;
 import net.starclient.gui.BedwarsUpgradesRenderer;
+import net.starclient.gui.BrewingGuidePanel;
 import net.starclient.gui.ColorFormattingBarWidget;
 import net.starclient.gui.CraftingCalculatorScreen;
+import net.starclient.gui.EnchantGrindstoneHelper;
+import net.starclient.gui.FurnaceHelperRenderer;
+import net.starclient.gui.GearComparisonRenderer;
 import net.starclient.gui.LootFeedRenderer;
+import net.starclient.gui.RedstoneInspectorRenderer;
+import net.starclient.gui.StorageFinderScreen;
 import net.starclient.gui.TacticalPingRenderer;
+import net.starclient.gui.WorldMapScreen;
 import net.starclient.gui.EntityEsp;
 import net.starclient.gui.FireballAlertRenderer;
 import net.starclient.gui.LowBlocksWarningRenderer;
@@ -2580,7 +2588,7 @@ public class ModuleManager {
             }
         });
 
-        register(new Module("Chat", "Upgrades chat with Timestamps, Compact anti-spam stacking, Click-to-Copy, Cross-Server History, Banned Words Filter, and Mention Highlights.", Category.UI) {
+        register(new Module("Chat", "Upgrades chat with Timestamps, Compact anti-spam stacking, Click-to-Copy, Ctrl+F History Search, Cross-Server History, Banned Words Filter, and Mention Highlights.", Category.UI) {
             {
                 ChatPlusState.setModule(this);
                 addSetting(new BooleanSetting("Timestamps", "Prepend local clock timestamps to incoming chat lines", true));
@@ -2589,6 +2597,7 @@ public class ModuleManager {
                 addSetting(new BooleanSetting("Compact Chat", "Stack consecutive duplicate chat messages with [x2], [x3] counters", true));
                 addSetting(new BooleanSetting("Click to Copy", "Click chat messages to copy their text to the clipboard", true));
                 addSetting(new BooleanSetting("Copy Server & Mod Info", "Also allow copying server announcements, system info, and mod chat messages", true));
+                addSetting(new BooleanSetting("Chat Search (Ctrl+F)", "Press Ctrl+F or click the Search pill in chat to live-search and copy from your chat history", true));
                 addSetting(new BooleanSetting("Save Chat History", "Keep chat messages across servers and worlds with a server name divider", true));
                 addSetting(new NumberSetting("Extended History", "Maximum number of chat messages kept in scrollback history", 1000.0, 100.0, 5000.0, 100.0));
                 addSetting(new BooleanSetting("Word Filter", "Censor banned words in chat by replacing each letter with '*'", true));
@@ -3235,6 +3244,154 @@ public class ModuleManager {
             @Override
             public void onTick(Minecraft client) {
                 CraftingCalculatorScreen.onTick(client, this);
+            }
+        });
+
+        register(new Module("Brewing Guide",
+                "Interactive glassmorphic Potion Brewing Guide inside the Brewing Stand UI with ingredient icons, live inventory ownership checks, and Redstone/Glowstone/Corrupt modifiers.",
+                Category.WORLD) {
+            {
+                BrewingGuidePanel.setModule(this);
+                addSetting(new BooleanSetting("Highlight Owned", "Highlight potion ingredients you already have in your inventory or Brewing Stand", true));
+                addSetting(new BooleanSetting("Show Modifier Legend", "Show the bottom legend explaining Redstone (+Time), Glowstone (+II), Gunpowder, and Dragon's Breath", true));
+            }
+        });
+
+        register(new Module("Furnace Helper",
+                "Shows exact stack smelt time remaining, burn progress, fuel requirements (Coal, Blaze Rods, Kelp, Lava), and Fuel Waste Warnings in Furnaces, Blast Furnaces, and Smokers.",
+                Category.WORLD) {
+            {
+                FurnaceHelperRenderer.setModule(this);
+                addSetting(new BooleanSetting("Fuel Waste Warning", "Warn when high-value fuel (Lava, Coal Blocks, Kelp, Coal) would waste burn capacity on a small input stack", true));
+                addSetting(new BooleanSetting("Always Show Panel", "Display the Furnace Helper panel even when the furnace is empty and idle", false));
+            }
+        });
+
+        register(new Module("Enchant & Grindstone",
+                "Counts active Bookshelves (0-15) & detects torch/carpet obstructions at Enchanting Tables, and previews exact XP orb/level returns & Treasure Enchant warnings at Grindstones.",
+                Category.WORLD) {
+            {
+                EnchantGrindstoneHelper.setModule(this);
+                addSetting(new BooleanSetting("Enchanting Table Helper", "Show Bookshelf Power (0-15) and obstructed-gap warnings beside the Enchanting Table UI", true));
+                addSetting(new BooleanSetting("Grindstone Helper", "Preview exact XP orb/level returns and warnings beside the Grindstone UI", true));
+                addSetting(new BooleanSetting("Treasure Enchant Warning", "Warn before disenchanting rare treasure enchantments like Mending, Soul Speed, Swift Sneak, or Wind Burst", true));
+            }
+        });
+
+        register(new Module("Beacon Helper",
+                "Displays Beacon Pyramid Tier (0-4), exact blocks needed for the next tier, and active effects in Beacon UI, plus glowing 3D Beacon coverage boundaries in the world.",
+                Category.WORLD) {
+            {
+                BeaconHelperRenderer.setModule(this);
+                addSetting(new BooleanSetting("Show Beacon UI Panel", "Display the glassmorphic Pyramid & Range helper panel beside the Beacon UI", true));
+                addSetting(new BooleanSetting("Show 3D Range Box", "Render glowing 3D coverage boundaries (±20m to ±50m) around nearby Beacons", true));
+                addSetting(new BooleanSetting("Show Beacon Label", "Display floating Beacon tier, range, and Inside/Outside badges above Beacons", true));
+                addSetting(new NumberSetting("Scan Range", "Maximum distance in blocks to scan for Beacons", 96.0, 24.0, 160.0, 8.0));
+                addSetting(new BooleanSetting("Use Client Color", "Match 3D Beacon boundary lines to Client Menu Color", true));
+                addSetting(new ColorModeSetting("Color", "3D Beacon boundary color when Use Client Color is off", "Sky Blue", BlockOutlineState.OUTLINE_COLORS));
+                addSetting(new NumberSetting("Line Thickness", "3D boundary line thickness in pixels", 1.5, 1.0, 4.0, 0.5));
+            }
+
+            @Override
+            public void onDisable() {
+                BeaconHelperRenderer.clear();
+            }
+        });
+
+        register(new Module("Redstone Inspector",
+                "Clean crosshair HUD badge showing exact Redstone signal strength (0-15), Repeater delay/lock, Comparator mode, Note Block pitch & instrument, and Composter/Cauldron/Cake/Beehive/Anchor levels.",
+                Category.WORLD) {
+            {
+                RedstoneInspectorRenderer.setModule(this);
+                addSetting(new ModeSetting("Position", "Screen position for the Redstone Inspector badge", "Below Crosshair",
+                        List.of("Below Crosshair", "Top Center")));
+                addSetting(new BooleanSetting("Show Signal Bar", "Display a 15-segment color-coded Redstone signal strength bar", true));
+                addSetting(new BooleanSetting("Show Note Pitch", "Display exact musical note pitch (F#3 - F#5) alongside Note Block numbers", true));
+                addSetting(new BooleanSetting("Show Containers & Misc", "Also inspect Composter, Cauldron, Cake, Beehive, Respawn Anchor, Chiseled Bookshelf, End Portal Frame, Jukebox, and Lectern", true));
+            }
+        });
+
+        register(new Module("World Map",
+                "Fullscreen zoomable & pannable interactive World Map (Hotkey: M) that caches explored terrain per world/dimension, displays Waypoints & players, shows biome & coords under cursor, and supports right-click Waypoint creation.",
+                Category.WORLD, GLFW.GLFW_KEY_M) {
+            {
+                WorldMapManager.setModule(this);
+                addSetting(new BooleanSetting("Open World Map", "Click to open the Fullscreen Interactive World Map immediately", false));
+                addSetting(new BooleanSetting("Show Waypoints", "Render saved Waypoints (including 8:1 Nether sync) on the World Map", true));
+                addSetting(new BooleanSetting("Show Players", "Display other loaded players and friends on the World Map", true));
+                addSetting(new BooleanSetting("Show Chunk Grid", "Overlay subtle 16x16 chunk boundaries across explored terrain (toggleable with G)", false));
+                addSetting(new BooleanSetting("Show Coordinates & Biome", "Show live cursor coordinates, biome, distance, and Nether/Overworld conversion bar", true));
+                addSetting(new BooleanSetting("Save Explored Map", "Persist explored chunks to disk per world/server and dimension", true));
+                addSetting(new BooleanSetting("Clear Map Cache", "Click to clear cached terrain for the current world and dimension", false));
+            }
+
+            @Override
+            public boolean isKeyBindToggleable() {
+                return false;
+            }
+
+            @Override
+            public void onKeyPress(Minecraft client) {
+                if (this.isEnabled() && this.canUse() && client != null && client.level != null && client.player != null) {
+                    WorldMapManager.scanLoadedNow(client);
+                    client.gui.setScreen(new WorldMapScreen(null));
+                }
+            }
+        });
+
+        register(new Module("Gear Comparison",
+                "Displays a sleek side-by-side comparison card next to tooltips when hovering armor, weapons, or tools — highlighting green/red Damage, DPS, Armor, Toughness, Mining Speed, Durability, and Enchantment diffs against your equipped gear.",
+                Category.UI) {
+            {
+                GearComparisonRenderer.setModule(this);
+                addSetting(new ModeSetting("Display Mode", "Show comparison automatically or only while holding a key", "Always",
+                        List.of("Always", "Hold Key")));
+                addSetting(new ModeSetting("Compare Key", "Modifier key required when Display Mode is set to Hold Key", "Shift",
+                        List.of("Shift", "Ctrl", "Alt")));
+                addSetting(new BooleanSetting("Compare Armor", "Compare hovered Helmets, Chestplates, Leggings, Boots, and Elytras against equipped armor", true));
+                addSetting(new BooleanSetting("Compare Weapons & Tools", "Compare hovered Swords, Axes, Pickaxes, Shovels, Hoes, Bows, Maces, and Shields", true));
+                addSetting(new BooleanSetting("Smart Hotbar Match", "Compare tools/weapons against the matching tool in your hotbar when not holding one in your main hand", true));
+                addSetting(new BooleanSetting("Show Enchantment Diffs", "Highlight gained, upgraded, downgraded, and lost enchantments", true));
+                addSetting(new BooleanSetting("Show Durability Diff", "Compare remaining durability points", true));
+                addSetting(new BooleanSetting("Include Enchant Bonuses", "Factor Sharpness damage and Efficiency mining speed into comparison stats", true));
+            }
+        });
+
+        register(new Module("Storage Finder",
+                "Automatically indexes opened Chests, Double Chests, Barrels, Shulker Boxes (including nested Shulker items), Hoppers, and Dispensers — press X to search any item, enchant, or potion and highlight matching containers in 3D.",
+                Category.WORLD, GLFW.GLFW_KEY_X) {
+            {
+                StorageFinderManager.setModule(this);
+                addSetting(new BooleanSetting("Open Storage Finder", "Click to open the Base Storage Search overlay immediately", false));
+                addSetting(new BooleanSetting("Clear Active Highlight", "Click to immediately clear active 3D container highlights", false));
+                addSetting(new BooleanSetting("Index Nested Shulkers", "Also index items stored inside Shulker Boxes placed inside chests or barrels", true));
+                addSetting(new BooleanSetting("Show 3D Boxes", "Draw pulsing 3D outline boxes around matching containers through walls", true));
+                addSetting(new BooleanSetting("Show Labels", "Display floating item count and distance badges above matching containers", true));
+                addSetting(new BooleanSetting("Tracers", "Draw tracer lines from crosshair to matching containers", false));
+                addSetting(new NumberSetting("Highlight Duration (s)", "Seconds to keep 3D highlights visible (0 = stay until manually cleared)", 90.0, 0.0, 300.0, 15.0));
+                addSetting(new BooleanSetting("Auto-Clear When Opened", "Automatically clear active highlights once you open a matching container", false));
+                addSetting(new NumberSetting("Max Range", "Maximum block distance to render 3D highlights", 128.0, 16.0, 256.0, 16.0));
+                addSetting(new BooleanSetting("Use Client Color", "Match 3D box and tracer color to Client Menu Color", true));
+                addSetting(new ColorModeSetting("Color", "3D highlight color when Use Client Color is off", "Sky Blue", BlockOutlineState.OUTLINE_COLORS));
+                addSetting(new NumberSetting("Line Thickness", "3D outline thickness in pixels", 2.0, 1.0, 4.0, 0.5));
+                addSetting(new BooleanSetting("Clear Storage Cache", "Click to clear all indexed containers for the current world and dimension", false));
+            }
+
+            @Override
+            public boolean isKeyBindToggleable() {
+                return false;
+            }
+
+            @Override
+            public void onKeyPress(Minecraft client) {
+                if (this.isEnabled() && this.canUse() && client != null && client.level != null && client.player != null) {
+                    client.gui.setScreen(new StorageFinderScreen(null));
+                }
+            }
+
+            @Override
+            public void onDisable() {
+                StorageFinderManager.clearActiveHighlight();
             }
         });
     }

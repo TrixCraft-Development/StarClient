@@ -5,15 +5,19 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.starclient.ClientSettings;
 import net.starclient.StarClient;
+import net.starclient.gui.ChatSearchOverlay;
 import net.starclient.gui.GuiRenderUtils;
 import net.starclient.module.ChatCalculatorState;
 import org.lwjgl.glfw.GLFW;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -25,12 +29,16 @@ public abstract class ChatScreenMixin extends Screen {
     @Shadow
     protected EditBox input;
 
+    @Unique
+    private final ChatSearchOverlay starclient$chatSearch = new ChatSearchOverlay();
+
     protected ChatScreenMixin(Component title) {
         super(title);
     }
 
     @Inject(method = "extractRenderState", at = @At("TAIL"))
-    private void starclient$renderChatCalculatorPill(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a, CallbackInfo ci) {
+    private void starclient$renderChatOverlays(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a, CallbackInfo ci) {
+        this.starclient$chatSearch.render(graphics, this.font, this.width, this.height, mouseX, mouseY, a);
         if (this.input == null || !ChatCalculatorState.isEnabled()) return;
 
         Minecraft mc = Minecraft.getInstance();
@@ -83,7 +91,11 @@ public abstract class ChatScreenMixin extends Screen {
     }
 
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
-    private void starclient$handleChatCalculatorTab(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
+    private void starclient$handleChatKeys(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
+        if (this.starclient$chatSearch.keyPressed(event, this.font, this.input)) {
+            cir.setReturnValue(true);
+            return;
+        }
         if (this.input == null || !ChatCalculatorState.isTabToInsert()) return;
         if (event.key() != GLFW.GLFW_KEY_TAB) return;
 
@@ -94,5 +106,27 @@ public abstract class ChatScreenMixin extends Screen {
             this.input.moveCursorToEnd(false);
             cir.setReturnValue(true);
         }
+    }
+
+    @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
+    private void starclient$handleChatSearchClick(MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
+        if (this.starclient$chatSearch.mouseClicked(event, doubleClick, this.font, this.input)) {
+            cir.setReturnValue(true);
+        }
+    }
+
+    @Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true)
+    private void starclient$handleChatSearchScroll(double mouseX, double mouseY, double horizontalAmount, double verticalAmount, CallbackInfoReturnable<Boolean> cir) {
+        if (this.starclient$chatSearch.mouseScrolled(mouseX, mouseY, verticalAmount)) {
+            cir.setReturnValue(true);
+        }
+    }
+
+    @Override
+    public boolean charTyped(CharacterEvent event) {
+        if (this.starclient$chatSearch.charTyped(event)) {
+            return true;
+        }
+        return super.charTyped(event);
     }
 }

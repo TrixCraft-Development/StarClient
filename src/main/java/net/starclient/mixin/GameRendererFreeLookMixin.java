@@ -1,5 +1,6 @@
 package net.starclient.mixin;
 
+import com.mojang.blaze3d.framegraph.FrameGraphBuilder;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.resource.CrossFrameResourcePool;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -159,7 +160,13 @@ public abstract class GameRendererFreeLookMixin {
         try {
             PostChain chain = this.minecraft.getShaderManager().getPostChain(chainId, LevelTargetBundle.MAIN_TARGETS);
             if (chain != null) {
-                chain.process(this.mainRenderTarget, this.resourcePool);
+                FrameGraphBuilder frameGraphBuilder = new FrameGraphBuilder();
+                PostChain.TargetBundle targetBundle = PostChain.TargetBundle.of(
+                        PostChain.MAIN_TARGET_ID,
+                        frameGraphBuilder.importExternal("main", this.mainRenderTarget)
+                );
+                chain.addToFrame(frameGraphBuilder, this.mainRenderTarget.width, this.mainRenderTarget.height, targetBundle);
+                frameGraphBuilder.execute(this.resourcePool);
             }
         } catch (Exception ignored) {
         }

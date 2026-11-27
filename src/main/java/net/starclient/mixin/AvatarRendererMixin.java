@@ -23,7 +23,8 @@ public abstract class AvatarRendererMixin {
 
     @Inject(method = "<init>", at = @At("RETURN"))
     private void starclient$addCosmeticsLayer(EntityRendererProvider.Context context, boolean slimSteve, CallbackInfo ci) {
-        ((LivingEntityRendererAccessor) this).callAddLayer(new StarCosmeticLayer((AvatarRenderer<?>) (Object) this));
+        ((LivingEntityRendererAccessor) this).callAddLayer(
+                new StarCosmeticLayer((AvatarRenderer<?>) (Object) this, context.getEquipmentAssets()));
     }
 
     @Inject(method = "shouldShowName(Lnet/minecraft/world/entity/Avatar;D)Z", at = @At("HEAD"), cancellable = true)
@@ -47,14 +48,16 @@ public abstract class AvatarRendererMixin {
         CapeCosmetic cape = cosmetics == null ? null : cosmetics.getEquippedCapeCosmetic();
         if (cape != null) {
             PlayerSkin skin = state.skin;
+            ClientAsset.ResourceTexture capeAsset = new ClientAsset.ResourceTexture(cape.assetId(), cape.textureId());
             state.skin = new PlayerSkin(
                     skin.body(),
-                    new ClientAsset.ResourceTexture(cape.assetId(), cape.textureId()),
-                    skin.elytra(),
+                    capeAsset,
+                    capeAsset,
                     skin.model(),
                     skin.secure()
             );
-            // Hide vanilla rigid cape so StarCosmeticLayer renders fluid Wavey Cape
+            // Hide vanilla rigid cape so StarCosmeticLayer renders the custom/wavey cape;
+            // WingsLayer reads skin.elytra() above so the cape turns into a matching Elytra when worn.
             state.showCape = false;
         }
 

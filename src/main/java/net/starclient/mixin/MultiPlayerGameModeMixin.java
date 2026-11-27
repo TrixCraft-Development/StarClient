@@ -21,6 +21,7 @@ import net.starclient.module.CombatStatsTracker;
 import net.starclient.module.DurabilityGuardState;
 import net.starclient.module.FastBreakState;
 import net.starclient.module.OldAnimationsState;
+import net.starclient.module.StorageFinderManager;
 import net.starclient.stats.ClientStatsManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -113,6 +114,10 @@ public abstract class MultiPlayerGameModeMixin {
     private void starclient$guardUseItemOn(LocalPlayer player, InteractionHand hand, BlockHitResult hit, CallbackInfoReturnable<InteractionResult> cir) {
         if (DurabilityGuardState.shouldPreventUseOnBlock(player, hand, hit)) {
             cir.setReturnValue(InteractionResult.PASS);
+            return;
+        }
+        if (player != null && hit != null) {
+            StorageFinderManager.onUseBlock(player.level(), hit.getBlockPos());
         }
     }
 
@@ -120,6 +125,7 @@ public abstract class MultiPlayerGameModeMixin {
     private void onBlockDestroyed(BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
         if (cir.getReturnValue() != null && cir.getReturnValue()) {
             ClientStatsManager.getInstance().onBlockMined();
+            StorageFinderManager.onBlockDestroyed(pos);
         }
     }
 

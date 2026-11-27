@@ -19,6 +19,7 @@
     "BossHealthOverlayAccessor",
     "CameraInvoker",
     "CameraMixin",
+    "ChatComponentAccessor",
     "ChatMessageMixin",
     "ChatScreenMixin",
     "ClientClockManagerMixin",

@@ -58,6 +58,7 @@ public final class PresetCosmetics {
             case "animated_cosmic" -> generateCosmicCape(img, 0.0f);
             default -> generateStarClientCape(img);
         }
+        populateElytraFromCape(img);
 
         DynamicTexture tex = new DynamicTexture(() -> "starclient_preset_cape_" + id, img);
         client.getTextureManager().register(textureId, tex);
@@ -127,12 +128,82 @@ public final class PresetCosmetics {
         return textureId;
     }
 
+    // Exact vanilla 24x22 Elytra UV silhouette mask (x: 22..45, y: 0..21 on a 64x32 cape sheet)
+    private static final String[] ELYTRA_WING_MASK = {
+            ".........#########......",
+            "..........##............",
+            "............########....",
+            "............#########...",
+            ".............#########..",
+            ".............#########..",
+            ".............#########..",
+            ".............##########.",
+            ".............##########.",
+            ".............##########.",
+            ".............##########.",
+            "#.............##########",
+            "#.............##########",
+            "#.............##########",
+            "#.............##########",
+            "#.............##########",
+            "#..............#########",
+            "#..............#########",
+            "#..............#########",
+            "#...............########",
+            "#...............########",
+            "#................#######"
+    };
+
+    /**
+     * Populates the vanilla Elytra wing UV region (x: 22..45, y: 0..21) on a 64x32 cape texture
+     * by projecting the cape's outer face artwork (x: 1..10, y: 1..16) onto the authentic Elytra
+     * wing silhouette so custom procedural capes seamlessly transform into matching Elytras.
+     */
+    private static void populateElytraFromCape(NativeImage img) {
+        if (img == null || img.getWidth() < 46 || img.getHeight() < 22) return;
+        int trimCol = img.getPixel(1, 1);
+
+        for (int dy = 0; dy < ELYTRA_WING_MASK.length; dy++) {
+            String row = ELYTRA_WING_MASK[dy];
+            int minFill = -1;
+            int maxFill = -1;
+            for (int dx = 12; dx < row.length(); dx++) {
+                if (row.charAt(dx) == '#') {
+                    if (minFill < 0) minFill = dx;
+                    maxFill = dx;
+                }
+            }
+
+            for (int dx = 0; dx < row.length(); dx++) {
+                int x = 22 + dx;
+                if (row.charAt(dx) != '#') {
+                    img.setPixel(x, dy, 0);
+                    continue;
+                }
+                if (dy < 2 || dx == 0) {
+                    // Top shoulder seam and thin outer wing edge
+                    img.setPixel(x, dy, trimCol);
+                } else {
+                    int span = Math.max(1, maxFill - minFill);
+                    int srcX = 1 + Math.clamp(((dx - minFill) * 9) / span, 0, 9);
+                    int srcY = 1 + Math.clamp(((dy - 2) * 15) / 19, 0, 15);
+                    int col = img.getPixel(srcX, srcY);
+                    if (dx == minFill || dx == maxFill || dy == 2 || dy == 21) {
+                        col = trimCol;
+                    }
+                    img.setPixel(x, dy, col);
+                }
+            }
+        }
+    }
+
     public static void tickAnimations(long ticks) {
         // Animated Chroma Cape (shifts colors smoothly)
         DynamicTexture chromaTex = PRESET_TEXTURES.get("cape_animated_chroma");
         if (chromaTex != null) {
             float phase = (ticks % 100) / 100.0f;
             generateChromaCape(chromaTex.getPixels(), phase);
+            populateElytraFromCape(chromaTex.getPixels());
             chromaTex.upload();
         }
 
@@ -141,6 +212,7 @@ public final class PresetCosmetics {
         if (cosmicTex != null) {
             float pulse = (float) (Math.sin(ticks * 0.12) * 0.5 + 0.5);
             generateCosmicCape(cosmicTex.getPixels(), pulse);
+            populateElytraFromCape(cosmicTex.getPixels());
             cosmicTex.upload();
         }
     }
@@ -596,6 +668,7 @@ public final class PresetCosmetics {
         if (Files.exists(target)) return;
         try (NativeImage img = new NativeImage(64, 32, true)) {
             generator.accept(img);
+            populateElytraFromCape(img);
             img.writeToFile(target);
         } catch (Exception ignored) {}
     }

@@ -6,7 +6,7 @@
 ![Version](https://img.shields.io/badge/Version-v0.13-A78BFA?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-64748B?style=for-the-badge)
 
-**Star Client** is a modern, high-performance modular Minecraft client built on **Fabric** for **Minecraft 26.2 (Java 25)** by **TrixCraft Development**. It combines a sleek glassmorphic user interface, **115 customizable modules**, **32 draggable & scalable HUD widgets**, an **In-Game Screenshot Gallery**, a **Quick Server Switcher**, **Discord Rich Presence**, a full **3D Cosmetics Studio**, **Saved Loadout Profiles** with automatic world/server switching, a **Client Friends System**, an **In-Game Account Manager**, and deep **FPS / Render Optimizations** — while remaining fully compatible with standard Fabric mods.
+**Star Client** is a modern, high-performance modular Minecraft client built on **Fabric** for **Minecraft 26.2 (Java 25)** by **TrixCraft Development**. It combines a sleek glassmorphic user interface, **123 customizable modules**, **32 draggable & scalable HUD widgets**, an **In-Game Screenshot Gallery**, a **Quick Server Switcher**, **Discord Rich Presence**, a full **3D Cosmetics Studio**, **Saved Loadout Profiles** with automatic world/server switching, a **Client Friends System**, an **In-Game Account Manager**, and deep **FPS / Render Optimizations** — while remaining fully compatible with standard Fabric mods.
 
 ---
 
@@ -20,13 +20,13 @@
    - [Client Statistics Dashboard](#4-client-statistics-dashboard)
    - [Account Manager, Custom Main Menu & Mod Browser](#5-account-manager-custom-main-menu--mod-browser)
 3. [General Client Settings (`Settings` Tab)](#-general-client-settings-settings-tab)
-4. [Complete Modules & Settings Reference (115 Modules)](#-complete-modules--settings-reference-115-modules)
+4. [Complete Modules & Settings Reference (123 Modules)](#-complete-modules--settings-reference-123-modules)
    - [🗡 Combat (7 Modules)](#-combat-7-modules)
-   - [🎨 UI & Visuals (34 Modules)](#-ui--visuals-34-modules)
+   - [🎨 UI & Visuals (35 Modules)](#-ui--visuals-35-modules)
    - [👁 Render (15 Modules)](#-render-15-modules)
    - [🛡 Player (21 Modules)](#-player-21-modules)
    - [🚀 Movement (3 Modules)](#-movement-3-modules)
-   - [🌍 World (9 Modules)](#-world-9-modules)
+   - [🌍 World (16 Modules)](#-world-16-modules)
    - [🖥 Server (11 Modules)](#-server-11-modules)
    - [⚔ Cheats (15 Modules)](#-cheats-15-modules)
 5. [Default Keybinds](#-default-keybinds)
@@ -37,7 +37,7 @@
 
 ## ✨ Key Highlights
 
-- **103 Built-In Modules**: Covering Combat enhancements, HUD widgets, rendering upgrades, performance boosters, quality-of-life tools, server integrations, and world customization.
+- **123 Built-In Modules**: Covering Combat enhancements, HUD widgets, rendering upgrades, performance boosters, workstation & redstone helpers, quality-of-life tools, server integrations, and world customization.
 - **Modern Glassmorphic UI**: Custom title screen, rounded buttons, smooth container pop-in animations, background blur, unified slide-in corner toast notifications, and customizable accent (`10` colors) & surface (`10` dark palettes) themes.
 - **28 Draggable & Scalable HUD Widgets**: Free-form HUD Editor with magnetic edge/center snap guides, scroll-wheel per-widget scaling (`0.50x` – `2.00x`), and per-widget background/text colors.
 - **90+ Built-In Cosmetics**: Complete collection of **82+ official capes**, custom Star Client & animated capes, 3D wings, headwear, and particle trails with interactive 3D avatar preview and per-account loadouts.
@@ -139,7 +139,7 @@ Global settings that control Star Client's theme, menus, and safeguards:
 
 ---
 
-## 📦 Complete Modules & Settings Reference (104 Modules)
+## 📦 Complete Modules & Settings Reference (123 Modules)
 
 > **Note:** Every HUD widget module (`[HUD]`) also includes **Transparent Background**, **Background Color**, and **Text Color** appearance settings in addition to the module-specific settings listed below.
 
@@ -363,13 +363,14 @@ Displays live total counts of key PvP & survival items across your entire invent
 - `Building Blocks` (`Boolean`, default `false`)
 
 #### 24. **Chat**
-Comprehensive chat overhaul with timestamps, anti-spam stacking, click-to-copy, cross-server history, banned-word censoring, and mention highlights.
+Comprehensive chat overhaul with timestamps, anti-spam stacking, click-to-copy, `Ctrl + F` chat history search, cross-server history, banned-word censoring, and mention highlights.
 - `Transparent Background` (`Boolean`, default `false`) — Hide the dark chat backdrop.
 - `Timestamps` (`Boolean`, default `true`) — Prepend local time to incoming chat messages.
 - `Time Format` (`Mode`: `24h (HH:mm)`, `24h (HH:mm:ss)`, `12h (hh:mm a)`, default `24h (HH:mm)`)
 - `Compact Chat` (`Boolean`, default `true`) — Collapse duplicate messages with `[x2]`, `[x3]` counters.
 - `Click to Copy` (`Boolean`, default `true`) — Click chat lines to copy their text to the clipboard.
 - `Copy Server & Mod Info` (`Boolean`, default `true`) — Also allow click-to-copy on server announcements, system messages, and mod info lines.
+- `Chat Search (Ctrl+F)` (`Boolean`, default `true`) — Press `Ctrl + F` (or click the `🔍 Search` button above the chat bar) to live-search through your chat history with highlighted matches and 1-click copy.
 - `Save Chat History` (`Boolean`, default `true`) — Preserve chat history when switching servers or worlds, inserting a styled `⭐ Joined <Server / World>` divider between sessions.
 - `Extended History` (`Number`: `100` – `5000`, step `100`, default `1000`) — Maximum scrollback message limit.
 - `Word Filter` (`Boolean`, default `true`) — Censor configured banned words in chat by replacing each letter with `*`.
@@ -501,6 +502,17 @@ Adds a compact glassmorphic 1-click Minecraft color & formatting toolbar (all 16
 - `Show on Signs` (`Boolean`, default `true`)
 - `Show on Books` (`Boolean`, default `true`)
 - `Show on Anvil` (`Boolean`, default `true`)
+
+#### 37. **Gear Comparison**
+Displays a side-by-side glassmorphic comparison card beside item tooltips when hovering weapons, tools, or armor in inventories and containers — showing an overall upgrade verdict (`▲ UPGRADE`, `▼ LOWER`, `◆ MIXED`), green/red stat diffs (`Damage`, `Atk Speed`, `Est. DPS`, `Mine Speed`, `Armor`, `Toughness`, `KB Resist`, `Durability`), and Enchantment gain/loss diffs against your equipped gear or matching hotbar tool.
+- `Display Mode` (`Mode`: `Always`, `Hold Key`, default `Always`)
+- `Compare Key` (`Mode`: `Shift`, `Ctrl`, `Alt`, default `Shift`)
+- `Compare Armor` (`Boolean`, default `true`)
+- `Compare Weapons & Tools` (`Boolean`, default `true`)
+- `Smart Hotbar Match` (`Boolean`, default `true`) — Automatically compare tools/weapons against the matching item in your hotbar when not holding one in your main hand.
+- `Show Enchantment Diffs` (`Boolean`, default `true`)
+- `Show Durability Diff` (`Boolean`, default `true`)
+- `Include Enchant Bonuses` (`Boolean`, default `true`) — Factor Sharpness damage & Efficiency mining speed bonuses into comparisons.
 
 ---
 
@@ -805,7 +817,7 @@ Tap your sneak key once to stay crouched hands-free.
 
 ---
 
-### 🌍 World (6 Modules)
+### 🌍 World (16 Modules)
 
 #### 64. **Time Changer** *(Default Key: `T`)*
 Overrides the client-side sky time and lighting without affecting the server.
@@ -891,6 +903,63 @@ Enhances Minecraft's Anvil GUI with per-slot Prior Work Penalty / Anvil Use badg
 - `Swap Order Optimizer` (`Boolean`, default `true`) — Alert whenever swapping left and right inputs reduces XP cost.
 - `Show Helper Panel` (`Boolean`, default `true`) — Display the glassmorphic Anvil Helper panel beside the Anvil UI.
 - `Always Show Panel` (`Boolean`, default `false`) — Keep the helper panel visible even when the Anvil is empty.
+
+#### 73. **Brewing Guide**
+Interactive glassmorphic Potion Brewing Guide beside Minecraft's Brewing Stand UI displaying all vanilla potion recipes with ingredient icons, live inventory ownership checks (`✓`), an `All` / `Have` filter toggle, Redstone/Glowstone/Corrupt badges, and a modifier legend.
+- `Highlight Owned` (`Boolean`, default `true`) — Highlight recipes whose ingredient is currently in your inventory or Brewing Stand.
+- `Show Modifier Legend` (`Boolean`, default `true`) — Display the modifier legend (`Redstone +Time`, `Glowstone +II`, `Gunpowder Splash`, `Dragon's Breath Lingering`).
+
+#### 74. **Furnace Helper**
+Glassmorphic side panel for Furnaces, Blast Furnaces (`2×`), and Smokers (`2×`) displaying exact remaining stack smelt time (`mm:ss`), live smelt & fuel progress bars, exact fuel needed (Coal, Blaze Rods, Dried Kelp Blocks, Lava Buckets), and a **Fuel Waste Warning** when burning high-capacity fuel on small stacks.
+- `Fuel Waste Warning` (`Boolean`, default `true`) — Warn when a single fuel unit would waste burn capacity on a small input stack.
+- `Always Show Panel` (`Boolean`, default `false`) — Keep the Furnace Helper panel visible even when empty and idle.
+
+#### 75. **Enchant & Grindstone**
+Enhances both Enchanting Tables (scanning the `5×2×5` bookshelf ring for `0–15` active bookshelves and flagging torches/carpets/blocks obstructing air gaps) and Grindstones (previewing exact vanilla XP orb/level returns and warning before stripping Treasure enchantments like `Mending`, `Soul Speed`, `Swift Sneak`, `Wind Burst`, or `Frost Walker`).
+- `Enchanting Table Helper` (`Boolean`, default `true`) — Show bookshelf count (`0–15`), max-level readiness, and obstructed-gap alerts beside the Enchanting Table UI.
+- `Grindstone Helper` (`Boolean`, default `true`) — Preview exact min–max XP orbs, estimated level gain, and Curse reminders beside the Grindstone UI.
+- `Treasure Enchant Warning` (`Boolean`, default `true`) — Highlight treasure enchantments with a crimson warning before disenchanting.
+
+#### 76. **Beacon Helper**
+Enhances Beacon screens with a Pyramid Tier (`0–4`) & Range (`±20m` – `±50m`) helper panel showing exact remaining mineral blocks for the next tier, sky-beam obstruction alerts, and active Primary/Secondary effects — plus renders glowing 3D Beacon coverage boundaries and floating `Inside`/`Outside` badges in the world.
+- `Show Beacon UI Panel` (`Boolean`, default `true`) — Display the Pyramid & Range helper panel beside the Beacon UI.
+- `Show 3D Range Box` (`Boolean`, default `true`) — Render glowing 3D horizontal Beacon coverage boundaries around nearby Beacons.
+- `Show Beacon Label` (`Boolean`, default `true`) — Show floating tier, range, and `Inside`/`Outside` badges above Beacons.
+- `Scan Range` (`Number`: `24` – `160` blocks, step `8`, default `96`)
+- `Use Client Color` (`Boolean`, default `true`) — Match 3D boundary lines to Client Menu Color.
+- `Color` (`ColorMode`, default `Sky Blue`) — Custom 3D boundary color when `Use Client Color` is off.
+- `Line Thickness` (`Number`: `1.0` – `4.0px`, step `0.5`, default `1.5`)
+
+#### 77. **Redstone Inspector**
+Crisp glassmorphic crosshair HUD badge inspecting Redstone Dust (`0–15` power + 15-segment signal bar), Repeaters (delay ticks & locked state), Comparators (`Compare`/`Subtract`), Note Blocks (exact musical pitch `F#3`–`F#5` & instrument), Daylight Detectors, Observers, Copper Bulbs, Pistons, Hoppers, Crafters, and comparator-readable blocks (Composter, Cauldron, Cake, Beehive, Respawn Anchor, Chiseled Bookshelf, End Portal Frame, Jukebox, Lectern).
+- `Position` (`Mode`: `Below Crosshair`, `Top Center`, default `Below Crosshair`)
+- `Show Signal Bar` (`Boolean`, default `true`) — Render a 15-segment color-coded signal bar.
+- `Show Note Pitch` (`Boolean`, default `true`) — Show exact musical note pitch (`F#3`–`F#5`) on Note Blocks.
+- `Show Containers & Misc` (`Boolean`, default `true`) — Also inspect comparator-readable blocks (Composter, Cauldron, Cake, Beehive, Respawn Anchor, etc.).
+
+#### 78. **World Map** *(Default Key: `M`)*
+Fullscreen zoomable & pannable interactive World Map that caches explored chunks per world/server and dimension (persisted to `.minecraft/config/starclient/worldmap/`), renders Waypoint pins and loaded players/friends, displays live cursor coordinates, biome, distance & Overworld ↔ Nether conversion, and offers a right-click context menu to create/edit/delete Waypoints or copy coordinates.
+- `Open World Map` (`Boolean`, action) — Open the World Map immediately from ClickGUI.
+- `Show Waypoints` (`Boolean`, default `true`)
+- `Show Players` (`Boolean`, default `true`)
+- `Show Chunk Grid` (`Boolean`, default `false`) — Overlay `16×16` chunk boundaries (toggleable in-map with `G`).
+- `Show Coordinates & Biome` (`Boolean`, default `true`)
+- `Save Explored Map` (`Boolean`, default `true`) — Save explored terrain tiles to disk automatically.
+- `Clear Map Cache` (`Boolean`, action) — Clear cached terrain for the current world/dimension.
+
+#### 79. **Storage Finder** *(Default Key: `X`)*
+Automatically remembers the contents of opened **Chests**, **Double Chests**, **Barrels**, **Shulker Boxes** (including nested Shulker items inside chests), **Hoppers**, and **Dispensers/Droppers** per world/server and dimension (`storage_finder.json`). Press `X` to search by item name, custom name, enchantment (`mending`, `protection iv`), or potion effect, then highlight every matching container in 3D through walls with pulsing outlines, exact item counts (`×256`), distances, and 1-click Waypoint pinning.
+- `Open Storage Finder` (`Boolean`, action) — Open the Base Storage Search overlay immediately.
+- `Clear Active Highlight` (`Boolean`, action) — Clear active 3D highlights immediately.
+- `Index Nested Shulkers` (`Boolean`, default `true`) — Also index items stored inside Shulker Boxes placed inside chests/barrels.
+- `Show 3D Boxes` (`Boolean`, default `true`) — Draw pulsing 3D outline boxes around matching containers (merged cleanly for Double Chests).
+- `Show Labels` (`Boolean`, default `true`) — Show floating item count (`×128`) and distance tags.
+- `Tracers` (`Boolean`, default `false`) — Draw tracer lines from crosshair to matching containers.
+- `Highlight Duration (s)` (`Number`: `0` – `300s`, step `15`, default `90`) — `0` stays active until manually cleared.
+- `Auto-Clear When Opened` (`Boolean`, default `false`) — Automatically clear highlights when opening a matched container.
+- `Max Range` (`Number`: `16` – `256` blocks, step `16`, default `128`)
+- `Use Client Color` (`Boolean`, default `true`) / `Color` (`ColorMode`, default `Sky Blue`) / `Line Thickness` (`Number`: `1.0` – `4.0px`, default `2.0`)
+- `Clear Storage Cache` (`Boolean`, action) — Clear indexed containers for the current world/dimension.
 
 ---
 
@@ -1128,6 +1197,10 @@ All module keybinds can be customized or cleared directly inside the **ClickGUI*
 | `C` | **Zoom** | Hold |
 | `G` | **Free Look** (`360°` Orbit Camera) | Hold |
 | `R` | **Radial Quick-Swap** | Hold |
+| `M` | **World Map** (Fullscreen Interactive Map) | Action |
+| `X` | **Storage Finder** (Base Container Item Search) | Action |
+| `L` | **Slot Lock** (Lock Hovered/Held Slot) | Action |
+| `O` | **Crafting Calculator** | Action |
 | `Z` | **Tactical Ping** (`Sneak + Z` to Clear) | Action |
 | `V` | **Toggle Sprint** | Toggle |
 | `B` | **Fullbright** | Toggle |

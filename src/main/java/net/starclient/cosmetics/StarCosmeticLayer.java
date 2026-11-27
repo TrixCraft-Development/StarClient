@@ -12,17 +12,38 @@ import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.resources.model.EquipmentAssetManager;
+import net.minecraft.client.resources.model.EquipmentClientInfo;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.equipment.Equippable;
 import org.joml.Quaternionf;
 import org.jspecify.annotations.NonNull;
 
 public class StarCosmeticLayer extends RenderLayer<AvatarRenderState, PlayerModel> {
 
     private final PlayerCapeModel vanillaCapeModel;
+    private final EquipmentAssetManager equipmentAssets;
 
-    public StarCosmeticLayer(RenderLayerParent<AvatarRenderState, PlayerModel> parent) {
+    public StarCosmeticLayer(RenderLayerParent<AvatarRenderState, PlayerModel> parent, EquipmentAssetManager equipmentAssets) {
         super(parent);
         this.vanillaCapeModel = new PlayerCapeModel(PlayerCapeModel.createCapeLayer().bakeRoot());
+        this.equipmentAssets = equipmentAssets;
+    }
+
+    private boolean isWearingElytra(ItemStack chest) {
+        if (chest == null || chest.isEmpty()) return false;
+        if (chest.is(Items.ELYTRA) || chest.has(DataComponents.GLIDER)) {
+            return true;
+        }
+        Equippable equippable = chest.get(DataComponents.EQUIPPABLE);
+        if (equippable == null || equippable.assetId().isEmpty() || this.equipmentAssets == null) {
+            return false;
+        }
+        EquipmentClientInfo info = this.equipmentAssets.get(equippable.assetId().get());
+        return !info.getLayers(EquipmentClientInfo.LayerType.WINGS).isEmpty();
     }
 
     @Override
@@ -39,10 +60,11 @@ public class StarCosmeticLayer extends RenderLayer<AvatarRenderState, PlayerMode
         CosmeticManager cosmetics = CosmeticManager.getInstance();
         if (cosmetics == null) return;
 
-        // 1. Render Cape: Wavey Cape Physics is active ONLY for Premium supporters when "Atmospheric Wind Sway" is ON.
+        // 1. Render Cape: Hidden when wearing an Elytra (matching vanilla Minecraft where the cape turns into the Elytra).
+        // Wavey Cape Physics is active ONLY for Premium supporters when "Atmospheric Wind Sway" is ON.
         // For User rank OR when Wind Sway is toggled OFF, it behaves 100% identical to vanilla Minecraft.
         CapeCosmetic cape = cosmetics.getEquippedCapeCosmetic();
-        if (cape != null) {
+        if (cape != null && !isWearingElytra(state.chestEquipment)) {
             boolean useWavey = cosmetics.hasWavePhysicsPermission() && cosmetics.isCapeWindSway();
             if (useWavey) {
                 renderWaveyCape(poseStack, submitNodeCollector, packedLight, state, cosmetics, cape);

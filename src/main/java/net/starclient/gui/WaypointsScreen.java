@@ -72,6 +72,23 @@ public class WaypointsScreen extends Screen {
         return screen;
     }
 
+    public static WaypointsScreen openCreateAt(Screen parent, int x, int y, int z, String dimension) {
+        WaypointsScreen screen = new WaypointsScreen(parent);
+        screen.editorOpen = true;
+        screen.editingWaypoint = null;
+        Minecraft mc = Minecraft.getInstance();
+        int nextNum = WaypointsState.getWaypointsForCurrentContext(mc).size() + 1;
+        screen.initialName = "Waypoint #" + nextNum;
+        screen.initialX = String.valueOf(x);
+        screen.initialY = String.valueOf(y);
+        screen.initialZ = String.valueOf(z);
+        if (dimension != null && !dimension.isBlank()) {
+            screen.selectedDimension = WaypointsState.normalizeDimension(dimension);
+        }
+        screen.selectedColor = WaypointsState.PALETTE[(nextNum - 1) % WaypointsState.PALETTE.length];
+        return screen;
+    }
+
     public static WaypointsScreen openEdit(Screen parent, WaypointsState.Waypoint waypoint) {
         WaypointsScreen screen = new WaypointsScreen(parent);
         if (waypoint != null) {

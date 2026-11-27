@@ -98,6 +98,8 @@ public class StarClient implements ClientModInitializer {
         // Save configuration on game shutdown
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             DiscordRpcManager.shutdown();
+            net.starclient.module.WorldMapManager.saveAllDirtySync();
+            net.starclient.module.StorageFinderManager.saveSync();
             this.configManager.saveConfig();
             net.starclient.friend.FriendManager.save();
         }));
@@ -112,6 +114,8 @@ public class StarClient implements ClientModInitializer {
             ClientStatsManager.getInstance().onTick(client);
             net.starclient.module.AutoRespawnReconnectState.onClientTick(client);
             net.starclient.module.WaypointsState.onClientTick(client);
+            net.starclient.module.WorldMapManager.onClientTick(client);
+            net.starclient.module.StorageFinderManager.onClientTick(client);
             net.starclient.module.AutoGgState.onClientTick(client);
             net.starclient.friend.FriendManager.onClientTick(client);
             net.starclient.module.StopwatchTimerState.onClientTick(client);

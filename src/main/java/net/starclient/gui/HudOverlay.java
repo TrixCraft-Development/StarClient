@@ -611,6 +611,30 @@ public class HudOverlay {
             SpawnerOverlayRenderer.render(extractor, client, spawnerOverlayMod);
         }
 
+        // 13d2. Beacon Helper (In-world 3D Beacon Coverage Boundary & Status Badges)
+        Module beaconHelperMod = StarClient.getInstance().getModuleManager().getModuleByName("Beacon Helper");
+        if (beaconHelperMod != null && beaconHelperMod.isEnabled()
+                && !(client.gui.screen() instanceof ClickGuiScreen)
+                && !(client.gui.screen() instanceof HudEditorScreen)) {
+            BeaconHelperRenderer.renderWorld(extractor, client, beaconHelperMod);
+        }
+
+        // 13d3. Redstone Inspector (Crosshair Signal Strength, Note Pitch & Comparator Inspector)
+        Module redstoneInspectorMod = StarClient.getInstance().getModuleManager().getModuleByName("Redstone Inspector");
+        if (redstoneInspectorMod != null && redstoneInspectorMod.isEnabled()
+                && !(client.gui.screen() instanceof ClickGuiScreen)
+                && !(client.gui.screen() instanceof HudEditorScreen)) {
+            RedstoneInspectorRenderer.render(extractor, client, redstoneInspectorMod);
+        }
+
+        // 13d4. Storage Finder (3D Base Container Item Highlight & Search Banner)
+        Module storageFinderMod = StarClient.getInstance().getModuleManager().getModuleByName("Storage Finder");
+        if (storageFinderMod != null && storageFinderMod.isEnabled()
+                && !(client.gui.screen() instanceof ClickGuiScreen)
+                && !(client.gui.screen() instanceof HudEditorScreen)) {
+            StorageFinderRenderer.render(extractor, client, storageFinderMod);
+        }
+
         // 13e. Bed Defense Inspector (Bedwars defense layers above beds)
         Module bedDefenseMod = StarClient.getInstance().getModuleManager().getModuleByName("Bed Defense");
         if (bedDefenseMod != null && bedDefenseMod.isEnabled()) {

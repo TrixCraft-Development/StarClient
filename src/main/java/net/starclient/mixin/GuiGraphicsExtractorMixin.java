@@ -6,6 +6,7 @@ import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner;
 import net.minecraft.resources.Identifier;
 import net.starclient.gui.ContainerPreviewRenderer;
+import net.starclient.gui.GearComparisonRenderer;
 import net.starclient.module.TooltipFeaturesState;
 import org.joml.Matrix3x2fStack;
 import org.joml.Vector2ic;
@@ -63,11 +64,14 @@ public abstract class GuiGraphicsExtractorMixin {
     private void starclient$renderAnchoredContainerPreview(Font font, List<ClientTooltipComponent> lines,
                                                            int xo, int yo, ClientTooltipPositioner positioner,
                                                            Identifier style, CallbackInfo ci) {
-        if (!ContainerPreviewRenderer.hasPending()) {
+        boolean hasPreview = ContainerPreviewRenderer.hasPending();
+        boolean hasCompare = GearComparisonRenderer.hasPending();
+        if (!hasPreview && !hasCompare) {
             return;
         }
         if (lines == null || lines.isEmpty()) {
             ContainerPreviewRenderer.clearPending();
+            GearComparisonRenderer.clearPending();
             return;
         }
 
@@ -91,7 +95,13 @@ public abstract class GuiGraphicsExtractorMixin {
         int boxW = maxW + 8;
         int boxH = totalH + 8;
 
-        ContainerPreviewRenderer.renderPendingForTooltip(
-                (GuiGraphicsExtractor) (Object) this, boxX, boxY, boxW, boxH, screenW, screenH);
+        if (hasPreview) {
+            ContainerPreviewRenderer.renderPendingForTooltip(
+                    (GuiGraphicsExtractor) (Object) this, boxX, boxY, boxW, boxH, screenW, screenH);
+        }
+        if (hasCompare) {
+            GearComparisonRenderer.renderPendingForTooltip(
+                    (GuiGraphicsExtractor) (Object) this, boxX, boxY, boxW, boxH, screenW, screenH);
+        }
     }
 }

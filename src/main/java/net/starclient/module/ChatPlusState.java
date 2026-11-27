@@ -120,6 +120,10 @@ public final class ChatPlusState {
         return isEnabled() && getBool("Mention Sound", true);
     }
 
+    public static boolean isChatSearchEnabled() {
+        return isEnabled() && getBool("Chat Search (Ctrl+F)", true);
+    }
+
     public static int getMentionColor() {
         if (module != null && module.getSetting("Mention Color") instanceof ColorModeSetting cms) {
             return cms.getColor() & 0x00FFFFFF;

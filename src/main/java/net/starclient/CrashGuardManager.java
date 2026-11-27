@@ -11,6 +11,7 @@ import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.MemoryReserve;
 import net.starclient.gui.BaseAlertRenderer;
+import net.starclient.gui.BeaconHelperRenderer;
 import net.starclient.gui.BedDefenseRenderer;
 import net.starclient.gui.BedwarsTimersRenderer;
 import net.starclient.gui.BedwarsUpgradesRenderer;
@@ -24,6 +25,8 @@ import net.starclient.mixin.BlockableEventLoopAccessor;
 import net.starclient.mixin.MinecraftAccessor;
 import net.starclient.module.FreeCamState;
 import net.starclient.module.FreeLookState;
+import net.starclient.module.StorageFinderManager;
+import net.starclient.module.WorldMapManager;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -253,6 +256,9 @@ public final class CrashGuardManager {
         try { LootFeedRenderer.reset(); } catch (Throwable ignored) {}
         try { LowBlocksWarningRenderer.reset(); } catch (Throwable ignored) {}
         try { SpawnerOverlayRenderer.clear(); } catch (Throwable ignored) {}
+        try { BeaconHelperRenderer.clear(); } catch (Throwable ignored) {}
+        try { WorldMapManager.clearRuntimeState(); } catch (Throwable ignored) {}
+        try { StorageFinderManager.clearActiveHighlight(); } catch (Throwable ignored) {}
         try { LightOverlayRenderer.clear(); } catch (Throwable ignored) {}
         try { FreeCamState.setInitialized(false); } catch (Throwable ignored) {}
         try { FreeLookState.setInitialized(false); } catch (Throwable ignored) {}

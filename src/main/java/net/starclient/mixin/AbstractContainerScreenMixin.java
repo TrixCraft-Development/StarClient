@@ -10,17 +10,28 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.AbstractFurnaceMenu;
+import net.minecraft.world.inventory.BeaconMenu;
+import net.minecraft.world.inventory.BrewingStandMenu;
 import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.world.inventory.EnchantmentMenu;
+import net.minecraft.world.inventory.GrindstoneMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.starclient.ClientSettings;
 import net.starclient.StarClient;
+import net.starclient.gui.BeaconHelperRenderer;
+import net.starclient.gui.BrewingGuidePanel;
 import net.starclient.gui.ContainerPreviewRenderer;
 import net.starclient.gui.CraftingCalculatorScreen;
+import net.starclient.gui.EnchantGrindstoneHelper;
+import net.starclient.gui.FurnaceHelperRenderer;
+import net.starclient.gui.GearComparisonRenderer;
 import net.starclient.gui.GuiRenderUtils;
 import net.starclient.gui.InventorySearchHolder;
 import net.starclient.gui.InventorySearchManager;
 import net.starclient.module.SlotLockState;
+import net.starclient.module.StorageFinderManager;
 import net.starclient.module.TooltipFeaturesState;
 import org.joml.Matrix3x2fStack;
 import org.lwjgl.glfw.GLFW;
@@ -104,6 +115,7 @@ public abstract class AbstractContainerScreenMixin extends Screen implements Inv
     private void starclient$onInit(CallbackInfo ci) {
         if (this.starclient$openTimeMs == 0L) {
             this.starclient$openTimeMs = System.currentTimeMillis();
+            StorageFinderManager.onContainerOpened(this.title != null ? this.title.getString() : null, this.menu);
         }
         TooltipFeaturesState.resetScroll();
         if (!InventorySearchManager.isEnabled()) {
@@ -151,6 +163,7 @@ public abstract class AbstractContainerScreenMixin extends Screen implements Inv
         // Cache Ender Chest contents if viewing an Ender Chest
         if (this.title != null && this.menu != null) {
             TooltipFeaturesState.captureEnderChestIfOpen(this.title.getString(), this.menu);
+            StorageFinderManager.onContainerRenderTick(this.menu);
         }
 
         if (InventorySearchManager.isEnabled()) {
@@ -200,17 +213,36 @@ public abstract class AbstractContainerScreenMixin extends Screen implements Inv
             graphics.pose().popMatrix();
             this.starclient$animMatrixPushed = false;
         }
+
+        if (this.menu instanceof BrewingStandMenu brewingMenu) {
+            graphics.nextStratum();
+            BrewingGuidePanel.render(graphics, brewingMenu, this.width, this.leftPos, this.topPos, this.imageWidth, this.imageHeight, mouseX, mouseY);
+        } else if (this.menu instanceof AbstractFurnaceMenu furnaceMenu) {
+            graphics.nextStratum();
+            FurnaceHelperRenderer.render(graphics, furnaceMenu, this.width, this.leftPos, this.topPos, this.imageWidth, this.imageHeight);
+        } else if (this.menu instanceof EnchantmentMenu enchantMenu) {
+            graphics.nextStratum();
+            EnchantGrindstoneHelper.renderEnchantmentPanel(graphics, enchantMenu, this.width, this.leftPos, this.topPos, this.imageWidth, this.imageHeight);
+        } else if (this.menu instanceof GrindstoneMenu grindMenu) {
+            graphics.nextStratum();
+            EnchantGrindstoneHelper.renderGrindstonePanel(graphics, grindMenu, this.width, this.leftPos, this.topPos, this.imageWidth, this.imageHeight);
+        } else if (this.menu instanceof BeaconMenu beaconMenu) {
+            graphics.nextStratum();
+            BeaconHelperRenderer.renderBeaconPanel(graphics, beaconMenu, this.width, this.leftPos, this.topPos, this.imageWidth, this.imageHeight);
+        }
     }
 
     @Inject(method = "extractTooltip", at = @At("TAIL"))
     private void starclient$onExtractTooltip(GuiGraphicsExtractor graphics, int mouseX, int mouseY, CallbackInfo ci) {
         ContainerPreviewRenderer.clearPending();
+        GearComparisonRenderer.clearPending();
         TooltipFeaturesState.updateHoveredSlot(this.hoveredSlot);
         if (this.hoveredSlot != null
                 && this.hoveredSlot.hasItem()
                 && this.menu.getCarried().isEmpty()
                 && this.minecraft != null) {
             ContainerPreviewRenderer.queueForNextTooltip(this.hoveredSlot.getItem());
+            GearComparisonRenderer.queueForNextTooltip(this.hoveredSlot, this.hoveredSlot.getItem());
         }
     }
 
@@ -218,6 +250,11 @@ public abstract class AbstractContainerScreenMixin extends Screen implements Inv
     private void starclient$onMouseScrolled(double mouseX, double mouseY,
                                             double horizontalAmount, double verticalAmount,
                                             CallbackInfoReturnable<Boolean> cir) {
+        if (this.menu instanceof BrewingStandMenu
+                && BrewingGuidePanel.handleMouseScroll(mouseX, mouseY, verticalAmount)) {
+            cir.setReturnValue(true);
+            return;
+        }
         if (this.hoveredSlot != null && this.hoveredSlot.hasItem() && this.minecraft != null) {
             boolean shiftHeld = InputConstants.isKeyDown(this.minecraft.getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT)
                     || InputConstants.isKeyDown(this.minecraft.getWindow(), GLFW.GLFW_KEY_RIGHT_SHIFT);
@@ -258,6 +295,10 @@ public abstract class AbstractContainerScreenMixin extends Screen implements Inv
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
     private void starclient$onMouseClicked(MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
+        if (this.menu instanceof BrewingStandMenu && BrewingGuidePanel.handleMouseClick(event)) {
+            cir.setReturnValue(true);
+            return;
+        }
         if (!InventorySearchManager.isEnabled()) return;
         starclient$ensureSearchBox();
         if (this.starclient$searchBox == null) return;
@@ -352,9 +393,12 @@ public abstract class AbstractContainerScreenMixin extends Screen implements Inv
 
     @Inject(method = "removed", at = @At("HEAD"))
     private void starclient$onRemoved(CallbackInfo ci) {
+        StorageFinderManager.onContainerClosed(this.menu);
         InventorySearchManager.reset();
         TooltipFeaturesState.resetScroll();
         ContainerPreviewRenderer.clearPending();
+        GearComparisonRenderer.clearPending();
+        BrewingGuidePanel.reset();
         this.starclient$openTimeMs = 0L;
     }
 }
